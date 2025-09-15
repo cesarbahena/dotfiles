@@ -143,20 +143,33 @@ return {
         local filepath = vim.api.nvim_buf_get_name(buf)
         local modified = vim.api.nvim_get_option_value('modified', { buf = buf })
 
-        local color = '#938AA9' -- default
+        local color = '#938AA9' -- default purple for clean files
         local gui = nil
 
         if filepath ~= '' then
-          local git_status =
-            vim.fn.system('git status --porcelain ' .. vim.fn.shellescape(filepath) .. ' 2>/dev/null'):gsub('\n', '')
-          if git_status:match '^??' then
-            color = '#9ECE6A' -- green for untracked
-          elseif git_status:match '^.M' or git_status:match '^M.' then
-            color = '#E0AF68' -- yellow for modified
+          local git_status = vim.fn.system('git status --porcelain ' .. vim.fn.shellescape(filepath) .. ' 2>/dev/null'):gsub('\n', '')
+          
+          -- Debug: show what git status returns
+          -- vim.notify('File: ' .. vim.fn.fnamemodify(filepath, ':t') .. ' | Status: "' .. git_status .. '"')
+          
+          if git_status == '' then
+            -- File is tracked and clean
+            color = '#938AA9' -- purple
+          elseif git_status:match '^%?%?' then
+            -- File is untracked
+            color = '#9ECE6A' -- green
+          elseif git_status:match '^.M' or git_status:match '^M.' or git_status:match '^MM' then
+            -- File is modified
+            color = '#E0AF68' -- yellow
+          else
+            -- Unknown status, default to purple
+            color = '#938AA9' -- purple
           end
         end
 
-        if modified then gui = 'italic' end
+        if modified then 
+          gui = 'italic'
+        end
 
         return { fg = color, gui = gui }
       end,
