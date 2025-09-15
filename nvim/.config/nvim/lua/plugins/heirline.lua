@@ -155,11 +155,17 @@ return {
           if git_status == '' then
             -- File is tracked and clean
             color = '#C0C0C0' -- muted white
+          elseif git_status:match 'UU' or git_status:match 'AA' or git_status:match 'DD' then
+            -- Merge conflicts - immediate attention needed
+            color = '#f38ba8' -- red
+          elseif git_status:match 'AU' or git_status:match 'UA' or git_status:match 'UD' or git_status:match 'DU' then
+            -- Conflict states - immediate attention needed
+            color = '#f38ba8' -- red
           elseif git_status:match '^%?%?' then
             -- File is untracked
             color = '#a6e3a1' -- green
-          elseif git_status:match '^.M' or git_status:match '^M.' or git_status:match '^MM' then
-            -- File is modified
+          elseif git_status:match '[AM]' then
+            -- Modified/added files
             color = '#fab387' -- orange
           else
             -- Unknown status, default to muted white
