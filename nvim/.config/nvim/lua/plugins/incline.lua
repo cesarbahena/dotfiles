@@ -9,37 +9,48 @@ return {
         local tab = vim.api.nvim_win_get_tabpage(win)
         local wins_in_tab = vim.api.nvim_tabpage_list_wins(tab)
 
-        -- Filter out floating windows
+        -- Filter out floating windows and ensure we only work with normal windows
         local normal_wins = {}
         for _, w in ipairs(wins_in_tab) do
-          if vim.api.nvim_win_get_config(w).relative == '' then table.insert(normal_wins, w) end
-        end
-
-        -- Find the rightmost column
-        local rightmost_col = -1
-        for _, w in ipairs(normal_wins) do
-          local pos = vim.api.nvim_win_get_position(w)
-          local col = pos[2]
-          if col > rightmost_col then
-            rightmost_col = col
+          local config = vim.api.nvim_win_get_config(w)
+          if config.relative == '' and vim.api.nvim_win_is_valid(w) then 
+            table.insert(normal_wins, w) 
           end
         end
+        
+        -- If no normal windows, don't show incline
+        if #normal_wins == 0 then return nil end
+        
+        -- If only one window, it's both rightmost and topmost, so hide it
+        if #normal_wins == 1 then return nil end
 
-        -- Find the topmost window in the rightmost column
-        local topmost_in_rightmost = nil
-        local topmost_row = math.huge
+        -- Find the rightmost window in the top row only
+        local top_right_window = nil
+        local rightmost_col_in_top_row = -1
+        local top_row = math.huge
+        
+        -- First find what the top row is
+        for _, w in ipairs(normal_wins) do
+          local pos = vim.api.nvim_win_get_position(w)
+          local row = pos[1]
+          if row < top_row then
+            top_row = row
+          end
+        end
+        
+        -- Then find the rightmost window in that top row
         for _, w in ipairs(normal_wins) do
           local pos = vim.api.nvim_win_get_position(w)
           local col = pos[2]
           local row = pos[1]
-          if col == rightmost_col and row < topmost_row then
-            topmost_row = row
-            topmost_in_rightmost = w
+          if row == top_row and col > rightmost_col_in_top_row then
+            rightmost_col_in_top_row = col
+            top_right_window = w
           end
         end
 
-        -- Don't show anything for the topmost window in the rightmost column
-        if win == topmost_in_rightmost then return nil end
+        -- Don't show anything for the top-right window
+        if win == top_right_window then return nil end
 
         -- Get filename and icon
         local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ':t')

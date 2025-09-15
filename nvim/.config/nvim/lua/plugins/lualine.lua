@@ -91,7 +91,72 @@ return {
         },
       },
       lualine_z = {
-        'lsp_status',
+        {
+          function()
+            -- Find the top-right window (same logic as incline)
+            local current_tab = vim.api.nvim_get_current_tabpage()
+            local wins_in_tab = vim.api.nvim_tabpage_list_wins(current_tab)
+            
+            -- Filter out floating windows
+            local normal_wins = {}
+            for _, w in ipairs(wins_in_tab) do
+              local config = vim.api.nvim_win_get_config(w)
+              if config.relative == '' and vim.api.nvim_win_is_valid(w) then 
+                table.insert(normal_wins, w) 
+              end
+            end
+            
+            -- If no normal windows, don't show anything
+            if #normal_wins == 0 then return '' end
+            
+            local function get_file_display(buf)
+              local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
+              if filename == '' then filename = '[No Name]' end
+
+              -- Get icon using mini.icons
+              local ft_icon = require('mini.icons').get('file', filename)
+              
+              return (ft_icon and (ft_icon .. ' ') or '') .. filename
+            end
+
+            -- If only one window, show its info
+            if #normal_wins == 1 then
+              return get_file_display(vim.api.nvim_win_get_buf(normal_wins[1]))
+            end
+
+            -- Find the rightmost window in the top row
+            local top_right_window = nil
+            local rightmost_col_in_top_row = -1
+            local top_row = math.huge
+            
+            -- First find what the top row is
+            for _, w in ipairs(normal_wins) do
+              local pos = vim.api.nvim_win_get_position(w)
+              local row = pos[1]
+              if row < top_row then
+                top_row = row
+              end
+            end
+            
+            -- Then find the rightmost window in that top row
+            for _, w in ipairs(normal_wins) do
+              local pos = vim.api.nvim_win_get_position(w)
+              local col = pos[2]
+              local row = pos[1]
+              if row == top_row and col > rightmost_col_in_top_row then
+                rightmost_col_in_top_row = col
+                top_right_window = w
+              end
+            end
+
+            if not top_right_window then return '' end
+
+            -- Get buffer info for the top-right window
+            return get_file_display(vim.api.nvim_win_get_buf(top_right_window))
+          end,
+          color = { fg = '#ffffff' },
+          padding = { left = 1, right = 1 },
+        },
       },
     },
     sections = {
