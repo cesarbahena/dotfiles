@@ -25,9 +25,7 @@ return {
                 for _, sign in pairs(sign_group.signs) do
                   if sign.name:match '^Dap' then
                     local sign_def = vim.fn.sign_getdefined(sign.name)[1]
-                    if sign_def then 
-                      return '%#' .. sign_def.texthl .. '#' .. sign_def.text .. '%*'
-                    end
+                    if sign_def then return '%#' .. sign_def.texthl .. '#' .. sign_def.text .. '%*' end
                   end
                 end
               end
@@ -35,7 +33,7 @@ return {
               -- Priority 2: Line numbers with left padding and color coding
               if args.relnum == 0 then
                 -- Current line: left-padded line number
-                local line_num = tostring(vim.fn.line('.'))
+                local line_num = tostring(vim.fn.line '.')
                 local padding = line_num:len() == 1 and ' ' or ''
                 return '%#' .. diagnostic_hl .. '#' .. padding .. line_num .. '%*'
               else
@@ -60,7 +58,7 @@ return {
                 -- Non-current line: 2 spaces
                 return '  '
               end
-            end
+            end,
           },
           maxwidth = 3,
         },
@@ -69,3 +67,4 @@ return {
     }
   end,
 }
+
