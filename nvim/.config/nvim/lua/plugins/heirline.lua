@@ -32,16 +32,16 @@ return {
     -- CLI Theme Components
     local WorkingDir = {
       provider = function() return vim.fn.fnamemodify(vim.fn.getcwd(), ':~') end,
-      hl = { fg = '#7FB4CA' },
+      hl = { fg = '#7E9CD8' },
     }
 
     local GitBranch = {
       condition = function() return vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true' end,
       provider = function()
         local branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '')
-        return branch ~= '' and (' ' .. branch) or ''
+        return branch ~= '' and (' on ' .. branch .. ' ') or ''
       end,
-      hl = { fg = '#938AA9' },
+      hl = { fg = '#957FB8' },
     }
 
     local GitStatus = {
@@ -70,7 +70,7 @@ return {
         }
         return ' ' .. (mode_map[mode] or 'nvim')
       end,
-      hl = { fg = '#666666' },
+      hl = { fg = '#DCD7BA' },
     }
 
     local HarpoonMarks = {
@@ -92,7 +92,7 @@ return {
 
         return table.concat(result, '')
       end,
-      hl = { fg = '#666666' },
+      hl = { fg = '#DCD7BA' },
     }
 
     -- Helper function to get rightmost window
@@ -127,6 +127,18 @@ return {
         local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })
         local icon, hl = require('mini.icons').get('filetype', filetype)
         return icon
+      end,
+      hl = function()
+        local rightmost_win = get_rightmost_window()
+        local buf = vim.api.nvim_win_get_buf(rightmost_win)
+        local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })
+        local icon, hl_group = require('mini.icons').get('filetype', filetype)
+        
+        -- Get the color from the highlight group
+        local hl_attrs = vim.api.nvim_get_hl(0, { name = hl_group })
+        local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or '#C0C0C0'
+        
+        return { fg = color }
       end,
     }
 

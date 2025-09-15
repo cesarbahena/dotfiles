@@ -3,17 +3,18 @@ format = "$directory$git_branch$git_status$git_commit$git_state$character"
 right_format = "$all"
 
 [directory]
-style = "bold blue"
+style = "blue"
 read_only = " 󰌾"
 truncation_length = 3
 truncate_to_repo = false
 
 [git_branch]
 format = "[on $branch(:$remote_branch)]($style) "
+style = "purple"
 
 [git_status]
 format = "[$all_status$ahead_behind]($style)"
-style = "bold yellow"
+style = "yellow"
 stashed = " "
 ahead = "󰭾 "
 behind = "󰭽 "
@@ -26,7 +27,7 @@ deleted = "󱀷 "
 
 [custom.docker]
 symbol = "  "
-style = "blue bold"
+style = "blue"
 when = "test -f Dockerfile || test -f Dockerfile.dev"
 format = "[$symbol]($style)"
 
