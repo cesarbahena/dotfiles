@@ -3,9 +3,9 @@ return {
   -- No need to copy this inside `setup()`. Will be used automatically.
   opts = {
     mappings = {
-      close = '.',
-      go_in = 'o',
-      go_in_plus = '<cr>',
+      close = 'q',
+      go_in_plus = 'o',
+      go_in = '<cr>',
       go_out = 'k',
       go_out_plus = '',
       mark_goto = "'",

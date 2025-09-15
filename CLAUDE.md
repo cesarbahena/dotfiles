@@ -128,3 +128,64 @@ Language servers are configured in `lsp/` directory with automatic loading:
 - Backup configuration path is configurable via environment variable
 - The setup automatically handles plugin installation and lazy loading
 - Use GNU Stow for managing dotfile symlinks
+
+### CLI Theme Implementation
+
+The configuration features a comprehensive command-line interface theme documented in `docs/cli_theme.md`:
+
+#### Key Components
+- **Tabline**: Simulates command execution (`~/project main ±1 nvim -t filename --file1 --file2`)
+- **Statuscolumn**: Green starship prompt (`❯`) that turns red when files have errors
+- **Incline**: Window status bars with git status colors and line numbers for focused windows
+- **Treesitter Context**: Minimal separator with transparent background
+
+#### Visual Language
+- **Colors**: Red (errors/conflicts), green (untracked), orange (modified), white (clean)
+- **Decorations**: Bold (removed for minimal aesthetic), italic (unsaved), underline (warnings)
+- **Mode Awareness**: Tabline shows different CLI programs based on vim mode
+
+#### Git Integration
+- File-level status detection using `git status --porcelain`
+- Conflict detection for merge states (UU, AA, DD, AU, UA, UD, DU)
+- Clean separation: statuscolumn shows code health, incline shows git status
+
+### Plugin Management Notes
+
+#### Conditional Plugins
+- `illuminate.lua` is commented out - provides symbol highlighting under cursor
+- Use for code navigation but can add visual noise to minimal theme
+- Toggle with `<leader>ux` if enabled
+
+#### Error Handling Strategy
+- Diagnostic errors shown in statuscolumn (red prompt)
+- Git conflicts shown in incline (red filenames)
+- Warnings/hints use underline decoration (removed for cleaner appearance)
+
+#### Theme Integration
+- `transparent.nvim` handles background transparency
+- Custom highlight groups override colorscheme defaults
+- ColorScheme autocmds ensure highlights persist after theme changes
+
+## Claude Development Guidelines
+
+**CRITICAL: Always read documentation FIRST before making any API claims or suggestions.**
+
+### Documentation Priority Order
+1. **Local plugin documentation** - Check `/home/cesar/.local/share/nvim/lazy/*/doc/` and `/home/cesar/.local/share/nvim/lazy/*/README.md`
+2. **Plugin source code** - Read lua files in `/home/cesar/.local/share/nvim/lazy/*/lua/` when docs are unclear
+3. **Verification commands** - Use Neovim commands like `:=vim.treesitter.query.get('lang', 'textobjects')` to verify behavior
+4. **Web documentation** only as last resort
+
+### Key Lessons
+- **Treesitter textobjects**: Unknown directives like `#make-range!` are ignored by `vim.treesitter` and won't work with mini.ai
+- **API assumptions**: Never assume API behavior - always verify with local documentation first
+- **Error investigation**: Read actual error messages and outputs carefully instead of guessing solutions
+
+### Methodology
+1. Read relevant documentation thoroughly
+2. Understand the API constraints and requirements  
+3. Implement based on documented behavior
+4. Test and verify with provided tools
+5. Only then provide solutions
+
+**Remember: Confidence without proper research wastes time. Documentation reading saves hours of trial-and-error.**

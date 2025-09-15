@@ -3,7 +3,6 @@ local opts = {
   number = true,
   relativenumber = true,
   fillchars = { eob = ' ' },
-  signcolumn = 'yes',
   colorcolumn = nil,
 
   -- Formatting

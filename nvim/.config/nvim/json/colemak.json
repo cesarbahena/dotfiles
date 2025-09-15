@@ -1,5 +1,6 @@
 {
   "keys": {
+    "q": "clean",
     "z": "prev whitespace",
     "gs": "Git Status",
     "gH": "last Hunk",
@@ -159,7 +160,7 @@
     "u": "Undo jump",
     "k": "left window",
     "n": "bottom window",
-    "e": ["escape to normal mode", "clean", "top window"],
+    "e": ["escape to normal mode", "top window"],
     "t": "indenT",
     "d": "Deindent"
   }

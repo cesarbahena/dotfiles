@@ -25,17 +25,17 @@ return {
       },
     },
     config = function()
-      vim.fn.sign_define('DapBreakpoint', { text = ' ', texthl = 'StatuslineError', linehl = '', numhl = '' })
-      vim.fn.sign_define('DapStopped', { text = ' ', texthl = 'StatuslineOk', linehl = '', numhl = '' })
+      vim.fn.sign_define('DapBreakpoint', { text = '', texthl = 'DiagnosticSignError', linehl = '', numhl = '' })
+      vim.fn.sign_define('DapStopped', { text = '', texthl = 'DiagnosticSignOk', linehl = '', numhl = '' })
       vim.fn.sign_define(
         'DapBreakpointRejected',
-        { text = ' ', texthl = 'StatuslineError', linehl = '', numhl = '' }
+        { text = ' ', texthl = 'DiagnosticSignError', linehl = '', numhl = '' }
       )
       vim.fn.sign_define(
         'DapBreakpointCondition',
-        { text = ' ', texthl = 'StatuslineWarn', linehl = '', numhl = '' }
+        { text = ' ', texthl = 'DiagnosticSignWarn', linehl = '', numhl = '' }
       )
-      vim.fn.sign_define('DapLogPoint', { text = '󱅰 ', texthl = '', linehl = '', numhl = '' })
+      vim.fn.sign_define('DapLogPoint', { text = '󱅰 ', texthl = 'DiagnosticSignInfo', linehl = '', numhl = '' })
 
       -- TypeScript/JavaScript configuration
       local dap = require 'dap'
@@ -98,6 +98,17 @@ return {
           cwd = '${workspaceFolder}',
           sourceMaps = true,
           skipFiles = { '<node_internals>/**' },
+        },
+        {
+          type = 'pwa-node',
+          request = 'attach',
+          name = 'Attach to Dashboard Docker',
+          address = 'localhost',
+          port = 9229,
+          localRoot = '${workspaceFolder}',
+          remoteRoot = '/app',
+          sourceMaps = true,
+          skipFiles = { '<node_internals>/**', '**/node_modules/**' },
         },
       }
 
