@@ -64,7 +64,7 @@ return {
           },
           maxwidth = 3,
         },
-        { sign = { namespace = { 'gitsigns' }, maxwidth = 1, auto = true, colwidth = 1, fillchar = '' } },
+        { sign = { namespace = { 'gitsigns' }, maxwidth = 1, colwidth = 1, fillchar = ' ' } },
       },
     }
   end,
