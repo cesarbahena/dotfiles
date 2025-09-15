@@ -95,7 +95,7 @@ return {
       table.insert(result, { ft_icon and (ft_icon .. ' ') or '', guifg = ft_color })
       table.insert(result, {
         filename,
-        guifg = git_color or '#ffffff',
+        guifg = git_color or '#C0C0C0',
         gui = gui_style,
       })
 

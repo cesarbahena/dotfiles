@@ -143,7 +143,7 @@ return {
         local filepath = vim.api.nvim_buf_get_name(buf)
         local modified = vim.api.nvim_get_option_value('modified', { buf = buf })
 
-        local color = '#938AA9' -- default purple for clean files
+        local color = '#C0C0C0' -- default muted white for clean files
         local gui = nil
 
         if filepath ~= '' then
@@ -154,16 +154,16 @@ return {
           
           if git_status == '' then
             -- File is tracked and clean
-            color = '#938AA9' -- purple
+            color = '#C0C0C0' -- muted white
           elseif git_status:match '^%?%?' then
             -- File is untracked
-            color = '#9ECE6A' -- green
+            color = '#a6e3a1' -- green
           elseif git_status:match '^.M' or git_status:match '^M.' or git_status:match '^MM' then
             -- File is modified
-            color = '#E0AF68' -- yellow
+            color = '#fab387' -- orange
           else
-            -- Unknown status, default to purple
-            color = '#938AA9' -- purple
+            -- Unknown status, default to muted white
+            color = '#C0C0C0' -- muted white
           end
         end
 
