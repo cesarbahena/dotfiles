@@ -16,6 +16,7 @@ minimal_theme.inactive.StatuslineError = { fg = '#f38ba8' }
 
 return {
   'nvim-lualine/lualine.nvim',
+  enabled = false, -- Disabled in favor of heirline
   lazy = false,
   dependencies = { 'echasnovski/mini.icons' },
   config = function(_, opts)
