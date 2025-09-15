@@ -168,10 +168,10 @@ return {
         end
 
         if modified then 
-          gui = 'italic'
+          return { fg = color, italic = true }
         end
 
-        return { fg = color, gui = gui }
+        return { fg = color }
       end,
     }
 
