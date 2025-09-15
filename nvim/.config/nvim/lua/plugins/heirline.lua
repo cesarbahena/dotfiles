@@ -82,6 +82,84 @@ return {
       hl = { fg = '#DCD7BA' },
     }
     
+    -- Helper function to parse formatter config files and extract flags
+    local function get_formatter_config_flags(formatter_name)
+      local flags = {}
+      
+      if formatter_name == 'prettier' then
+        -- Check for .prettierrc, .prettierrc.json
+        local config_files = { '.prettierrc', '.prettierrc.json' }
+        for _, config_file in ipairs(config_files) do
+          if vim.fn.filereadable(config_file) == 1 then
+            local content = vim.fn.readfile(config_file)
+            if #content > 0 then
+              local ok, config = pcall(vim.json.decode, table.concat(content, '\n'))
+              if ok then
+                if config.singleQuote then table.insert(flags, '--single-quote') end
+                if config.tabWidth then table.insert(flags, '--tab-width=' .. config.tabWidth) end
+                if config.printWidth then table.insert(flags, '--print-width=' .. config.printWidth) end
+                if config.semi == false then table.insert(flags, '--no-semi') end
+                if config.trailingComma and config.trailingComma ~= 'none' then 
+                  table.insert(flags, '--trailing-comma=' .. config.trailingComma) 
+                end
+                if config.useTabs then table.insert(flags, '--use-tabs') end
+              end
+            end
+            break -- Found config file, stop looking
+          end
+        end
+        
+        -- Check package.json prettier config
+        if #flags == 0 and vim.fn.filereadable('package.json') == 1 then
+          local content = vim.fn.readfile('package.json')
+          if #content > 0 then
+            local ok, pkg = pcall(vim.json.decode, table.concat(content, '\n'))
+            if ok and pkg.prettier then
+              local config = pkg.prettier
+              if config.singleQuote then table.insert(flags, '--single-quote') end
+              if config.tabWidth then table.insert(flags, '--tab-width=' .. config.tabWidth) end
+              if config.printWidth then table.insert(flags, '--print-width=' .. config.printWidth) end
+              if config.semi == false then table.insert(flags, '--no-semi') end
+              if config.trailingComma and config.trailingComma ~= 'none' then 
+                table.insert(flags, '--trailing-comma=' .. config.trailingComma) 
+              end
+              if config.useTabs then table.insert(flags, '--use-tabs') end
+            end
+          end
+        end
+        
+      elseif formatter_name == 'stylua' then
+        -- Check for stylua.toml, .stylua.toml
+        local config_files = { 'stylua.toml', '.stylua.toml' }
+        for _, config_file in ipairs(config_files) do
+          if vim.fn.filereadable(config_file) == 1 then
+            local content = vim.fn.readfile(config_file)
+            for _, line in ipairs(content) do
+              local trimmed = line:match('^%s*(.-)%s*$') -- trim whitespace
+              if trimmed and not trimmed:match('^#') then -- skip comments
+                if trimmed:match('indent_width%s*=%s*(%d+)') then
+                  local width = trimmed:match('indent_width%s*=%s*(%d+)')
+                  table.insert(flags, '--indent-width=' .. width)
+                elseif trimmed:match('quote_style%s*=%s*"([^"]+)"') then
+                  local style = trimmed:match('quote_style%s*=%s*"([^"]+)"')
+                  table.insert(flags, '--quote-style=' .. style)
+                elseif trimmed:match('column_width%s*=%s*(%d+)') then
+                  local width = trimmed:match('column_width%s*=%s*(%d+)')
+                  table.insert(flags, '--column-width=' .. width)
+                elseif trimmed:match('indent_type%s*=%s*"([^"]+)"') then
+                  local indent_type = trimmed:match('indent_type%s*=%s*"([^"]+)"')
+                  table.insert(flags, '--indent-type=' .. indent_type)
+                end
+              end
+            end
+            break -- Found config file, stop looking
+          end
+        end
+      end
+      
+      return flags
+    end
+
     local LintersFormatters = {
       provider = function()
         local result = {}
@@ -99,13 +177,18 @@ return {
           end
         end
         
-        -- Check for conform.nvim formatters
+        -- Check for conform.nvim formatters with actual config flags
         local ok, conform = pcall(require, 'conform')
         if ok then
           local formatters = conform.list_formatters(0)
           for _, formatter in ipairs(formatters) do
             if formatter.available then
-              table.insert(result, formatter.name)
+              local formatter_str = formatter.name
+              local flags = get_formatter_config_flags(formatter.name)
+              if #flags > 0 then
+                formatter_str = formatter_str .. ' ' .. table.concat(flags, ' ')
+              end
+              table.insert(result, formatter_str)
             end
           end
         end
