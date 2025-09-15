@@ -32,14 +32,17 @@ return {
                 end
               end
 
-              -- Priority 2: Color-coded line numbers
+              -- Priority 2: Line numbers with left padding and color coding
               if args.relnum == 0 then
-                -- Current line number (caret will be in git signs column)
-                local hl_group = #diagnostics > 0 and diagnostic_hl or 'DiagnosticSignOk'
-                return '%#' .. hl_group .. '#' .. vim.fn.line('.') .. '%*'
+                -- Current line: left-padded line number
+                local line_num = tostring(vim.fn.line('.'))
+                local padding = line_num:len() == 1 and ' ' or ''
+                return '%#' .. diagnostic_hl .. '#' .. padding .. line_num .. '%*'
               else
-                -- Other lines: colored line numbers
-                return '%#' .. diagnostic_hl .. '#' .. tostring(args.relnum) .. '%*'
+                -- Other lines: left-padded relative numbers
+                local rel_num = tostring(args.relnum)
+                local padding = rel_num:len() == 1 and ' ' or ''
+                return '%#' .. diagnostic_hl .. '#' .. padding .. rel_num .. '%*'
               end
             end,
           },
@@ -48,52 +51,18 @@ return {
         {
           text = {
             function(args)
-              -- Check if there's a breakpoint on this line
-              local dap_signs = vim.fn.sign_getplaced(args.buf, { group = '*', lnum = args.lnum })
-              for _, sign_group in pairs(dap_signs) do
-                for _, sign in pairs(sign_group.signs) do
-                  if sign.name:match '^Dap' then
-                    return ' ' -- Breakpoints get 1 space padding
-                  end
-                end
-              end
-
-              -- Check if there's a diagnostic on this line
-              local diagnostics = vim.diagnostic.get(0, { lnum = args.lnum - 1 })
-              if #diagnostics > 0 then
-                return ' ' -- Diagnostics get 1 space padding
-              end
-
-              -- Add padding for line numbers only
               if args.relnum == 0 then
-                return ' '
-              else
-                local padding = args.relnum < 10 and '  ' or ' '
-                return padding
-              end
-            end,
-          },
-          maxwidth = 3,
-        },
-        {
-          text = {
-            function(args)
-              if args.relnum == 0 then
-                -- Current line: show caret instead of git sign
+                -- Current line: 1 space + caret (red if dx, green otherwise)
                 local diagnostics = vim.diagnostic.get(0, { lnum = args.lnum - 1 })
-                local hl_group = #diagnostics > 0 and 
-                  (diagnostics[1].severity == 1 and 'DiagnosticSignError'
-                    or diagnostics[1].severity == 2 and 'DiagnosticSignWarn'
-                    or diagnostics[1].severity == 3 and 'DiagnosticSignInfo'
-                    or 'DiagnosticSignHint')
-                  or 'DiagnosticSignOk'
-                return '%#' .. hl_group .. '#❯%*'
+                local caret_hl = #diagnostics > 0 and 'DiagnosticSignError' or 'DiagnosticSignOk'
+                return ' %#' .. caret_hl .. '#❯%*'
               else
-                return ''
+                -- Non-current line: 2 spaces
+                return '  '
               end
             end
           },
-          maxwidth = 1,
+          maxwidth = 3,
         },
         { sign = { namespace = { 'gitsigns' }, maxwidth = 1, auto = true, colwidth = 1, fillchar = '' } },
       },
