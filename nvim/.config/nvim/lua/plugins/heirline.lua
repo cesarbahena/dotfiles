@@ -50,25 +50,71 @@ return {
       hl = { fg = '#E6C384', bold = true },
     }
 
-    local CliMode = {
+    local LspServer = {
       provider = function()
-        local mode = vim.fn.mode()
-        local mode_map = {
-          n = 'nvim',
-          i = 'vi',
-          v = 'vim',
-          V = 'vim',
-          ['\22'] = 'vim', -- visual block
-          c = 'sh',
-          s = 'sed',
-          S = 'sed',
-          ['\19'] = 'sed', -- select block
-          R = 'nano',
-          r = 'nano',
-          ['!'] = 'bash',
-          t = 'zsh',
-        }
-        return ' ' .. (mode_map[mode] or 'nvim')
+        local buf_clients = vim.lsp.get_clients({ bufnr = 0 })
+        
+        -- Filter for main language servers only
+        local language_servers = {}
+        local excluded = { 'copilot', 'efm', 'null-ls', 'conform' }
+        
+        for _, client in ipairs(buf_clients) do
+          local is_excluded = false
+          for _, excluded_name in ipairs(excluded) do
+            if client.name:lower():find(excluded_name:lower()) then
+              is_excluded = true
+              break
+            end
+          end
+          if not is_excluded then
+            table.insert(language_servers, client)
+          end
+        end
+        
+        if #language_servers == 0 then
+          return '  nvim'
+        end
+        
+        -- Get the main LSP server (first language server)
+        local client = language_servers[1]
+        return '  ' .. client.name
+      end,
+      hl = { fg = '#DCD7BA' },
+    }
+    
+    local LintersFormatters = {
+      provider = function()
+        local result = {}
+        
+        -- Check for LSP-based linters/formatters
+        local buf_clients = vim.lsp.get_clients({ bufnr = 0 })
+        local lf_names = { 'efm', 'null-ls' }
+        
+        for _, client in ipairs(buf_clients) do
+          for _, lf_name in ipairs(lf_names) do
+            if client.name:lower():find(lf_name:lower()) then
+              table.insert(result, client.name)
+              break
+            end
+          end
+        end
+        
+        -- Check for conform.nvim formatters
+        local ok, conform = pcall(require, 'conform')
+        if ok then
+          local formatters = conform.list_formatters(0)
+          for _, formatter in ipairs(formatters) do
+            if formatter.available then
+              table.insert(result, formatter.name)
+            end
+          end
+        end
+        
+        if #result == 0 then
+          return ''
+        end
+        
+        return ' | ' .. table.concat(result, ' | ')
       end,
       hl = { fg = '#DCD7BA' },
     }
@@ -249,8 +295,9 @@ return {
         WorkingDir,
         GitBranch,
         GitStatus,
-        CliMode,
+        LspServer,
         HarpoonMarks,
+        LintersFormatters,
         Align,
         RightmostIcon,
         RightmostFilename,
