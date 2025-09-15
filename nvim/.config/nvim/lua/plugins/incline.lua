@@ -43,14 +43,14 @@ local function get_git_status_color(props)
   if result == '' then return nil end -- Clean file
 
   local status = result:sub(1, 2)
-  
+
   -- Check for serious git states (red - immediate attention needed)
-  if status:match('UU') or status:match('AA') or status:match('DD') then
-    return '#f38ba8'  -- Red for merge conflicts
-  elseif status:match('AU') or status:match('UA') or status:match('UD') or status:match('DU') then
-    return '#f38ba8'  -- Red for conflict states
+  if status:match 'UU' or status:match 'AA' or status:match 'DD' then
+    return '#f38ba8' -- Red for merge conflicts
+  elseif status:match 'AU' or status:match 'UA' or status:match 'UD' or status:match 'DU' then
+    return '#f38ba8' -- Red for conflict states
   end
-  
+
   -- Regular git states
   if status:match '^%?%?' then
     return '#a6e3a1' -- Green for untracked
@@ -60,7 +60,6 @@ local function get_git_status_color(props)
 
   return nil
 end
-
 
 local function get_title(props)
   local title = ' ' .. edgy_titles[vim.bo[props.buf].filetype] .. ' '
@@ -91,15 +90,6 @@ local function get_filename(props)
   -- Simple gui style: just italic for modified files
   local gui_style = vim.bo[props.buf].modified and 'italic' or 'none'
 
-  -- Add line info for focused window only
-  if props.focused then
-    local current_line = vim.fn.line '.'
-    local total_lines = vim.fn.line '$'
-    table.insert(result, { to_superscript(current_line), guifg = '#ffffff', gui = 'bold' })
-    table.insert(result, { '', guifg = '#555555' })
-    table.insert(result, { to_subscript(total_lines) .. ' ', guifg = '#ffffff', gui = 'bold' })
-  end
-
   -- Add filename - git status colors only
   table.insert(result, { ft_icon and (ft_icon .. ' ') or '', guifg = ft_color })
   table.insert(result, {
@@ -118,8 +108,14 @@ return {
     window = {
       zindex = 30,
       margin = {
-        vertical = { top = vim.o.laststatus == 3 and 0 or 1, bottom = 0 }, -- shift to overlap window borders
-        horizontal = { left = 0, right = 2 },
+        vertical = { top = 0, bottom = 0 },
+        horizontal = { left = 0, right = 0 },
+      },
+      overlap = {
+        tabline = true,
+        winbar = false,
+        borders = true,
+        statusline = false,
       },
     },
     ignore = {
