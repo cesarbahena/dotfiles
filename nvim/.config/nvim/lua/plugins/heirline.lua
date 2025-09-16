@@ -273,7 +273,7 @@ return {
         local full_text = ' | ' .. table.concat(result, ' | ')
         return full_text
       end,
-      hl = { fg = '#DCD7BA' },
+      hl = { fg = '#555555' },
     }
 
     local HarpoonMarks = {
@@ -290,7 +290,7 @@ return {
           total_length = total_length + #filename + 4 -- +4 for " -t " or " --"
         end
         
-        local use_compact = total_length > 40 or #marks > 4
+        local use_compact = total_length > (vim.o.columns * 0.4) or #marks > 4
 
         if use_compact then
           -- Compact mode: -Abc (capital for current, lowercase for others)
