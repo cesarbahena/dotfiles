@@ -82,8 +82,8 @@ return {
       hl = { fg = '#DCD7BA' },
     }
     
-    -- Helper function to get progressive flag compaction levels
-    local function get_formatter_flags_progressive(formatter_name, max_width)
+    -- Helper function to get all flag levels for a formatter
+    local function get_formatter_flag_levels(formatter_name)
       local flag_levels = {}
       
       if formatter_name == 'prettier' then
@@ -193,6 +193,13 @@ return {
         end
       end
       
+      return flag_levels
+    end
+    
+    -- Helper function to get best flag level that fits in max_width
+    local function get_formatter_flags_progressive(formatter_name, max_width)
+      local flag_levels = get_formatter_flag_levels(formatter_name)
+      
       -- Find the longest level that fits within max_width
       for _, level in ipairs(flag_levels) do
         if #level <= max_width then
@@ -280,19 +287,34 @@ return {
           local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
           local right_side_width = 2 + #(filename ~= '' and filename or '[No Name]') -- icon + filename
           
+          -- Progressive compression with real space budget
+          -- Calculate actual available space
           local used_width = working_dir_width + branch_width + git_status_width + lsp_width + harpoon_width + right_side_width
-          local available_width = total_width - used_width - 10 -- 10 char buffer
+          local space_budget = total_width - used_width - 5 -- Use real remaining space
+          local space_used = 0
           
-          -- Use progressive flag compression for each formatter
-          for _, formatter in ipairs(formatters) do
+          for i, formatter in ipairs(formatters) do
             if formatter.available then
-              -- Calculate space available per formatter
-              local space_per_formatter = math.max(15, available_width / math.max(1, #formatters))
-              local formatter_str = formatter.name
-              local flags = get_formatter_flags_progressive(formatter.name, space_per_formatter - #formatter.name - 1)
-              if flags and flags ~= '' then
-                formatter_str = formatter_str .. ' ' .. flags
+              local formatter_name = formatter.name
+              local flag_levels = get_formatter_flag_levels(formatter_name)
+              
+              local chosen_flags = ''
+              local space_remaining = space_budget - space_used
+              local separator_cost = (#result > 0) and 3 or 0 -- " | "
+              
+              -- Try each level to see what fits
+              for j, level in ipairs(flag_levels) do
+                local full_text = formatter_name .. (level ~= '' and (' ' .. level) or '')
+                local total_cost = #full_text + separator_cost
+                
+                if total_cost <= space_remaining then
+                  chosen_flags = level
+                  space_used = space_used + total_cost
+                  break
+                end
               end
+              
+              local formatter_str = formatter_name .. (chosen_flags ~= '' and (' ' .. chosen_flags) or '')
               table.insert(result, formatter_str)
             end
           end
