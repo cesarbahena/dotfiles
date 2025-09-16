@@ -82,133 +82,125 @@ return {
       hl = { fg = '#DCD7BA' },
     }
     
-    -- Helper function to parse formatter config files and extract flags
-    local function get_formatter_config_flags(formatter_name, compact_mode)
-      local flags = {}
+    -- Helper function to get progressive flag compaction levels
+    local function get_formatter_flags_progressive(formatter_name, max_width)
+      local flag_levels = {}
       
       if formatter_name == 'prettier' then
-        -- Check for .prettierrc, .prettierrc.json
+        -- Check for .prettierrc, .prettierrc.json, package.json
+        local config = nil
         local config_files = { '.prettierrc', '.prettierrc.json' }
         for _, config_file in ipairs(config_files) do
           if vim.fn.filereadable(config_file) == 1 then
             local content = vim.fn.readfile(config_file)
             if #content > 0 then
-              local ok, config = pcall(vim.json.decode, table.concat(content, '\n'))
-              if ok then
-                if compact_mode then
-                  -- Compact mode: single letters without spaces
-                  local compact_flags = {}
-                  if config.singleQuote then table.insert(compact_flags, 's') end
-                  if config.printWidth then table.insert(compact_flags, 'p') end
-                  if config.tabWidth then table.insert(compact_flags, 't') end
-                  if config.trailingComma and config.trailingComma ~= 'none' then table.insert(compact_flags, 'c') end
-                  if config.semi == false then table.insert(compact_flags, 'n') end -- no-semi
-                  if config.useTabs then table.insert(compact_flags, 'T') end -- capital T for tabs
-                  if #compact_flags > 0 then
-                    table.insert(flags, '-' .. table.concat(compact_flags, ''))
-                  end
-                else
-                  -- Full mode
-                  if config.singleQuote then table.insert(flags, '--single-quote') end
-                  if config.tabWidth then table.insert(flags, '--tab-width=' .. config.tabWidth) end
-                  if config.printWidth then table.insert(flags, '--print-width=' .. config.printWidth) end
-                  if config.semi == false then table.insert(flags, '--no-semi') end
-                  if config.trailingComma and config.trailingComma ~= 'none' then 
-                    table.insert(flags, '--trailing-comma=' .. config.trailingComma) 
-                  end
-                  if config.useTabs then table.insert(flags, '--use-tabs') end
-                end
-              end
+              local ok, parsed = pcall(vim.json.decode, table.concat(content, '\n'))
+              if ok then config = parsed; break end
             end
-            break -- Found config file, stop looking
           end
         end
         
-        -- Check package.json prettier config
-        if #flags == 0 and vim.fn.filereadable('package.json') == 1 then
+        if not config and vim.fn.filereadable('package.json') == 1 then
           local content = vim.fn.readfile('package.json')
           if #content > 0 then
             local ok, pkg = pcall(vim.json.decode, table.concat(content, '\n'))
-            if ok and pkg.prettier then
-              local config = pkg.prettier
-              if compact_mode then
-                -- Compact mode: single letters without spaces
-                local compact_flags = {}
-                if config.singleQuote then table.insert(compact_flags, 's') end
-                if config.printWidth then table.insert(compact_flags, 'p') end
-                if config.tabWidth then table.insert(compact_flags, 't') end
-                if config.trailingComma and config.trailingComma ~= 'none' then table.insert(compact_flags, 'c') end
-                if config.semi == false then table.insert(compact_flags, 'n') end -- no-semi
-                if config.useTabs then table.insert(compact_flags, 'T') end -- capital T for tabs
-                if #compact_flags > 0 then
-                  table.insert(flags, '-' .. table.concat(compact_flags, ''))
-                end
-              else
-                -- Full mode
-                if config.singleQuote then table.insert(flags, '--single-quote') end
-                if config.tabWidth then table.insert(flags, '--tab-width=' .. config.tabWidth) end
-                if config.printWidth then table.insert(flags, '--print-width=' .. config.printWidth) end
-                if config.semi == false then table.insert(flags, '--no-semi') end
-                if config.trailingComma and config.trailingComma ~= 'none' then 
-                  table.insert(flags, '--trailing-comma=' .. config.trailingComma) 
-                end
-                if config.useTabs then table.insert(flags, '--use-tabs') end
-              end
-            end
+            if ok and pkg.prettier then config = pkg.prettier end
           end
         end
         
+        if config then
+          -- Level 1: Full flags
+          local full_flags = {}
+          if config.singleQuote then table.insert(full_flags, '--single-quote') end
+          if config.tabWidth then table.insert(full_flags, '--tab-width=' .. config.tabWidth) end
+          if config.printWidth then table.insert(full_flags, '--print-width=' .. config.printWidth) end
+          if config.semi == false then table.insert(full_flags, '--no-semi') end
+          if config.trailingComma and config.trailingComma ~= 'none' then 
+            table.insert(full_flags, '--trailing-comma=' .. config.trailingComma) 
+          end
+          if config.useTabs then table.insert(full_flags, '--use-tabs') end
+          
+          -- Level 2: Abbreviated flags
+          local abbrev_flags = {}
+          if config.singleQuote then table.insert(abbrev_flags, '-sq') end
+          if config.tabWidth then table.insert(abbrev_flags, '-tw=' .. config.tabWidth) end
+          if config.printWidth then table.insert(abbrev_flags, '-pw=' .. config.printWidth) end
+          if config.semi == false then table.insert(abbrev_flags, '-ns') end
+          if config.trailingComma and config.trailingComma ~= 'none' then 
+            table.insert(abbrev_flags, '-tc=' .. config.trailingComma:sub(1,2)) 
+          end
+          if config.useTabs then table.insert(abbrev_flags, '-ut') end
+          
+          -- Level 3: Single letters
+          local compact_letters = {}
+          if config.singleQuote then table.insert(compact_letters, 's') end
+          if config.printWidth then table.insert(compact_letters, 'p') end
+          if config.tabWidth then table.insert(compact_letters, 't') end
+          if config.trailingComma and config.trailingComma ~= 'none' then table.insert(compact_letters, 'c') end
+          if config.semi == false then table.insert(compact_letters, 'n') end
+          if config.useTabs then table.insert(compact_letters, 'T') end
+          
+          flag_levels = {
+            table.concat(full_flags, ' '),
+            table.concat(abbrev_flags, ' '),
+            #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or ''
+          }
+        end
+        
       elseif formatter_name == 'stylua' then
-        -- Check for stylua.toml, .stylua.toml
         local config_files = { 'stylua.toml', '.stylua.toml' }
         for _, config_file in ipairs(config_files) do
           if vim.fn.filereadable(config_file) == 1 then
             local content = vim.fn.readfile(config_file)
-            if compact_mode then
-              local compact_flags = {}
-              for _, line in ipairs(content) do
-                local trimmed = line:match('^%s*(.-)%s*$') -- trim whitespace
-                if trimmed and not trimmed:match('^#') then -- skip comments
-                  if trimmed:match('indent_width%s*=%s*(%d+)') then
-                    table.insert(compact_flags, 'i')
-                  elseif trimmed:match('quote_style%s*=%s*"([^"]+)"') then
-                    table.insert(compact_flags, 'q')
-                  elseif trimmed:match('column_width%s*=%s*(%d+)') then
-                    table.insert(compact_flags, 'c')
-                  elseif trimmed:match('indent_type%s*=%s*"([^"]+)"') then
-                    table.insert(compact_flags, 't')
-                  end
-                end
-              end
-              if #compact_flags > 0 then
-                table.insert(flags, '-' .. table.concat(compact_flags, ''))
-              end
-            else
-              for _, line in ipairs(content) do
-                local trimmed = line:match('^%s*(.-)%s*$') -- trim whitespace
-                if trimmed and not trimmed:match('^#') then -- skip comments
-                  if trimmed:match('indent_width%s*=%s*(%d+)') then
-                    local width = trimmed:match('indent_width%s*=%s*(%d+)')
-                    table.insert(flags, '--indent-width=' .. width)
-                  elseif trimmed:match('quote_style%s*=%s*"([^"]+)"') then
-                    local style = trimmed:match('quote_style%s*=%s*"([^"]+)"')
-                    table.insert(flags, '--quote-style=' .. style)
-                  elseif trimmed:match('column_width%s*=%s*(%d+)') then
-                    local width = trimmed:match('column_width%s*=%s*(%d+)')
-                    table.insert(flags, '--column-width=' .. width)
-                  elseif trimmed:match('indent_type%s*=%s*"([^"]+)"') then
-                    local indent_type = trimmed:match('indent_type%s*=%s*"([^"]+)"')
-                    table.insert(flags, '--indent-type=' .. indent_type)
-                  end
+            local full_flags = {}
+            local abbrev_flags = {}
+            local compact_letters = {}
+            
+            for _, line in ipairs(content) do
+              local trimmed = line:match('^%s*(.-)%s*$')
+              if trimmed and not trimmed:match('^#') then
+                if trimmed:match('indent_width%s*=%s*(%d+)') then
+                  local width = trimmed:match('indent_width%s*=%s*(%d+)')
+                  table.insert(full_flags, '--indent-width=' .. width)
+                  table.insert(abbrev_flags, '-iw=' .. width)
+                  table.insert(compact_letters, 'i')
+                elseif trimmed:match('quote_style%s*=%s*"([^"]+)"') then
+                  local style = trimmed:match('quote_style%s*=%s*"([^"]+)"')
+                  table.insert(full_flags, '--quote-style=' .. style)
+                  table.insert(abbrev_flags, '-qs=' .. style:sub(1,2))
+                  table.insert(compact_letters, 'q')
+                elseif trimmed:match('column_width%s*=%s*(%d+)') then
+                  local width = trimmed:match('column_width%s*=%s*(%d+)')
+                  table.insert(full_flags, '--column-width=' .. width)
+                  table.insert(abbrev_flags, '-cw=' .. width)
+                  table.insert(compact_letters, 'c')
+                elseif trimmed:match('indent_type%s*=%s*"([^"]+)"') then
+                  local indent_type = trimmed:match('indent_type%s*=%s*"([^"]+)"')
+                  table.insert(full_flags, '--indent-type=' .. indent_type)
+                  table.insert(abbrev_flags, '-it=' .. indent_type:sub(1,2))
+                  table.insert(compact_letters, 't')
                 end
               end
             end
-            break -- Found config file, stop looking
+            
+            flag_levels = {
+              table.concat(full_flags, ' '),
+              table.concat(abbrev_flags, ' '),
+              #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or ''
+            }
+            break
           end
         end
       end
       
-      return flags
+      -- Find the longest level that fits within max_width
+      for _, level in ipairs(flag_levels) do
+        if #level <= max_width then
+          return level
+        end
+      end
+      
+      return flag_levels[#flag_levels] or '' -- Return most compact or empty
     end
 
     local LintersFormatters = {
@@ -233,33 +225,73 @@ return {
         if ok then
           local formatters = conform.list_formatters(0)
           
-          -- Determine if we should use compact mode
-          local total_length = 0
-          local temp_result = {}
-          for _, formatter in ipairs(formatters) do
-            if formatter.available then
-              local flags = get_formatter_config_flags(formatter.name, false) -- Check full mode first
-              local formatter_str = formatter.name
-              if #flags > 0 then
-                formatter_str = formatter_str .. ' ' .. table.concat(flags, ' ')
+          -- Calculate actual width of other components dynamically
+          local total_width = vim.o.columns
+          
+          -- Calculate actual component widths
+          local working_dir_width = #vim.fn.fnamemodify(vim.fn.getcwd(), ':~')
+          local branch_width = 0
+          if vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true' then
+            local branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '')
+            branch_width = #(' on ' .. branch .. ' ')
+          end
+          local git_status_width = 10
+          
+          -- LSP server width
+          local lsp_width = 6 -- "  nvim" default
+          local buf_clients = vim.lsp.get_clients({ bufnr = 0 })
+          local excluded = { 'copilot', 'efm', 'null-ls', 'conform' }
+          for _, client in ipairs(buf_clients) do
+            local is_excluded = false
+            for _, excluded_name in ipairs(excluded) do
+              if client.name:lower():find(excluded_name:lower()) then
+                is_excluded = true
+                break
               end
-              table.insert(temp_result, formatter_str)
-              total_length = total_length + #formatter_str + 3 -- +3 for " | "
+            end
+            if not is_excluded then
+              lsp_width = #('  ' .. client.name)
+              break
             end
           end
           
-          local use_compact = total_length > 60
+          -- Harpoon width (calculate current harpoon display)
+          local harpoon_width = 0
+          local harpoon = require 'harpoon'
+          local marks = harpoon:list().items
+          if #marks > 0 then
+            local current_file_path = vim.fn.expand '%:p:.'
+            local harpoon_total_length = 0
+            for _, item in ipairs(marks) do
+              local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
+              harpoon_total_length = harpoon_total_length + #filename + 4
+            end
+            local harpoon_use_compact = harpoon_total_length > (vim.o.columns * 0.4) or #marks > 4
+            if harpoon_use_compact then
+              harpoon_width = 2 + #marks -- " -" + letters
+            else
+              harpoon_width = harpoon_total_length
+            end
+          end
           
+          -- Right side width (icon + filename)
+          local rightmost_win = vim.api.nvim_get_current_win() -- simplified for calculation
+          local buf = vim.api.nvim_win_get_buf(rightmost_win)
+          local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
+          local right_side_width = 2 + #(filename ~= '' and filename or '[No Name]') -- icon + filename
+          
+          local used_width = working_dir_width + branch_width + git_status_width + lsp_width + harpoon_width + right_side_width
+          local available_width = total_width - used_width - 10 -- 10 char buffer
+          
+          -- Use progressive flag compression for each formatter
           for _, formatter in ipairs(formatters) do
             if formatter.available then
+              -- Calculate space available per formatter
+              local space_per_formatter = math.max(15, available_width / math.max(1, #formatters))
               local formatter_str = formatter.name
-              local flags = get_formatter_config_flags(formatter.name, use_compact)
-              if #flags > 0 then
-                if use_compact then
-                  formatter_str = formatter_str .. ' ' .. table.concat(flags, ' ')
-                else
-                  formatter_str = formatter_str .. ' ' .. table.concat(flags, ' ')
-                end
+              local flags = get_formatter_flags_progressive(formatter.name, space_per_formatter - #formatter.name - 1)
+              if flags and flags ~= '' then
+                formatter_str = formatter_str .. ' ' .. flags
               end
               table.insert(result, formatter_str)
             end
