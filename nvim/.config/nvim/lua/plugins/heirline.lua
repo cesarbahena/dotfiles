@@ -71,14 +71,25 @@ return {
           end
         end
         
+        -- Get LSP progress spinner
+        local progress = require('lsp-progress').progress()
+        local spinner = progress ~= '' and (progress .. ' ') or '  '
+        
         if #language_servers == 0 then
-          return '  nvim'
+          return spinner .. 'nvim'
         end
         
         -- Get the main LSP server (first language server)
         local client = language_servers[1]
-        return '  ' .. client.name
+        return spinner .. client.name
       end,
+      update = {
+        'User',
+        pattern = 'LspProgressStatusUpdated',
+        callback = vim.schedule_wrap(function()
+          vim.cmd('redrawtabline')
+        end),
+      },
       hl = { fg = '#DCD7BA' },
     }
     
@@ -541,6 +552,8 @@ return {
         RightmostFilename,
       },
     }
+    
+    
   end,
 }
 
