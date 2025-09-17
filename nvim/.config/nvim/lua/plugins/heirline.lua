@@ -148,7 +148,114 @@ return {
       hl = { fg = '#DCD7BA' },
     }
 
-    -- Cached formatter config parsing
+    -- Fully dynamic formatter flag discovery
+    local function discover_config_files(formatter_name)
+      -- Common config file patterns
+      local patterns = {
+        -- Dotfiles in root
+        '.' .. formatter_name .. 'rc',
+        '.' .. formatter_name .. 'rc.json',
+        '.' .. formatter_name .. 'rc.js',
+        '.' .. formatter_name .. 'rc.yaml',
+        '.' .. formatter_name .. 'rc.yml',
+        -- Config files
+        formatter_name .. '.config.js',
+        formatter_name .. '.config.json',
+        -- TOML files
+        formatter_name .. '.toml',
+        '.' .. formatter_name .. '.toml',
+        -- Package.json
+        'package.json',
+        -- Pyproject.toml for Python tools
+        'pyproject.toml',
+      }
+      
+      local found = {}
+      for _, pattern in ipairs(patterns) do
+        if vim.fn.filereadable(pattern) == 1 then
+          table.insert(found, pattern)
+        end
+      end
+      return found
+    end
+
+    local function parse_config_file(filepath, formatter_name)
+      local content = vim.fn.readfile(filepath)
+      if #content == 0 then return nil end
+      
+      local full_content = table.concat(content, '\n')
+      
+      -- Try JSON first
+      local ok, config = pcall(vim.json.decode, full_content)
+      if ok then
+        -- For package.json, look for formatter-specific key
+        if filepath:match('package%.json$') then
+          return config[formatter_name] or config.prettier or config.eslint
+        end
+        return config
+      end
+      
+      -- Try TOML parsing (simple key=value)
+      config = {}
+      for _, line in ipairs(content) do
+        local trimmed = line:match '^%s*(.-)%s*$'
+        if trimmed and not trimmed:match '^[#%[]' and trimmed:find('=') then
+          -- key = value
+          local key, value = trimmed:match '^([^=]+)%s*=%s*(.+)$'
+          if key and value then
+            key = key:gsub('%s+', ''):gsub('%-', '_')
+            value = value:gsub('^["\']', ''):gsub('["\']$', '') -- Remove quotes
+            -- Try to convert numbers
+            local num = tonumber(value)
+            if num then
+              config[key] = num
+            elseif value:lower() == 'true' then
+              config[key] = true
+            elseif value:lower() == 'false' then
+              config[key] = false
+            else
+              config[key] = value
+            end
+          end
+        end
+      end
+      
+      return next(config) and config or nil
+    end
+
+    local function generate_flag_variants(key, value)
+      -- Convert camelCase/snake_case to kebab-case for flags
+      local flag_name = key:gsub('([a-z])([A-Z])', '%1-%2'):gsub('_', '-'):lower()
+      
+      -- Generate full flag
+      local full_flag
+      if type(value) == 'boolean' then
+        if value then
+          full_flag = '--' .. flag_name
+        else
+          -- Handle negative boolean (like semi: false -> --no-semi)
+          full_flag = '--no-' .. flag_name:gsub('^no%-', '')
+        end
+      else
+        full_flag = '--' .. flag_name .. '=' .. tostring(value)
+      end
+      
+      -- Generate abbreviated flag (first letter of each word)
+      local abbrev_letters = {}
+      for word in flag_name:gmatch('[^-]+') do
+        table.insert(abbrev_letters, word:sub(1, 1))
+      end
+      local abbrev = '-' .. table.concat(abbrev_letters, '')
+      if type(value) ~= 'boolean' then
+        abbrev = abbrev .. '=' .. tostring(value)
+      end
+      
+      -- Generate compact form (just the letters)
+      local compact = table.concat(abbrev_letters, '')
+      
+      return full_flag, abbrev, compact
+    end
+
     local formatter_cache = {}
     local function get_formatter_flag_levels(formatter_name)
       local cwd = vim.fn.getcwd()
@@ -157,116 +264,47 @@ return {
       -- Return cached result if available
       if formatter_cache[cache_key] then return formatter_cache[cache_key] end
 
-      local flag_levels = {}
+      local flag_levels = { '', '', '' }
+      
+      -- Discover config files
+      local config_files = discover_config_files(formatter_name)
+      if #config_files == 0 then
+        formatter_cache[cache_key] = flag_levels
+        return flag_levels
+      end
+      
+      -- Try to parse config from any found file
+      local config = nil
+      for _, config_file in ipairs(config_files) do
+        config = parse_config_file(config_file, formatter_name)
+        if config then break end
+      end
+      
+      if not config then
+        formatter_cache[cache_key] = flag_levels
+        return flag_levels
+      end
 
-      if formatter_name == 'prettier' then
-        -- Check for .prettierrc, .prettierrc.json, package.json
-        local config = nil
-        local config_files = { '.prettierrc', '.prettierrc.json' }
-        for _, config_file in ipairs(config_files) do
-          if vim.fn.filereadable(config_file) == 1 then
-            local content = vim.fn.readfile(config_file)
-            if #content > 0 then
-              local ok, parsed = pcall(vim.json.decode, table.concat(content, '\n'))
-              if ok then
-                config = parsed
-                break
-              end
-            end
-          end
-        end
+      local full_flags = {}
+      local abbrev_flags = {}
+      local compact_letters = {}
 
-        if not config and vim.fn.filereadable 'package.json' == 1 then
-          local content = vim.fn.readfile 'package.json'
-          if #content > 0 then
-            local ok, pkg = pcall(vim.json.decode, table.concat(content, '\n'))
-            if ok and pkg.prettier then config = pkg.prettier end
-          end
-        end
-
-        if config then
-          -- Level 1: Full flags
-          local full_flags = {}
-          if config.singleQuote then table.insert(full_flags, '--single-quote') end
-          if config.tabWidth then table.insert(full_flags, '--tab-width=' .. config.tabWidth) end
-          if config.printWidth then table.insert(full_flags, '--print-width=' .. config.printWidth) end
-          if config.semi == false then table.insert(full_flags, '--no-semi') end
-          if config.trailingComma and config.trailingComma ~= 'none' then
-            table.insert(full_flags, '--trailing-comma=' .. config.trailingComma)
-          end
-          if config.useTabs then table.insert(full_flags, '--use-tabs') end
-
-          -- Level 2: Abbreviated flags
-          local abbrev_flags = {}
-          if config.singleQuote then table.insert(abbrev_flags, '-sq') end
-          if config.tabWidth then table.insert(abbrev_flags, '-tw=' .. config.tabWidth) end
-          if config.printWidth then table.insert(abbrev_flags, '-pw=' .. config.printWidth) end
-          if config.semi == false then table.insert(abbrev_flags, '-ns') end
-          if config.trailingComma and config.trailingComma ~= 'none' then
-            table.insert(abbrev_flags, '-tc=' .. config.trailingComma:sub(1, 2))
-          end
-          if config.useTabs then table.insert(abbrev_flags, '-ut') end
-
-          -- Level 3: Single letters
-          local compact_letters = {}
-          if config.singleQuote then table.insert(compact_letters, 's') end
-          if config.printWidth then table.insert(compact_letters, 'p') end
-          if config.tabWidth then table.insert(compact_letters, 't') end
-          if config.trailingComma and config.trailingComma ~= 'none' then table.insert(compact_letters, 'c') end
-          if config.semi == false then table.insert(compact_letters, 'n') end
-          if config.useTabs then table.insert(compact_letters, 'T') end
-
-          flag_levels = {
-            table.concat(full_flags, ' '),
-            table.concat(abbrev_flags, ' '),
-            #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or '',
-          }
-        end
-      elseif formatter_name == 'stylua' then
-        local config_files = { 'stylua.toml', '.stylua.toml' }
-        for _, config_file in ipairs(config_files) do
-          if vim.fn.filereadable(config_file) == 1 then
-            local content = vim.fn.readfile(config_file)
-            local full_flags = {}
-            local abbrev_flags = {}
-            local compact_letters = {}
-
-            for _, line in ipairs(content) do
-              local trimmed = line:match '^%s*(.-)%s*$'
-              if trimmed and not trimmed:match '^#' then
-                if trimmed:match 'indent_width%s*=%s*(%d+)' then
-                  local width = trimmed:match 'indent_width%s*=%s*(%d+)'
-                  table.insert(full_flags, '--indent-width=' .. width)
-                  table.insert(abbrev_flags, '-iw=' .. width)
-                  table.insert(compact_letters, 'i')
-                elseif trimmed:match 'quote_style%s*=%s*"([^"]+)"' then
-                  local style = trimmed:match 'quote_style%s*=%s*"([^"]+)"'
-                  table.insert(full_flags, '--quote-style=' .. style)
-                  table.insert(abbrev_flags, '-qs=' .. style:sub(1, 2))
-                  table.insert(compact_letters, 'q')
-                elseif trimmed:match 'column_width%s*=%s*(%d+)' then
-                  local width = trimmed:match 'column_width%s*=%s*(%d+)'
-                  table.insert(full_flags, '--column-width=' .. width)
-                  table.insert(abbrev_flags, '-cw=' .. width)
-                  table.insert(compact_letters, 'c')
-                elseif trimmed:match 'indent_type%s*=%s*"([^"]+)"' then
-                  local indent_type = trimmed:match 'indent_type%s*=%s*"([^"]+)"'
-                  table.insert(full_flags, '--indent-type=' .. indent_type)
-                  table.insert(abbrev_flags, '-it=' .. indent_type:sub(1, 2))
-                  table.insert(compact_letters, 't')
-                end
-              end
-            end
-
-            flag_levels = {
-              table.concat(full_flags, ' '),
-              table.concat(abbrev_flags, ' '),
-              #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or '',
-            }
-            break
-          end
+      -- Generate flags for all config options
+      for key, value in pairs(config) do
+        -- Skip nil/false values (except explicit false for boolean toggles)
+        if value ~= nil and (type(value) ~= 'boolean' or value ~= false or key:match('semi')) then
+          local full, abbrev, compact = generate_flag_variants(key, value)
+          table.insert(full_flags, full)
+          table.insert(abbrev_flags, abbrev)
+          table.insert(compact_letters, compact)
         end
       end
+
+      flag_levels = {
+        table.concat(full_flags, ' '),
+        table.concat(abbrev_flags, ' '),
+        #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or '',
+      }
 
       -- Cache the result
       formatter_cache[cache_key] = flag_levels
