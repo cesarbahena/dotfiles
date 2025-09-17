@@ -8,31 +8,54 @@ return {
     local heirline = require 'heirline'
     local utils = require 'heirline.utils'
 
-    -- Define colors
+    -- Centralized color palette with semantic naming
     local colors = {
-      bright_bg = '#313244',
-      bright_fg = '#cdd6f4',
-      red = '#f38ba8',
-      dark_red = '#e6194b',
-      green = '#a6e3a1',
-      blue = '#89b4fa',
-      gray = '#6c7086',
-      orange = '#fab387',
-      purple = '#cba6f7',
-      cyan = '#94e2d5',
-      diag_warn = '#ffd700',
-      diag_error = '#ff6b6b',
-      diag_hint = '#4169e1',
-      diag_info = '#00ffff',
-      git_del = '#f38ba8',
-      git_add = '#a6e3a1',
-      git_change = '#fab387',
+      -- CLI Theme semantic colors
+      cli = {
+        working_dir = '#7E9CD8',    -- Directory path
+        branch = '#957FB8',         -- Git branch
+        git_status = '#E6C384',     -- Git status indicator
+        lsp_server = '#DCD7BA',     -- LSP server name
+        harpoon = '#DCD7BA',        -- Harpoon marks
+        formatters = '#555555',     -- Linters/formatters (muted)
+      },
+      
+      -- Git status colors (file-level)
+      git = {
+        clean = '#C0C0C0',          -- Tracked, clean files (muted white)
+        conflict = '#f38ba8',       -- Merge conflicts (red)
+        untracked = '#a6e3a1',      -- Untracked files (green) 
+        modified = '#fab387',       -- Modified/staged files (orange)
+      },
+      
+      -- Diagnostic colors
+      diagnostic = {
+        error = '#ff6b6b',          -- Error diagnostics
+        warn = '#ffd700',           -- Warning diagnostics
+        info = '#00ffff',           -- Info diagnostics
+        hint = '#4169e1',           -- Hint diagnostics
+        general = '#938AA9',        -- General diagnostic text
+      },
+      
+      -- Base palette (catppuccin-inspired)
+      base = {
+        red = '#f38ba8',
+        green = '#a6e3a1', 
+        orange = '#fab387',
+        blue = '#89b4fa',
+        purple = '#cba6f7',
+        cyan = '#94e2d5',
+        gray = '#6c7086',
+        white = '#cdd6f4',
+        bg = '#313244',
+        muted_white = '#C0C0C0',
+      },
     }
 
     -- CLI Theme Components
     local WorkingDir = {
       provider = function() return vim.fn.fnamemodify(vim.fn.getcwd(), ':~') end,
-      hl = { fg = '#7E9CD8' },
+      hl = { fg = colors.cli.working_dir },
     }
 
     local GitBranch = {
@@ -53,7 +76,7 @@ return {
       end,
       provider = function(self) return self.git_info.branch ~= '' and (' on ' .. self.git_info.branch .. ' ') or '' end,
       update = { 'DirChanged', 'BufEnter' },
-      hl = { fg = '#957FB8' },
+      hl = { fg = colors.cli.branch },
     }
 
     local GitStatus = {
@@ -65,7 +88,7 @@ return {
       end,
       provider = fn 'components.file_info.git_status',
       update = { 'BufWritePost', 'BufEnter' },
-      hl = { fg = '#E6C384', bold = true },
+      hl = { fg = colors.cli.git_status, bold = true },
     }
 
     local LspServer = {
@@ -145,7 +168,7 @@ return {
         'User',
         pattern = 'LspProgressStatusUpdated',
       },
-      hl = { fg = '#DCD7BA' },
+      hl = { fg = colors.cli.lsp_server },
     }
 
     -- Fully dynamic formatter flag discovery
@@ -448,7 +471,7 @@ return {
         return full_text
       end,
       update = { 'DirChanged', 'BufEnter', 'LspAttach', 'LspDetach' },
-      hl = { fg = '#555555' },
+      hl = { fg = colors.cli.formatters },
     }
 
     local HarpoonMarks = {
@@ -496,7 +519,7 @@ return {
         end
       end,
       update = { 'BufEnter', 'User' }, -- User event for harpoon changes
-      hl = { fg = '#DCD7BA' },
+      hl = { fg = colors.cli.harpoon },
     }
 
     -- Helper function to get rightmost window
@@ -540,7 +563,7 @@ return {
 
         -- Get the color from the highlight group
         local hl_attrs = vim.api.nvim_get_hl(0, { name = hl_group })
-        local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or '#C0C0C0'
+        local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or colors.base.muted_white
 
         return { fg = color }
       end,
@@ -555,7 +578,7 @@ return {
         self.modified = vim.api.nvim_get_option_value('modified', { buf = buf })
 
         -- Compute git status color
-        self.color = '#C0C0C0' -- default muted white for clean files
+        self.color = colors.git.clean -- default for clean files
 
         if self.filepath ~= '' then
           local git_status = vim.fn
@@ -564,22 +587,22 @@ return {
 
           if git_status == '' then
             -- File is tracked and clean
-            self.color = '#C0C0C0' -- muted white
+            self.color = colors.git.clean
           elseif git_status:match 'UU' or git_status:match 'AA' or git_status:match 'DD' then
             -- Merge conflicts - immediate attention needed
-            self.color = '#f38ba8' -- red
+            self.color = colors.git.conflict
           elseif git_status:match 'AU' or git_status:match 'UA' or git_status:match 'UD' or git_status:match 'DU' then
             -- Conflict states - immediate attention needed
-            self.color = '#f38ba8' -- red
+            self.color = colors.git.conflict
           elseif git_status:match '^%?%?' then
             -- File is untracked
-            self.color = '#a6e3a1' -- green
+            self.color = colors.git.untracked
           elseif git_status:match '[AM]' then
             -- Modified/added files
-            self.color = '#fab387' -- orange
+            self.color = colors.git.modified
           else
-            -- Unknown status, default to muted white
-            self.color = '#C0C0C0' -- muted white
+            -- Unknown status, default to clean
+            self.color = colors.git.clean
           end
         end
       end,
@@ -628,7 +651,7 @@ return {
 
         return table.concat(result, ' ')
       end,
-      hl = { fg = '#938AA9' },
+      hl = { fg = colors.diagnostic.general },
     }
 
     -- Center diagnostics in statusline
@@ -658,7 +681,7 @@ return {
         }
         return symbols.has()
       end,
-      hl = { fg = '#938AA9' },
+      hl = { fg = colors.diagnostic.general },
     }
 
     -- Enable tabline
