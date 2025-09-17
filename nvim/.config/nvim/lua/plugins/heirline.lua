@@ -8,54 +8,75 @@ return {
     local heirline = require 'heirline'
     local utils = require 'heirline.utils'
 
-    -- Centralized color palette with semantic naming
-    local colors = {
-      -- CLI Theme semantic colors
-      cli = {
-        working_dir = '#7E9CD8',    -- Directory path
-        branch = '#957FB8',         -- Git branch
-        git_status = '#E6C384',     -- Git status indicator
-        lsp_server = '#DCD7BA',     -- LSP server name
-        harpoon = '#DCD7BA',        -- Harpoon marks
-        formatters = '#555555',     -- Linters/formatters (muted)
-      },
-      
-      -- Git status colors (file-level)
-      git = {
-        clean = '#C0C0C0',          -- Tracked, clean files (muted white)
-        conflict = '#f38ba8',       -- Merge conflicts (red)
-        untracked = '#a6e3a1',      -- Untracked files (green) 
-        modified = '#fab387',       -- Modified/staged files (orange)
-      },
-      
-      -- Diagnostic colors
-      diagnostic = {
-        error = '#ff6b6b',          -- Error diagnostics
-        warn = '#ffd700',           -- Warning diagnostics
-        info = '#00ffff',           -- Info diagnostics
-        hint = '#4169e1',           -- Hint diagnostics
-        general = '#938AA9',        -- General diagnostic text
-      },
-      
-      -- Base palette (catppuccin-inspired)
-      base = {
-        red = '#f38ba8',
-        green = '#a6e3a1', 
-        orange = '#fab387',
-        blue = '#89b4fa',
-        purple = '#cba6f7',
-        cyan = '#94e2d5',
-        gray = '#6c7086',
-        white = '#cdd6f4',
-        bg = '#313244',
-        muted_white = '#C0C0C0',
-      },
-    }
+    -- Theme-aware color system using heirline utils and semantic fallbacks
+    local function get_theme_colors()
+      return {
+        -- CLI Theme semantic colors - adapt to current theme
+        working_dir = utils.get_highlight('Directory').fg and 
+          string.format('#%06x', utils.get_highlight('Directory').fg) or '#7E9CD8',
+        branch = utils.get_highlight('Statement').fg and 
+          string.format('#%06x', utils.get_highlight('Statement').fg) or '#957FB8',
+        git_status = utils.get_highlight('WarningMsg').fg and 
+          string.format('#%06x', utils.get_highlight('WarningMsg').fg) or '#E6C384',
+        lsp_server = utils.get_highlight('Normal').fg and 
+          string.format('#%06x', utils.get_highlight('Normal').fg) or '#DCD7BA',
+        harpoon = utils.get_highlight('Normal').fg and 
+          string.format('#%06x', utils.get_highlight('Normal').fg) or '#DCD7BA',
+        formatters = utils.get_highlight('Comment').fg and 
+          string.format('#%06x', utils.get_highlight('Comment').fg) or '#555555',
+        
+        -- Git status colors - use theme's git/diff colors when available
+        clean = utils.get_highlight('Normal').fg and 
+          string.format('#%06x', utils.get_highlight('Normal').fg) or '#C0C0C0',
+        conflict = utils.get_highlight('ErrorMsg').fg and 
+          string.format('#%06x', utils.get_highlight('ErrorMsg').fg) or '#f38ba8',
+        untracked = utils.get_highlight('DiffAdd').fg and 
+          string.format('#%06x', utils.get_highlight('DiffAdd').fg) or '#a6e3a1',
+        modified = utils.get_highlight('DiffChange').fg and 
+          string.format('#%06x', utils.get_highlight('DiffChange').fg) or '#fab387',
+        
+        -- Diagnostic colors - use theme's diagnostic highlights
+        error = utils.get_highlight('DiagnosticError').fg and 
+          string.format('#%06x', utils.get_highlight('DiagnosticError').fg) or '#ff6b6b',
+        warn = utils.get_highlight('DiagnosticWarn').fg and 
+          string.format('#%06x', utils.get_highlight('DiagnosticWarn').fg) or '#ffd700',
+        info = utils.get_highlight('DiagnosticInfo').fg and 
+          string.format('#%06x', utils.get_highlight('DiagnosticInfo').fg) or '#00ffff',
+        hint = utils.get_highlight('DiagnosticHint').fg and 
+          string.format('#%06x', utils.get_highlight('DiagnosticHint').fg) or '#4169e1',
+        general = utils.get_highlight('Comment').fg and 
+          string.format('#%06x', utils.get_highlight('Comment').fg) or '#938AA9',
+        
+        -- Base palette - extract from theme's core highlight groups
+        red = utils.get_highlight('ErrorMsg').fg and 
+          string.format('#%06x', utils.get_highlight('ErrorMsg').fg) or '#f38ba8',
+        green = utils.get_highlight('DiffAdd').fg and 
+          string.format('#%06x', utils.get_highlight('DiffAdd').fg) or '#a6e3a1',
+        orange = utils.get_highlight('WarningMsg').fg and 
+          string.format('#%06x', utils.get_highlight('WarningMsg').fg) or '#fab387',
+        blue = utils.get_highlight('Function').fg and 
+          string.format('#%06x', utils.get_highlight('Function').fg) or '#89b4fa',
+        purple = utils.get_highlight('Statement').fg and 
+          string.format('#%06x', utils.get_highlight('Statement').fg) or '#cba6f7',
+        cyan = utils.get_highlight('Special').fg and 
+          string.format('#%06x', utils.get_highlight('Special').fg) or '#94e2d5',
+        gray = utils.get_highlight('Comment').fg and 
+          string.format('#%06x', utils.get_highlight('Comment').fg) or '#6c7086',
+        white = utils.get_highlight('Normal').fg and 
+          string.format('#%06x', utils.get_highlight('Normal').fg) or '#cdd6f4',
+        bg = utils.get_highlight('Normal').bg and 
+          string.format('#%06x', utils.get_highlight('Normal').bg) or '#313244',
+        muted_white = utils.get_highlight('NonText').fg and 
+          string.format('#%06x', utils.get_highlight('NonText').fg) or '#C0C0C0',
+      }
+    end
+
+    -- Colors will be loaded via heirline.load_colors() and available as color aliases
 
     -- CLI Theme Components
     local WorkingDir = {
       provider = function() return vim.fn.fnamemodify(vim.fn.getcwd(), ':~') end,
-      hl = { fg = colors.cli.working_dir },
+      hl = { fg = 'working_dir' },
     }
 
     local GitBranch = {
@@ -76,7 +97,7 @@ return {
       end,
       provider = function(self) return self.git_info.branch ~= '' and (' on ' .. self.git_info.branch .. ' ') or '' end,
       update = { 'DirChanged', 'BufEnter' },
-      hl = { fg = colors.cli.branch },
+      hl = { fg = 'branch' },
     }
 
     local GitStatus = {
@@ -88,7 +109,7 @@ return {
       end,
       provider = fn 'components.file_info.git_status',
       update = { 'BufWritePost', 'BufEnter' },
-      hl = { fg = colors.cli.git_status, bold = true },
+      hl = { fg = 'git_status', bold = true },
     }
 
     local LspServer = {
@@ -168,7 +189,7 @@ return {
         'User',
         pattern = 'LspProgressStatusUpdated',
       },
-      hl = { fg = colors.cli.lsp_server },
+      hl = { fg = 'lsp_server' },
     }
 
     -- Fully dynamic formatter flag discovery
@@ -471,7 +492,7 @@ return {
         return full_text
       end,
       update = { 'DirChanged', 'BufEnter', 'LspAttach', 'LspDetach' },
-      hl = { fg = colors.cli.formatters },
+      hl = { fg = 'formatters' },
     }
 
     local HarpoonMarks = {
@@ -519,7 +540,7 @@ return {
         end
       end,
       update = { 'BufEnter', 'User' }, -- User event for harpoon changes
-      hl = { fg = colors.cli.harpoon },
+      hl = { fg = 'harpoon' },
     }
 
     -- Helper function to get rightmost window
@@ -563,7 +584,7 @@ return {
 
         -- Get the color from the highlight group
         local hl_attrs = vim.api.nvim_get_hl(0, { name = hl_group })
-        local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or colors.base.muted_white
+        local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or 'muted_white'
 
         return { fg = color }
       end,
@@ -578,7 +599,7 @@ return {
         self.modified = vim.api.nvim_get_option_value('modified', { buf = buf })
 
         -- Compute git status color
-        self.color = colors.git.clean -- default for clean files
+        self.color = 'clean' -- default for clean files
 
         if self.filepath ~= '' then
           local git_status = vim.fn
@@ -587,22 +608,22 @@ return {
 
           if git_status == '' then
             -- File is tracked and clean
-            self.color = colors.git.clean
+            self.color = 'clean'
           elseif git_status:match 'UU' or git_status:match 'AA' or git_status:match 'DD' then
             -- Merge conflicts - immediate attention needed
-            self.color = colors.git.conflict
+            self.color = 'conflict'
           elseif git_status:match 'AU' or git_status:match 'UA' or git_status:match 'UD' or git_status:match 'DU' then
             -- Conflict states - immediate attention needed
-            self.color = colors.git.conflict
+            self.color = 'conflict'
           elseif git_status:match '^%?%?' then
             -- File is untracked
-            self.color = colors.git.untracked
+            self.color = 'untracked'
           elseif git_status:match '[AM]' then
             -- Modified/added files
-            self.color = colors.git.modified
+            self.color = 'modified'
           else
             -- Unknown status, default to clean
-            self.color = colors.git.clean
+            self.color = 'clean'
           end
         end
       end,
@@ -651,7 +672,7 @@ return {
 
         return table.concat(result, ' ')
       end,
-      hl = { fg = colors.diagnostic.general },
+      hl = { fg = 'general' },
     }
 
     -- Center diagnostics in statusline
@@ -681,7 +702,7 @@ return {
         }
         return symbols.has()
       end,
-      hl = { fg = colors.diagnostic.general },
+      hl = { fg = 'general' },
     }
 
     -- Enable tabline
@@ -697,7 +718,10 @@ return {
       LintersFormatters,
     }
 
-    -- Setup heirline with complete tabline and statusline
+    -- Load colors using heirline's proper theming system
+    heirline.load_colors(get_theme_colors)
+
+    -- Setup heirline once
     heirline.setup {
       statusline = {
         StatusAlign,
@@ -711,5 +735,21 @@ return {
         RightmostFilename,
       },
     }
+
+    -- Proper theme refresh using heirline's API
+    vim.api.nvim_create_augroup('Heirline', { clear = true })
+    vim.api.nvim_create_autocmd('ColorScheme', {
+      group = 'Heirline',
+      callback = function()
+        utils.on_colorscheme(get_theme_colors)
+        
+        -- Reapply transparent.nvim settings
+        local ok, transparent = pcall(require, 'transparent')
+        if ok then
+          transparent.clear_prefix('heirline')
+          vim.cmd('TransparentEnable')
+        end
+      end,
+    })
   end,
 }
