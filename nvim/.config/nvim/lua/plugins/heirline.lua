@@ -45,17 +45,13 @@ return {
         if cwd ~= self.last_cwd or not self.git_info then
           local is_git_repo = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
           local branch = ''
-          if is_git_repo then
-            branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '')
-          end
+          if is_git_repo then branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '') end
           self.git_info = { is_git_repo = is_git_repo, branch = branch }
           self.last_cwd = cwd
         end
         return self.git_info.is_git_repo
       end,
-      provider = function(self)
-        return self.git_info.branch ~= '' and (' on ' .. self.git_info.branch .. ' ') or ''
-      end,
+      provider = function(self) return self.git_info.branch ~= '' and (' on ' .. self.git_info.branch .. ' ') or '' end,
       update = { 'DirChanged', 'BufEnter' },
       hl = { fg = '#957FB8' },
     }
@@ -64,9 +60,7 @@ return {
       condition = function(self)
         -- Reuse git info from GitBranch if available
         local git_branch = self.parent and self.parent[2] -- GitBranch is index 2 in LeftSide
-        if git_branch and git_branch.git_info then
-          return git_branch.git_info.is_git_repo
-        end
+        if git_branch and git_branch.git_info then return git_branch.git_info.is_git_repo end
         return vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
       end,
       provider = fn 'components.file_info.git_status',
@@ -77,7 +71,46 @@ return {
     local LspServer = {
       static = {
         excluded = { 'copilot', 'efm', 'null-ls', 'conform' },
+        is_refreshing = false,
+        refresh_timer = nil,
+        start_refresh_cycle = function(self)
+          if self.refresh_timer then self.refresh_timer:stop() end
+
+          local function refresh()
+            if self.is_refreshing then
+              vim.cmd 'redrawtabline'
+              self.refresh_timer = vim.defer_fn(refresh, 200) -- 200ms refresh rate
+            end
+          end
+
+          refresh()
+        end,
+        stop_refresh_cycle = function(self)
+          if self.refresh_timer then
+            self.refresh_timer:stop()
+            self.refresh_timer = nil
+          end
+          vim.cmd 'redrawtabline' -- Final redraw to show completion
+        end,
       },
+      init = function(self)
+        -- Check if LSP work is happening and manage refresh cycle
+        local ok, lsp_progress = pcall(require, 'lsp-progress')
+        if ok then
+          local progress = lsp_progress.progress()
+          local has_progress = progress ~= ''
+
+          if has_progress and not self.is_refreshing then
+            -- Start refresh cycle when LSP work begins
+            self.is_refreshing = true
+            self:start_refresh_cycle()
+          elseif not has_progress and self.is_refreshing then
+            -- Stop refresh cycle when LSP work is done
+            self.is_refreshing = false
+            self:stop_refresh_cycle()
+          end
+        end
+      end,
       provider = function(self)
         local buf_clients = vim.lsp.get_clients { bufnr = 0 }
 
@@ -95,23 +128,22 @@ return {
         end
 
         -- Get LSP progress spinner
-        local spinner = '  ' -- default
+        local lsp_indicator = '  '
         local ok, lsp_progress = pcall(require, 'lsp-progress')
         if ok then
           local progress = lsp_progress.progress()
-          spinner = progress ~= '' and (progress .. ' ') or '  '
+          lsp_indicator = progress ~= '' and (progress .. ' ') or '  '
         end
 
-        if #language_servers == 0 then return spinner .. 'nvim' end
+        if #language_servers == 0 then return lsp_indicator .. 'nvim' end
 
         -- Get the main LSP server (first language server)
         local client = language_servers[1]
-        return spinner .. client.name
+        return lsp_indicator .. client.name
       end,
       update = {
         'User',
         pattern = 'LspProgressStatusUpdated',
-        callback = vim.schedule_wrap(function() vim.cmd 'redrawtabline' end),
       },
       hl = { fg = '#DCD7BA' },
     }
@@ -121,12 +153,10 @@ return {
     local function get_formatter_flag_levels(formatter_name)
       local cwd = vim.fn.getcwd()
       local cache_key = formatter_name .. ':' .. cwd
-      
+
       -- Return cached result if available
-      if formatter_cache[cache_key] then
-        return formatter_cache[cache_key]
-      end
-      
+      if formatter_cache[cache_key] then return formatter_cache[cache_key] end
+
       local flag_levels = {}
 
       if formatter_name == 'prettier' then
@@ -242,12 +272,10 @@ return {
       formatter_cache[cache_key] = flag_levels
       return flag_levels
     end
-    
+
     -- Clear cache when directory changes
     vim.api.nvim_create_autocmd('DirChanged', {
-      callback = function()
-        formatter_cache = {}
-      end,
+      callback = function() formatter_cache = {} end,
     })
 
     -- Helper function to get best flag level that fits in max_width
@@ -271,7 +299,7 @@ return {
         self.current_cwd = vim.fn.getcwd()
         self.total_width = vim.o.columns
         self.working_dir_width = #vim.fn.fnamemodify(self.current_cwd, ':~')
-        
+
         -- Get git info from GitBranch component if available
         local git_branch = self.parent and self.parent[2] -- GitBranch is index 2 in LeftSide
         if git_branch and git_branch.git_info then
@@ -279,9 +307,9 @@ return {
         else
           self.branch_width = 0
         end
-        
+
         self.git_status_width = 10
-        
+
         -- Calculate LSP width
         local buf_clients = vim.lsp.get_clients { bufnr = 0 }
         self.lsp_width = 6 -- "  nvim" default
@@ -298,7 +326,7 @@ return {
             break
           end
         end
-        
+
         -- Calculate harpoon width
         local harpoon = require 'harpoon'
         local marks = harpoon:list().items
@@ -316,16 +344,20 @@ return {
             self.harpoon_width = harpoon_total_length
           end
         end
-        
+
         -- Calculate right side width
         local rightmost_win = vim.api.nvim_get_current_win()
         local buf = vim.api.nvim_win_get_buf(rightmost_win)
         local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
         self.right_side_width = 2 + #(filename ~= '' and filename or '[No Name]')
-        
+
         -- Calculate available space budget
-        local used_width = self.working_dir_width + self.branch_width + self.git_status_width + 
-                          self.lsp_width + self.harpoon_width + self.right_side_width
+        local used_width = self.working_dir_width
+          + self.branch_width
+          + self.git_status_width
+          + self.lsp_width
+          + self.harpoon_width
+          + self.right_side_width
         self.space_budget = self.total_width - used_width - 5
       end,
       provider = function(self)
@@ -333,7 +365,7 @@ return {
 
         -- Check for LSP-based linters/formatters
         local buf_clients = vim.lsp.get_clients { bufnr = 0 }
-        
+
         for _, client in ipairs(buf_clients) do
           for _, lf_name in ipairs(self.lf_names) do
             if client.name:lower():find(lf_name:lower()) then
@@ -390,19 +422,19 @@ return {
         local harpoon = require 'harpoon'
         self.marks = harpoon:list().items
         self.current_file_path = vim.fn.expand '%:p:.'
-        
+
         -- Calculate total length for compact mode decision
         local total_length = 0
         for _, item in ipairs(self.marks) do
           local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
           total_length = total_length + #filename + 4 -- +4 for " -t " or " --"
         end
-        
+
         self.use_compact = total_length > (vim.o.columns * 0.4) or #self.marks > 4
       end,
       provider = function(self)
         if #self.marks == 0 then return '' end
-        
+
         if self.use_compact then
           -- Compact mode: -Abc (capital for current, lowercase for others)
           local letters = {}
@@ -487,13 +519,15 @@ return {
         self.filepath = vim.api.nvim_buf_get_name(buf)
         self.filename = vim.fn.fnamemodify(self.filepath, ':t')
         self.modified = vim.api.nvim_get_option_value('modified', { buf = buf })
-        
+
         -- Compute git status color
         self.color = '#C0C0C0' -- default muted white for clean files
-        
+
         if self.filepath ~= '' then
-          local git_status = vim.fn.system('git status --porcelain ' .. vim.fn.shellescape(self.filepath) .. ' 2>/dev/null'):gsub('\n', '')
-          
+          local git_status = vim.fn
+            .system('git status --porcelain ' .. vim.fn.shellescape(self.filepath) .. ' 2>/dev/null')
+            :gsub('\n', '')
+
           if git_status == '' then
             -- File is tracked and clean
             self.color = '#C0C0C0' -- muted white
@@ -515,13 +549,9 @@ return {
           end
         end
       end,
-      provider = function(self)
-        return self.filename ~= '' and (' ' .. self.filename) or ' [No Name]'
-      end,
+      provider = function(self) return self.filename ~= '' and (' ' .. self.filename) or ' [No Name]' end,
       hl = function(self)
-        if self.modified then 
-          return { fg = self.color, italic = true }
-        end
+        if self.modified then return { fg = self.color, italic = true } end
         return { fg = self.color }
       end,
       update = { 'BufEnter', 'BufWritePost', 'BufModifiedSet' },
