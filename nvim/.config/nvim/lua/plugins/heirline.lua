@@ -1,7 +1,8 @@
 return {
   'rebelot/heirline.nvim',
+  enabled = false,
   lazy = false,
-  dependencies = { 'echasnovski/mini.icons' },
+  dependencies = { 'echasnovski/mini.icons', 'linrongbin16/lsp-progress.nvim' },
   config = function()
     require('mini.icons').mock_nvim_web_devicons()
 
@@ -52,12 +53,12 @@ return {
 
     local LspServer = {
       provider = function()
-        local buf_clients = vim.lsp.get_clients({ bufnr = 0 })
-        
+        local buf_clients = vim.lsp.get_clients { bufnr = 0 }
+
         -- Filter for main language servers only
         local language_servers = {}
         local excluded = { 'copilot', 'efm', 'null-ls', 'conform' }
-        
+
         for _, client in ipairs(buf_clients) do
           local is_excluded = false
           for _, excluded_name in ipairs(excluded) do
@@ -66,19 +67,19 @@ return {
               break
             end
           end
-          if not is_excluded then
-            table.insert(language_servers, client)
-          end
+          if not is_excluded then table.insert(language_servers, client) end
         end
-        
+
         -- Get LSP progress spinner
-        local progress = require('lsp-progress').progress()
-        local spinner = progress ~= '' and (progress .. ' ') or '  '
-        
-        if #language_servers == 0 then
-          return spinner .. 'nvim'
+        local spinner = '  ' -- default
+        local ok, lsp_progress = pcall(require, 'lsp-progress')
+        if ok then
+          local progress = lsp_progress.progress()
+          spinner = progress ~= '' and (progress .. ' ') or '  '
         end
-        
+
+        if #language_servers == 0 then return spinner .. 'nvim' end
+
         -- Get the main LSP server (first language server)
         local client = language_servers[1]
         return spinner .. client.name
@@ -86,17 +87,15 @@ return {
       update = {
         'User',
         pattern = 'LspProgressStatusUpdated',
-        callback = vim.schedule_wrap(function()
-          vim.cmd('redrawtabline')
-        end),
+        callback = vim.schedule_wrap(function() vim.cmd 'redrawtabline' end),
       },
       hl = { fg = '#DCD7BA' },
     }
-    
+
     -- Helper function to get all flag levels for a formatter
     local function get_formatter_flag_levels(formatter_name)
       local flag_levels = {}
-      
+
       if formatter_name == 'prettier' then
         -- Check for .prettierrc, .prettierrc.json, package.json
         local config = nil
@@ -106,19 +105,22 @@ return {
             local content = vim.fn.readfile(config_file)
             if #content > 0 then
               local ok, parsed = pcall(vim.json.decode, table.concat(content, '\n'))
-              if ok then config = parsed; break end
+              if ok then
+                config = parsed
+                break
+              end
             end
           end
         end
-        
-        if not config and vim.fn.filereadable('package.json') == 1 then
-          local content = vim.fn.readfile('package.json')
+
+        if not config and vim.fn.filereadable 'package.json' == 1 then
+          local content = vim.fn.readfile 'package.json'
           if #content > 0 then
             local ok, pkg = pcall(vim.json.decode, table.concat(content, '\n'))
             if ok and pkg.prettier then config = pkg.prettier end
           end
         end
-        
+
         if config then
           -- Level 1: Full flags
           local full_flags = {}
@@ -126,22 +128,22 @@ return {
           if config.tabWidth then table.insert(full_flags, '--tab-width=' .. config.tabWidth) end
           if config.printWidth then table.insert(full_flags, '--print-width=' .. config.printWidth) end
           if config.semi == false then table.insert(full_flags, '--no-semi') end
-          if config.trailingComma and config.trailingComma ~= 'none' then 
-            table.insert(full_flags, '--trailing-comma=' .. config.trailingComma) 
+          if config.trailingComma and config.trailingComma ~= 'none' then
+            table.insert(full_flags, '--trailing-comma=' .. config.trailingComma)
           end
           if config.useTabs then table.insert(full_flags, '--use-tabs') end
-          
+
           -- Level 2: Abbreviated flags
           local abbrev_flags = {}
           if config.singleQuote then table.insert(abbrev_flags, '-sq') end
           if config.tabWidth then table.insert(abbrev_flags, '-tw=' .. config.tabWidth) end
           if config.printWidth then table.insert(abbrev_flags, '-pw=' .. config.printWidth) end
           if config.semi == false then table.insert(abbrev_flags, '-ns') end
-          if config.trailingComma and config.trailingComma ~= 'none' then 
-            table.insert(abbrev_flags, '-tc=' .. config.trailingComma:sub(1,2)) 
+          if config.trailingComma and config.trailingComma ~= 'none' then
+            table.insert(abbrev_flags, '-tc=' .. config.trailingComma:sub(1, 2))
           end
           if config.useTabs then table.insert(abbrev_flags, '-ut') end
-          
+
           -- Level 3: Single letters
           local compact_letters = {}
           if config.singleQuote then table.insert(compact_letters, 's') end
@@ -150,14 +152,13 @@ return {
           if config.trailingComma and config.trailingComma ~= 'none' then table.insert(compact_letters, 'c') end
           if config.semi == false then table.insert(compact_letters, 'n') end
           if config.useTabs then table.insert(compact_letters, 'T') end
-          
+
           flag_levels = {
             table.concat(full_flags, ' '),
             table.concat(abbrev_flags, ' '),
-            #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or ''
+            #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or '',
           }
         end
-        
       elseif formatter_name == 'stylua' then
         local config_files = { 'stylua.toml', '.stylua.toml' }
         for _, config_file in ipairs(config_files) do
@@ -166,69 +167,67 @@ return {
             local full_flags = {}
             local abbrev_flags = {}
             local compact_letters = {}
-            
+
             for _, line in ipairs(content) do
-              local trimmed = line:match('^%s*(.-)%s*$')
-              if trimmed and not trimmed:match('^#') then
-                if trimmed:match('indent_width%s*=%s*(%d+)') then
-                  local width = trimmed:match('indent_width%s*=%s*(%d+)')
+              local trimmed = line:match '^%s*(.-)%s*$'
+              if trimmed and not trimmed:match '^#' then
+                if trimmed:match 'indent_width%s*=%s*(%d+)' then
+                  local width = trimmed:match 'indent_width%s*=%s*(%d+)'
                   table.insert(full_flags, '--indent-width=' .. width)
                   table.insert(abbrev_flags, '-iw=' .. width)
                   table.insert(compact_letters, 'i')
-                elseif trimmed:match('quote_style%s*=%s*"([^"]+)"') then
-                  local style = trimmed:match('quote_style%s*=%s*"([^"]+)"')
+                elseif trimmed:match 'quote_style%s*=%s*"([^"]+)"' then
+                  local style = trimmed:match 'quote_style%s*=%s*"([^"]+)"'
                   table.insert(full_flags, '--quote-style=' .. style)
-                  table.insert(abbrev_flags, '-qs=' .. style:sub(1,2))
+                  table.insert(abbrev_flags, '-qs=' .. style:sub(1, 2))
                   table.insert(compact_letters, 'q')
-                elseif trimmed:match('column_width%s*=%s*(%d+)') then
-                  local width = trimmed:match('column_width%s*=%s*(%d+)')
+                elseif trimmed:match 'column_width%s*=%s*(%d+)' then
+                  local width = trimmed:match 'column_width%s*=%s*(%d+)'
                   table.insert(full_flags, '--column-width=' .. width)
                   table.insert(abbrev_flags, '-cw=' .. width)
                   table.insert(compact_letters, 'c')
-                elseif trimmed:match('indent_type%s*=%s*"([^"]+)"') then
-                  local indent_type = trimmed:match('indent_type%s*=%s*"([^"]+)"')
+                elseif trimmed:match 'indent_type%s*=%s*"([^"]+)"' then
+                  local indent_type = trimmed:match 'indent_type%s*=%s*"([^"]+)"'
                   table.insert(full_flags, '--indent-type=' .. indent_type)
-                  table.insert(abbrev_flags, '-it=' .. indent_type:sub(1,2))
+                  table.insert(abbrev_flags, '-it=' .. indent_type:sub(1, 2))
                   table.insert(compact_letters, 't')
                 end
               end
             end
-            
+
             flag_levels = {
               table.concat(full_flags, ' '),
               table.concat(abbrev_flags, ' '),
-              #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or ''
+              #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or '',
             }
             break
           end
         end
       end
-      
+
       return flag_levels
     end
-    
+
     -- Helper function to get best flag level that fits in max_width
     local function get_formatter_flags_progressive(formatter_name, max_width)
       local flag_levels = get_formatter_flag_levels(formatter_name)
-      
+
       -- Find the longest level that fits within max_width
       for _, level in ipairs(flag_levels) do
-        if #level <= max_width then
-          return level
-        end
+        if #level <= max_width then return level end
       end
-      
+
       return flag_levels[#flag_levels] or '' -- Return most compact or empty
     end
 
     local LintersFormatters = {
       provider = function()
         local result = {}
-        
+
         -- Check for LSP-based linters/formatters
-        local buf_clients = vim.lsp.get_clients({ bufnr = 0 })
+        local buf_clients = vim.lsp.get_clients { bufnr = 0 }
         local lf_names = { 'efm', 'null-ls' }
-        
+
         for _, client in ipairs(buf_clients) do
           for _, lf_name in ipairs(lf_names) do
             if client.name:lower():find(lf_name:lower()) then
@@ -237,15 +236,15 @@ return {
             end
           end
         end
-        
+
         -- Check for conform.nvim formatters with config flags
         local ok, conform = pcall(require, 'conform')
         if ok then
           local formatters = conform.list_formatters(0)
-          
+
           -- Calculate actual width of other components dynamically
           local total_width = vim.o.columns
-          
+
           -- Calculate actual component widths
           local working_dir_width = #vim.fn.fnamemodify(vim.fn.getcwd(), ':~')
           local branch_width = 0
@@ -254,10 +253,10 @@ return {
             branch_width = #(' on ' .. branch .. ' ')
           end
           local git_status_width = 10
-          
+
           -- LSP server width
           local lsp_width = 6 -- "  nvim" default
-          local buf_clients = vim.lsp.get_clients({ bufnr = 0 })
+          local buf_clients = vim.lsp.get_clients { bufnr = 0 }
           local excluded = { 'copilot', 'efm', 'null-ls', 'conform' }
           for _, client in ipairs(buf_clients) do
             local is_excluded = false
@@ -272,7 +271,7 @@ return {
               break
             end
           end
-          
+
           -- Harpoon width (calculate current harpoon display)
           local harpoon_width = 0
           local harpoon = require 'harpoon'
@@ -291,50 +290,53 @@ return {
               harpoon_width = harpoon_total_length
             end
           end
-          
+
           -- Right side width (icon + filename)
           local rightmost_win = vim.api.nvim_get_current_win() -- simplified for calculation
           local buf = vim.api.nvim_win_get_buf(rightmost_win)
           local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
           local right_side_width = 2 + #(filename ~= '' and filename or '[No Name]') -- icon + filename
-          
+
           -- Progressive compression with real space budget
           -- Calculate actual available space
-          local used_width = working_dir_width + branch_width + git_status_width + lsp_width + harpoon_width + right_side_width
+          local used_width = working_dir_width
+            + branch_width
+            + git_status_width
+            + lsp_width
+            + harpoon_width
+            + right_side_width
           local space_budget = total_width - used_width - 5 -- Use real remaining space
           local space_used = 0
-          
+
           for i, formatter in ipairs(formatters) do
             if formatter.available then
               local formatter_name = formatter.name
               local flag_levels = get_formatter_flag_levels(formatter_name)
-              
+
               local chosen_flags = ''
               local space_remaining = space_budget - space_used
               local separator_cost = (#result > 0) and 3 or 0 -- " | "
-              
+
               -- Try each level to see what fits
               for j, level in ipairs(flag_levels) do
                 local full_text = formatter_name .. (level ~= '' and (' ' .. level) or '')
                 local total_cost = #full_text + separator_cost
-                
+
                 if total_cost <= space_remaining then
                   chosen_flags = level
                   space_used = space_used + total_cost
                   break
                 end
               end
-              
+
               local formatter_str = formatter_name .. (chosen_flags ~= '' and (' ' .. chosen_flags) or '')
               table.insert(result, formatter_str)
             end
           end
         end
-        
-        if #result == 0 then
-          return ''
-        end
-        
+
+        if #result == 0 then return '' end
+
         local full_text = ' | ' .. table.concat(result, ' | ')
         return full_text
       end,
@@ -354,14 +356,14 @@ return {
           local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
           total_length = total_length + #filename + 4 -- +4 for " -t " or " --"
         end
-        
+
         local use_compact = total_length > (vim.o.columns * 0.4) or #marks > 4
 
         if use_compact then
           -- Compact mode: -Abc (capital for current, lowercase for others)
           local letters = {}
           for _, item in ipairs(marks) do
-            local first_letter = vim.fn.fnamemodify(item.value, ':t'):sub(1,1)
+            local first_letter = vim.fn.fnamemodify(item.value, ':t'):sub(1, 1)
             if item.value == current_file_path then
               table.insert(letters, first_letter:upper()) -- Capital for current
             else
@@ -423,11 +425,11 @@ return {
         local buf = vim.api.nvim_win_get_buf(rightmost_win)
         local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })
         local icon, hl_group = require('mini.icons').get('filetype', filetype)
-        
+
         -- Get the color from the highlight group
         local hl_attrs = vim.api.nvim_get_hl(0, { name = hl_group })
         local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or '#C0C0C0'
-        
+
         return { fg = color }
       end,
     }
@@ -449,11 +451,12 @@ return {
         local gui = nil
 
         if filepath ~= '' then
-          local git_status = vim.fn.system('git status --porcelain ' .. vim.fn.shellescape(filepath) .. ' 2>/dev/null'):gsub('\n', '')
-          
+          local git_status =
+            vim.fn.system('git status --porcelain ' .. vim.fn.shellescape(filepath) .. ' 2>/dev/null'):gsub('\n', '')
+
           -- Debug: show what git status returns
           -- vim.notify('File: ' .. vim.fn.fnamemodify(filepath, ':t') .. ' | Status: "' .. git_status .. '"')
-          
+
           if git_status == '' then
             -- File is tracked and clean
             color = '#C0C0C0' -- muted white
@@ -475,9 +478,7 @@ return {
           end
         end
 
-        if modified then 
-          return { fg = color, italic = true }
-        end
+        if modified then return { fg = color, italic = true } end
 
         return { fg = color }
       end,
@@ -526,10 +527,37 @@ return {
     -- Center diagnostics in statusline
     local StatusAlign = { provider = '%=' }
 
+    -- Trouble statusline component
+    local TroubleStatusline = {
+      provider = function()
+        local trouble = require 'trouble'
+        local symbols = trouble.statusline {
+          mode = 'lsp_document_symbols',
+          groups = {},
+          title = false,
+          filter = { range = true },
+          format = '{kind_icon}{symbol.name:Normal}',
+        }
+        return symbols.get()
+      end,
+      condition = function()
+        local trouble = require 'trouble'
+        local symbols = trouble.statusline {
+          mode = 'lsp_document_symbols',
+          groups = {},
+          title = false,
+          filter = { range = true },
+          format = '{kind_icon}{symbol.name:Normal}',
+        }
+        return symbols.has()
+      end,
+      hl = { fg = '#938AA9' },
+    }
+
     -- Enable tabline
     vim.o.showtabline = 2 -- Always show tabline
-    
-    -- Left side components 
+
+    -- Left side components
     local LeftSide = {
       WorkingDir,
       GitBranch,
@@ -543,7 +571,8 @@ return {
     heirline.setup {
       statusline = {
         StatusAlign,
-        Diagnostics,
+        Diagnostics, -- Use basic diagnostics instead of trouble statusline
+        StatusAlign,
       },
       tabline = {
         LeftSide,
@@ -552,8 +581,5 @@ return {
         RightmostFilename,
       },
     }
-    
-    
   end,
 }
-
