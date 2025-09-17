@@ -1,6 +1,5 @@
 return {
   'rebelot/heirline.nvim',
-  enabled = false,
   lazy = false,
   dependencies = { 'echasnovski/mini.icons', 'linrongbin16/lsp-progress.nvim' },
   config = function()
@@ -37,31 +36,56 @@ return {
     }
 
     local GitBranch = {
-      condition = function() return vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true' end,
-      provider = function()
-        local branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '')
-        return branch ~= '' and (' on ' .. branch .. ' ') or ''
+      static = {
+        git_info = nil,
+        last_cwd = '',
+      },
+      condition = function(self)
+        local cwd = vim.fn.getcwd()
+        if cwd ~= self.last_cwd or not self.git_info then
+          local is_git_repo = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
+          local branch = ''
+          if is_git_repo then
+            branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '')
+          end
+          self.git_info = { is_git_repo = is_git_repo, branch = branch }
+          self.last_cwd = cwd
+        end
+        return self.git_info.is_git_repo
       end,
+      provider = function(self)
+        return self.git_info.branch ~= '' and (' on ' .. self.git_info.branch .. ' ') or ''
+      end,
+      update = { 'DirChanged', 'BufEnter' },
       hl = { fg = '#957FB8' },
     }
 
     local GitStatus = {
-      condition = function() return vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true' end,
+      condition = function(self)
+        -- Reuse git info from GitBranch if available
+        local git_branch = self.parent and self.parent[2] -- GitBranch is index 2 in LeftSide
+        if git_branch and git_branch.git_info then
+          return git_branch.git_info.is_git_repo
+        end
+        return vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
+      end,
       provider = fn 'components.file_info.git_status',
+      update = { 'BufWritePost', 'BufEnter' },
       hl = { fg = '#E6C384', bold = true },
     }
 
     local LspServer = {
-      provider = function()
+      static = {
+        excluded = { 'copilot', 'efm', 'null-ls', 'conform' },
+      },
+      provider = function(self)
         local buf_clients = vim.lsp.get_clients { bufnr = 0 }
 
-        -- Filter for main language servers only
+        -- Filter for main language servers only using static excluded list
         local language_servers = {}
-        local excluded = { 'copilot', 'efm', 'null-ls', 'conform' }
-
         for _, client in ipairs(buf_clients) do
           local is_excluded = false
-          for _, excluded_name in ipairs(excluded) do
+          for _, excluded_name in ipairs(self.excluded) do
             if client.name:lower():find(excluded_name:lower()) then
               is_excluded = true
               break
@@ -92,8 +116,17 @@ return {
       hl = { fg = '#DCD7BA' },
     }
 
-    -- Helper function to get all flag levels for a formatter
+    -- Cached formatter config parsing
+    local formatter_cache = {}
     local function get_formatter_flag_levels(formatter_name)
+      local cwd = vim.fn.getcwd()
+      local cache_key = formatter_name .. ':' .. cwd
+      
+      -- Return cached result if available
+      if formatter_cache[cache_key] then
+        return formatter_cache[cache_key]
+      end
+      
       local flag_levels = {}
 
       if formatter_name == 'prettier' then
@@ -205,8 +238,17 @@ return {
         end
       end
 
+      -- Cache the result
+      formatter_cache[cache_key] = flag_levels
       return flag_levels
     end
+    
+    -- Clear cache when directory changes
+    vim.api.nvim_create_autocmd('DirChanged', {
+      callback = function()
+        formatter_cache = {}
+      end,
+    })
 
     -- Helper function to get best flag level that fits in max_width
     local function get_formatter_flags_progressive(formatter_name, max_width)
@@ -221,15 +263,79 @@ return {
     end
 
     local LintersFormatters = {
-      provider = function()
+      static = {
+        lf_names = { 'efm', 'null-ls' },
+      },
+      init = function(self)
+        -- Compute all expensive operations once per evaluation
+        self.current_cwd = vim.fn.getcwd()
+        self.total_width = vim.o.columns
+        self.working_dir_width = #vim.fn.fnamemodify(self.current_cwd, ':~')
+        
+        -- Get git info from GitBranch component if available
+        local git_branch = self.parent and self.parent[2] -- GitBranch is index 2 in LeftSide
+        if git_branch and git_branch.git_info then
+          self.branch_width = git_branch.git_info.branch ~= '' and #(' on ' .. git_branch.git_info.branch .. ' ') or 0
+        else
+          self.branch_width = 0
+        end
+        
+        self.git_status_width = 10
+        
+        -- Calculate LSP width
+        local buf_clients = vim.lsp.get_clients { bufnr = 0 }
+        self.lsp_width = 6 -- "  nvim" default
+        for _, client in ipairs(buf_clients) do
+          local is_excluded = false
+          for _, excluded_name in ipairs(self.excluded or { 'copilot', 'efm', 'null-ls', 'conform' }) do
+            if client.name:lower():find(excluded_name:lower()) then
+              is_excluded = true
+              break
+            end
+          end
+          if not is_excluded then
+            self.lsp_width = #('  ' .. client.name)
+            break
+          end
+        end
+        
+        -- Calculate harpoon width
+        local harpoon = require 'harpoon'
+        local marks = harpoon:list().items
+        self.harpoon_width = 0
+        if #marks > 0 then
+          local harpoon_total_length = 0
+          for _, item in ipairs(marks) do
+            local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
+            harpoon_total_length = harpoon_total_length + #filename + 4
+          end
+          local harpoon_use_compact = harpoon_total_length > (self.total_width * 0.4) or #marks > 4
+          if harpoon_use_compact then
+            self.harpoon_width = 2 + #marks -- " -" + letters
+          else
+            self.harpoon_width = harpoon_total_length
+          end
+        end
+        
+        -- Calculate right side width
+        local rightmost_win = vim.api.nvim_get_current_win()
+        local buf = vim.api.nvim_win_get_buf(rightmost_win)
+        local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
+        self.right_side_width = 2 + #(filename ~= '' and filename or '[No Name]')
+        
+        -- Calculate available space budget
+        local used_width = self.working_dir_width + self.branch_width + self.git_status_width + 
+                          self.lsp_width + self.harpoon_width + self.right_side_width
+        self.space_budget = self.total_width - used_width - 5
+      end,
+      provider = function(self)
         local result = {}
 
         -- Check for LSP-based linters/formatters
         local buf_clients = vim.lsp.get_clients { bufnr = 0 }
-        local lf_names = { 'efm', 'null-ls' }
-
+        
         for _, client in ipairs(buf_clients) do
-          for _, lf_name in ipairs(lf_names) do
+          for _, lf_name in ipairs(self.lf_names) do
             if client.name:lower():find(lf_name:lower()) then
               table.insert(result, client.name)
               break
@@ -241,71 +347,6 @@ return {
         local ok, conform = pcall(require, 'conform')
         if ok then
           local formatters = conform.list_formatters(0)
-
-          -- Calculate actual width of other components dynamically
-          local total_width = vim.o.columns
-
-          -- Calculate actual component widths
-          local working_dir_width = #vim.fn.fnamemodify(vim.fn.getcwd(), ':~')
-          local branch_width = 0
-          if vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true' then
-            local branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '')
-            branch_width = #(' on ' .. branch .. ' ')
-          end
-          local git_status_width = 10
-
-          -- LSP server width
-          local lsp_width = 6 -- "  nvim" default
-          local buf_clients = vim.lsp.get_clients { bufnr = 0 }
-          local excluded = { 'copilot', 'efm', 'null-ls', 'conform' }
-          for _, client in ipairs(buf_clients) do
-            local is_excluded = false
-            for _, excluded_name in ipairs(excluded) do
-              if client.name:lower():find(excluded_name:lower()) then
-                is_excluded = true
-                break
-              end
-            end
-            if not is_excluded then
-              lsp_width = #('  ' .. client.name)
-              break
-            end
-          end
-
-          -- Harpoon width (calculate current harpoon display)
-          local harpoon_width = 0
-          local harpoon = require 'harpoon'
-          local marks = harpoon:list().items
-          if #marks > 0 then
-            local current_file_path = vim.fn.expand '%:p:.'
-            local harpoon_total_length = 0
-            for _, item in ipairs(marks) do
-              local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
-              harpoon_total_length = harpoon_total_length + #filename + 4
-            end
-            local harpoon_use_compact = harpoon_total_length > (vim.o.columns * 0.4) or #marks > 4
-            if harpoon_use_compact then
-              harpoon_width = 2 + #marks -- " -" + letters
-            else
-              harpoon_width = harpoon_total_length
-            end
-          end
-
-          -- Right side width (icon + filename)
-          local rightmost_win = vim.api.nvim_get_current_win() -- simplified for calculation
-          local buf = vim.api.nvim_win_get_buf(rightmost_win)
-          local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
-          local right_side_width = 2 + #(filename ~= '' and filename or '[No Name]') -- icon + filename
-
-          -- Progressive compression with real space budget
-          -- Calculate actual available space
-          local used_width = working_dir_width
-            + branch_width
-            + git_status_width
-            + lsp_width
-            + harpoon_width
-            + right_side_width
-          local space_budget = total_width - used_width - 5 -- Use real remaining space
           local space_used = 0
 
           for i, formatter in ipairs(formatters) do
@@ -314,7 +355,7 @@ return {
               local flag_levels = get_formatter_flag_levels(formatter_name)
 
               local chosen_flags = ''
-              local space_remaining = space_budget - space_used
+              local space_remaining = self.space_budget - space_used
               local separator_cost = (#result > 0) and 3 or 0 -- " | "
 
               -- Try each level to see what fits
@@ -340,31 +381,34 @@ return {
         local full_text = ' | ' .. table.concat(result, ' | ')
         return full_text
       end,
+      update = { 'DirChanged', 'BufEnter', 'LspAttach', 'LspDetach' },
       hl = { fg = '#555555' },
     }
 
     local HarpoonMarks = {
-      provider = function()
+      init = function(self)
         local harpoon = require 'harpoon'
-        local marks = harpoon:list().items
-        local current_file_path = vim.fn.expand '%:p:.'
-        local result = {}
-
-        -- Check if we should use compact mode (when there are many marks or long names)
+        self.marks = harpoon:list().items
+        self.current_file_path = vim.fn.expand '%:p:.'
+        
+        -- Calculate total length for compact mode decision
         local total_length = 0
-        for _, item in ipairs(marks) do
+        for _, item in ipairs(self.marks) do
           local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
           total_length = total_length + #filename + 4 -- +4 for " -t " or " --"
         end
-
-        local use_compact = total_length > (vim.o.columns * 0.4) or #marks > 4
-
-        if use_compact then
+        
+        self.use_compact = total_length > (vim.o.columns * 0.4) or #self.marks > 4
+      end,
+      provider = function(self)
+        if #self.marks == 0 then return '' end
+        
+        if self.use_compact then
           -- Compact mode: -Abc (capital for current, lowercase for others)
           local letters = {}
-          for _, item in ipairs(marks) do
+          for _, item in ipairs(self.marks) do
             local first_letter = vim.fn.fnamemodify(item.value, ':t'):sub(1, 1)
-            if item.value == current_file_path then
+            if item.value == self.current_file_path then
               table.insert(letters, first_letter:upper()) -- Capital for current
             else
               table.insert(letters, first_letter:lower()) -- Lowercase for others
@@ -373,9 +417,10 @@ return {
           return ' -' .. table.concat(letters, '')
         else
           -- Full mode: -t filename --filename
-          for _, item in ipairs(marks) do
+          local result = {}
+          for _, item in ipairs(self.marks) do
             local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
-            if item.value == current_file_path then
+            if item.value == self.current_file_path then
               table.insert(result, ' -t ' .. filename) -- Active: -t filename
             else
               table.insert(result, ' --' .. filename) -- Inactive: --filename
@@ -384,6 +429,7 @@ return {
           return table.concat(result, '')
         end
       end,
+      update = { 'BufEnter', 'User' }, -- User event for harpoon changes
       hl = { fg = '#DCD7BA' },
     }
 
@@ -435,53 +481,50 @@ return {
     }
 
     local RightmostFilename = {
-      provider = function()
+      init = function(self)
         local rightmost_win = get_rightmost_window()
         local buf = vim.api.nvim_win_get_buf(rightmost_win)
-        local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
-        return filename ~= '' and (' ' .. filename) or ' [No Name]'
-      end,
-      hl = function()
-        local rightmost_win = get_rightmost_window()
-        local buf = vim.api.nvim_win_get_buf(rightmost_win)
-        local filepath = vim.api.nvim_buf_get_name(buf)
-        local modified = vim.api.nvim_get_option_value('modified', { buf = buf })
-
-        local color = '#C0C0C0' -- default muted white for clean files
-        local gui = nil
-
-        if filepath ~= '' then
-          local git_status =
-            vim.fn.system('git status --porcelain ' .. vim.fn.shellescape(filepath) .. ' 2>/dev/null'):gsub('\n', '')
-
-          -- Debug: show what git status returns
-          -- vim.notify('File: ' .. vim.fn.fnamemodify(filepath, ':t') .. ' | Status: "' .. git_status .. '"')
-
+        self.filepath = vim.api.nvim_buf_get_name(buf)
+        self.filename = vim.fn.fnamemodify(self.filepath, ':t')
+        self.modified = vim.api.nvim_get_option_value('modified', { buf = buf })
+        
+        -- Compute git status color
+        self.color = '#C0C0C0' -- default muted white for clean files
+        
+        if self.filepath ~= '' then
+          local git_status = vim.fn.system('git status --porcelain ' .. vim.fn.shellescape(self.filepath) .. ' 2>/dev/null'):gsub('\n', '')
+          
           if git_status == '' then
             -- File is tracked and clean
-            color = '#C0C0C0' -- muted white
+            self.color = '#C0C0C0' -- muted white
           elseif git_status:match 'UU' or git_status:match 'AA' or git_status:match 'DD' then
             -- Merge conflicts - immediate attention needed
-            color = '#f38ba8' -- red
+            self.color = '#f38ba8' -- red
           elseif git_status:match 'AU' or git_status:match 'UA' or git_status:match 'UD' or git_status:match 'DU' then
             -- Conflict states - immediate attention needed
-            color = '#f38ba8' -- red
+            self.color = '#f38ba8' -- red
           elseif git_status:match '^%?%?' then
             -- File is untracked
-            color = '#a6e3a1' -- green
+            self.color = '#a6e3a1' -- green
           elseif git_status:match '[AM]' then
             -- Modified/added files
-            color = '#fab387' -- orange
+            self.color = '#fab387' -- orange
           else
             -- Unknown status, default to muted white
-            color = '#C0C0C0' -- muted white
+            self.color = '#C0C0C0' -- muted white
           end
         end
-
-        if modified then return { fg = color, italic = true } end
-
-        return { fg = color }
       end,
+      provider = function(self)
+        return self.filename ~= '' and (' ' .. self.filename) or ' [No Name]'
+      end,
+      hl = function(self)
+        if self.modified then 
+          return { fg = self.color, italic = true }
+        end
+        return { fg = self.color }
+      end,
+      update = { 'BufEnter', 'BufWritePost', 'BufModifiedSet' },
     }
 
     -- Spacer to push rightmost components to the right
