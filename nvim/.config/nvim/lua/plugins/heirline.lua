@@ -8,66 +8,22 @@ return {
     local heirline = require 'heirline'
     local utils = require 'heirline.utils'
 
-    -- Theme-aware color system using heirline utils and semantic fallbacks
+    -- Theme-aware color system - just use highlight group names directly
     local function get_theme_colors()
+      local function fg(group) return string.format('#%06x', utils.get_highlight(group).fg) end
+      local function bg(group) return string.format('#%06x', utils.get_highlight(group).bg) end
+      
       return {
-        -- CLI Theme semantic colors - adapt to current theme
-        working_dir = utils.get_highlight('Directory').fg and 
-          string.format('#%06x', utils.get_highlight('Directory').fg) or '#7E9CD8',
-        branch = utils.get_highlight('Statement').fg and 
-          string.format('#%06x', utils.get_highlight('Statement').fg) or '#957FB8',
-        git_status = utils.get_highlight('WarningMsg').fg and 
-          string.format('#%06x', utils.get_highlight('WarningMsg').fg) or '#E6C384',
-        lsp_server = utils.get_highlight('Normal').fg and 
-          string.format('#%06x', utils.get_highlight('Normal').fg) or '#DCD7BA',
-        harpoon = utils.get_highlight('Normal').fg and 
-          string.format('#%06x', utils.get_highlight('Normal').fg) or '#DCD7BA',
-        formatters = utils.get_highlight('Comment').fg and 
-          string.format('#%06x', utils.get_highlight('Comment').fg) or '#555555',
-        
-        -- Git status colors - use theme's git/diff colors when available
-        clean = utils.get_highlight('Normal').fg and 
-          string.format('#%06x', utils.get_highlight('Normal').fg) or '#C0C0C0',
-        conflict = utils.get_highlight('ErrorMsg').fg and 
-          string.format('#%06x', utils.get_highlight('ErrorMsg').fg) or '#f38ba8',
-        untracked = utils.get_highlight('DiffAdd').fg and 
-          string.format('#%06x', utils.get_highlight('DiffAdd').fg) or '#a6e3a1',
-        modified = utils.get_highlight('DiffChange').fg and 
-          string.format('#%06x', utils.get_highlight('DiffChange').fg) or '#fab387',
-        
-        -- Diagnostic colors - use theme's diagnostic highlights
-        error = utils.get_highlight('DiagnosticError').fg and 
-          string.format('#%06x', utils.get_highlight('DiagnosticError').fg) or '#ff6b6b',
-        warn = utils.get_highlight('DiagnosticWarn').fg and 
-          string.format('#%06x', utils.get_highlight('DiagnosticWarn').fg) or '#ffd700',
-        info = utils.get_highlight('DiagnosticInfo').fg and 
-          string.format('#%06x', utils.get_highlight('DiagnosticInfo').fg) or '#00ffff',
-        hint = utils.get_highlight('DiagnosticHint').fg and 
-          string.format('#%06x', utils.get_highlight('DiagnosticHint').fg) or '#4169e1',
-        general = utils.get_highlight('Comment').fg and 
-          string.format('#%06x', utils.get_highlight('Comment').fg) or '#938AA9',
-        
-        -- Base palette - extract from theme's core highlight groups
-        red = utils.get_highlight('ErrorMsg').fg and 
-          string.format('#%06x', utils.get_highlight('ErrorMsg').fg) or '#f38ba8',
-        green = utils.get_highlight('DiffAdd').fg and 
-          string.format('#%06x', utils.get_highlight('DiffAdd').fg) or '#a6e3a1',
-        orange = utils.get_highlight('WarningMsg').fg and 
-          string.format('#%06x', utils.get_highlight('WarningMsg').fg) or '#fab387',
-        blue = utils.get_highlight('Function').fg and 
-          string.format('#%06x', utils.get_highlight('Function').fg) or '#89b4fa',
-        purple = utils.get_highlight('Statement').fg and 
-          string.format('#%06x', utils.get_highlight('Statement').fg) or '#cba6f7',
-        cyan = utils.get_highlight('Special').fg and 
-          string.format('#%06x', utils.get_highlight('Special').fg) or '#94e2d5',
-        gray = utils.get_highlight('Comment').fg and 
-          string.format('#%06x', utils.get_highlight('Comment').fg) or '#6c7086',
-        white = utils.get_highlight('Normal').fg and 
-          string.format('#%06x', utils.get_highlight('Normal').fg) or '#cdd6f4',
-        bg = utils.get_highlight('Normal').bg and 
-          string.format('#%06x', utils.get_highlight('Normal').bg) or '#313244',
-        muted_white = utils.get_highlight('NonText').fg and 
-          string.format('#%06x', utils.get_highlight('NonText').fg) or '#C0C0C0',
+        -- Only the highlight groups actually used
+        Directory = fg('Directory'),
+        Statement = fg('Statement'), 
+        WarningMsg = fg('WarningMsg'),
+        Normal = fg('Normal'),
+        Comment = fg('Comment'),
+        ErrorMsg = fg('ErrorMsg'),
+        Added = fg('Added'),
+        Changed = fg('Changed'),
+        NonText = fg('NonText'),
       }
     end
 
@@ -76,7 +32,7 @@ return {
     -- CLI Theme Components
     local WorkingDir = {
       provider = function() return vim.fn.fnamemodify(vim.fn.getcwd(), ':~') end,
-      hl = { fg = 'working_dir' },
+      hl = { fg = 'Directory' },
     }
 
     local GitBranch = {
@@ -97,7 +53,7 @@ return {
       end,
       provider = function(self) return self.git_info.branch ~= '' and (' on ' .. self.git_info.branch .. ' ') or '' end,
       update = { 'DirChanged', 'BufEnter' },
-      hl = { fg = 'branch' },
+      hl = { fg = 'Statement' },
     }
 
     local GitStatus = {
@@ -109,7 +65,7 @@ return {
       end,
       provider = fn 'components.file_info.git_status',
       update = { 'BufWritePost', 'BufEnter' },
-      hl = { fg = 'git_status', bold = true },
+      hl = { fg = 'WarningMsg', bold = true },
     }
 
     local LspServer = {
@@ -189,7 +145,7 @@ return {
         'User',
         pattern = 'LspProgressStatusUpdated',
       },
-      hl = { fg = 'lsp_server' },
+      hl = { fg = 'Normal' },
     }
 
     -- Fully dynamic formatter flag discovery
@@ -492,7 +448,7 @@ return {
         return full_text
       end,
       update = { 'DirChanged', 'BufEnter', 'LspAttach', 'LspDetach' },
-      hl = { fg = 'formatters' },
+      hl = { fg = 'Comment' },
     }
 
     local HarpoonMarks = {
@@ -540,7 +496,7 @@ return {
         end
       end,
       update = { 'BufEnter', 'User' }, -- User event for harpoon changes
-      hl = { fg = 'harpoon' },
+      hl = { fg = 'Normal' },
     }
 
     -- Helper function to get rightmost window
@@ -584,7 +540,7 @@ return {
 
         -- Get the color from the highlight group
         local hl_attrs = vim.api.nvim_get_hl(0, { name = hl_group })
-        local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or 'muted_white'
+        local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or 'NonText'
 
         return { fg = color }
       end,
@@ -599,7 +555,7 @@ return {
         self.modified = vim.api.nvim_get_option_value('modified', { buf = buf })
 
         -- Compute git status color
-        self.color = 'clean' -- default for clean files
+        self.color = 'Normal' -- default for clean files
 
         if self.filepath ~= '' then
           local git_status = vim.fn
@@ -608,22 +564,22 @@ return {
 
           if git_status == '' then
             -- File is tracked and clean
-            self.color = 'clean'
+            self.color = 'Normal'
           elseif git_status:match 'UU' or git_status:match 'AA' or git_status:match 'DD' then
             -- Merge conflicts - immediate attention needed
-            self.color = 'conflict'
+            self.color = 'ErrorMsg'
           elseif git_status:match 'AU' or git_status:match 'UA' or git_status:match 'UD' or git_status:match 'DU' then
             -- Conflict states - immediate attention needed
-            self.color = 'conflict'
+            self.color = 'ErrorMsg'
           elseif git_status:match '^%?%?' then
             -- File is untracked
-            self.color = 'untracked'
+            self.color = 'Added'
           elseif git_status:match '[AM]' then
             -- Modified/added files
-            self.color = 'modified'
+            self.color = 'Changed'
           else
             -- Unknown status, default to clean
-            self.color = 'clean'
+            self.color = 'Normal'
           end
         end
       end,
@@ -672,7 +628,7 @@ return {
 
         return table.concat(result, ' ')
       end,
-      hl = { fg = 'general' },
+      hl = { fg = 'Comment' },
     }
 
     -- Center diagnostics in statusline
@@ -702,7 +658,7 @@ return {
         }
         return symbols.has()
       end,
-      hl = { fg = 'general' },
+      hl = { fg = 'Comment' },
     }
 
     -- Enable tabline
