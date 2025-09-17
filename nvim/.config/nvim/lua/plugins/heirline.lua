@@ -332,35 +332,34 @@ return {
       static = {
         lf_names = { 'efm', 'null-ls' },
       },
-      init = function(self)
-        -- Compute all expensive operations once per evaluation
-        self.current_cwd = vim.fn.getcwd()
-        self.total_width = vim.o.columns
-        self.working_dir_width = #vim.fn.fnamemodify(self.current_cwd, ':~')
+      provider = function(self)
+        -- Calculate space budget dynamically for responsive behavior
+        local current_cwd = vim.fn.getcwd()
+        local total_width = vim.o.columns
+        local working_dir_width = #vim.fn.fnamemodify(current_cwd, ':~')
 
         -- Get git info from GitBranch component if available
+        local branch_width = 0
         local git_branch = self.parent and self.parent[2] -- GitBranch is index 2 in LeftSide
         if git_branch and git_branch.git_info then
-          self.branch_width = git_branch.git_info.branch ~= '' and #(' on ' .. git_branch.git_info.branch .. ' ') or 0
-        else
-          self.branch_width = 0
+          branch_width = git_branch.git_info.branch ~= '' and #(' on ' .. git_branch.git_info.branch .. ' ') or 0
         end
 
-        self.git_status_width = 10
+        local git_status_width = 10
 
         -- Calculate LSP width
         local buf_clients = vim.lsp.get_clients { bufnr = 0 }
-        self.lsp_width = 6 -- "  nvim" default
+        local lsp_width = 6 -- "  nvim" default
         for _, client in ipairs(buf_clients) do
           local is_excluded = false
-          for _, excluded_name in ipairs(self.excluded or { 'copilot', 'efm', 'null-ls', 'conform' }) do
+          for _, excluded_name in ipairs({ 'copilot', 'efm', 'null-ls', 'conform' }) do
             if client.name:lower():find(excluded_name:lower()) then
               is_excluded = true
               break
             end
           end
           if not is_excluded then
-            self.lsp_width = #('  ' .. client.name)
+            lsp_width = #('  ' .. client.name)
             break
           end
         end
@@ -368,18 +367,18 @@ return {
         -- Calculate harpoon width
         local harpoon = require 'harpoon'
         local marks = harpoon:list().items
-        self.harpoon_width = 0
+        local harpoon_width = 0
         if #marks > 0 then
           local harpoon_total_length = 0
           for _, item in ipairs(marks) do
             local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
             harpoon_total_length = harpoon_total_length + #filename + 4
           end
-          local harpoon_use_compact = harpoon_total_length > (self.total_width * 0.4) or #marks > 4
+          local harpoon_use_compact = harpoon_total_length > (total_width * 0.4) or #marks > 4
           if harpoon_use_compact then
-            self.harpoon_width = 2 + #marks -- " -" + letters
+            harpoon_width = 2 + #marks -- " -" + letters
           else
-            self.harpoon_width = harpoon_total_length
+            harpoon_width = harpoon_total_length
           end
         end
 
@@ -387,23 +386,20 @@ return {
         local rightmost_win = vim.api.nvim_get_current_win()
         local buf = vim.api.nvim_win_get_buf(rightmost_win)
         local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
-        self.right_side_width = 2 + #(filename ~= '' and filename or '[No Name]')
+        local right_side_width = 2 + #(filename ~= '' and filename or '[No Name]')
 
         -- Calculate available space budget
-        local used_width = self.working_dir_width
-          + self.branch_width
-          + self.git_status_width
-          + self.lsp_width
-          + self.harpoon_width
-          + self.right_side_width
-        self.space_budget = self.total_width - used_width - 5
-      end,
-      provider = function(self)
+        local used_width = working_dir_width
+          + branch_width
+          + git_status_width
+          + lsp_width
+          + harpoon_width
+          + right_side_width
+        local space_budget = total_width - used_width - 5
+
         local result = {}
 
         -- Check for LSP-based linters/formatters
-        local buf_clients = vim.lsp.get_clients { bufnr = 0 }
-
         for _, client in ipairs(buf_clients) do
           for _, lf_name in ipairs(self.lf_names) do
             if client.name:lower():find(lf_name:lower()) then
@@ -413,7 +409,7 @@ return {
           end
         end
 
-        -- Check for conform.nvim formatters with config flags
+        -- Check for conform.nvim formatters with config flags (using cached config parsing)
         local ok, conform = pcall(require, 'conform')
         if ok then
           local formatters = conform.list_formatters(0)
@@ -422,10 +418,10 @@ return {
           for i, formatter in ipairs(formatters) do
             if formatter.available then
               local formatter_name = formatter.name
-              local flag_levels = get_formatter_flag_levels(formatter_name)
+              local flag_levels = get_formatter_flag_levels(formatter_name) -- Uses cached config parsing
 
               local chosen_flags = ''
-              local space_remaining = self.space_budget - space_used
+              local space_remaining = space_budget - space_used
               local separator_cost = (#result > 0) and 3 or 0 -- " | "
 
               -- Try each level to see what fits
