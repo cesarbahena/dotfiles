@@ -495,7 +495,7 @@ return {
           return table.concat(result, '')
         end
       end,
-      update = { 'BufEnter', 'User' }, -- User event for harpoon changes
+      update = { "FocusGained" },
       hl = { fg = 'Normal' },
     }
 
