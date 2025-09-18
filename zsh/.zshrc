@@ -128,3 +128,8 @@ export _ZO_FZF_ENABLE_PREVIEW=1
 export _ZO_FZF_OPTS="--layout=reverse --info=inline"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+# ============================================================
+# secrets
+# ===========================================================
+source ~/dotfiles/.env.local
