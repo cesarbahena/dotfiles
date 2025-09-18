@@ -46,6 +46,29 @@ return {
       -- elsewhere in your config, without redefining it, due to `opts_extend`
       sources = {
         default = { 'lsp', 'path', 'snippets', 'buffer' },
+        providers = {
+          dadbod = {
+            name = 'Dadbod',
+            module = 'blink.cmp.sources.complete_func',
+            opts = {
+              complete_func = function()
+                -- Ensure omnifunc is set for SQL files
+                if vim.tbl_contains({ 'sql', 'mysql', 'plsql' }, vim.bo.filetype) then
+                  if vim.bo.omnifunc == '' then
+                    vim.bo.omnifunc = 'vim_dadbod_completion#omni'
+                  end
+                  return vim.bo.omnifunc
+                end
+                return nil
+              end,
+            },
+          },
+        },
+        per_filetype = {
+          sql = { 'dadbod', 'lsp', 'snippets', 'buffer' },
+          mysql = { 'dadbod', 'lsp', 'snippets', 'buffer' },
+          plsql = { 'dadbod', 'lsp', 'snippets', 'buffer' },
+        },
       },
 
       -- (Default) Rust fuzzy matcher for typo resistance and significantly better performance
