@@ -207,8 +207,6 @@ local textobjs = {
     { i = 'restOfIndentation', a = 'greedyOuterIndentation' },
     args = { i = false, a = 'inner' },
   },
-  --   { desc = 'Rest of indentation', 'iI', VTO:format [[restOfIndentation()]], mode = { 'o', 'x' } },
-  --   { desc = 'Greedy outer indentation', 'aI', VTO:format [[outerIndentation 'inner']], mode = { 'o', 'x' } },
 }
 
 return {
