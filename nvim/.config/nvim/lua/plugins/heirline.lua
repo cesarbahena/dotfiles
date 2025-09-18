@@ -12,18 +12,18 @@ return {
     local function get_theme_colors()
       local function fg(group) return string.format('#%06x', utils.get_highlight(group).fg) end
       local function bg(group) return string.format('#%06x', utils.get_highlight(group).bg) end
-      
+
       return {
         -- Only the highlight groups actually used
-        Directory = fg('Directory'),
-        Statement = fg('Statement'), 
-        WarningMsg = fg('WarningMsg'),
-        Normal = fg('Normal'),
-        Comment = fg('Comment'),
-        ErrorMsg = fg('ErrorMsg'),
-        Added = fg('Added'),
-        Changed = fg('Changed'),
-        NonText = fg('NonText'),
+        Directory = fg 'Directory',
+        Statement = fg 'Statement',
+        WarningMsg = fg 'WarningMsg',
+        Normal = fg 'Normal',
+        Comment = fg 'Comment',
+        ErrorMsg = fg 'ErrorMsg',
+        Added = fg 'Added',
+        Changed = fg 'Changed',
+        NonText = fg 'NonText',
       }
     end
 
@@ -153,7 +153,9 @@ return {
       -- Common config file patterns
       local patterns = {
         -- Dotfiles in root
-        '.' .. formatter_name .. 'rc',
+        '.'
+          .. formatter_name
+          .. 'rc',
         '.' .. formatter_name .. 'rc.json',
         '.' .. formatter_name .. 'rc.js',
         '.' .. formatter_name .. 'rc.yaml',
@@ -169,12 +171,10 @@ return {
         -- Pyproject.toml for Python tools
         'pyproject.toml',
       }
-      
+
       local found = {}
       for _, pattern in ipairs(patterns) do
-        if vim.fn.filereadable(pattern) == 1 then
-          table.insert(found, pattern)
-        end
+        if vim.fn.filereadable(pattern) == 1 then table.insert(found, pattern) end
       end
       return found
     end
@@ -182,24 +182,22 @@ return {
     local function parse_config_file(filepath, formatter_name)
       local content = vim.fn.readfile(filepath)
       if #content == 0 then return nil end
-      
+
       local full_content = table.concat(content, '\n')
-      
+
       -- Try JSON first
       local ok, config = pcall(vim.json.decode, full_content)
       if ok then
         -- For package.json, look for formatter-specific key
-        if filepath:match('package%.json$') then
-          return config[formatter_name] or config.prettier or config.eslint
-        end
+        if filepath:match 'package%.json$' then return config[formatter_name] or config.prettier or config.eslint end
         return config
       end
-      
+
       -- Try TOML parsing (simple key=value)
       config = {}
       for _, line in ipairs(content) do
         local trimmed = line:match '^%s*(.-)%s*$'
-        if trimmed and not trimmed:match '^[#%[]' and trimmed:find('=') then
+        if trimmed and not trimmed:match '^[#%[]' and trimmed:find '=' then
           -- key = value
           local key, value = trimmed:match '^([^=]+)%s*=%s*(.+)$'
           if key and value then
@@ -219,14 +217,14 @@ return {
           end
         end
       end
-      
+
       return next(config) and config or nil
     end
 
     local function generate_flag_variants(key, value)
       -- Convert camelCase/snake_case to kebab-case for flags
       local flag_name = key:gsub('([a-z])([A-Z])', '%1-%2'):gsub('_', '-'):lower()
-      
+
       -- Generate full flag
       local full_flag
       if type(value) == 'boolean' then
@@ -239,20 +237,18 @@ return {
       else
         full_flag = '--' .. flag_name .. '=' .. tostring(value)
       end
-      
+
       -- Generate abbreviated flag (first letter of each word)
       local abbrev_letters = {}
-      for word in flag_name:gmatch('[^-]+') do
+      for word in flag_name:gmatch '[^-]+' do
         table.insert(abbrev_letters, word:sub(1, 1))
       end
       local abbrev = '-' .. table.concat(abbrev_letters, '')
-      if type(value) ~= 'boolean' then
-        abbrev = abbrev .. '=' .. tostring(value)
-      end
-      
+      if type(value) ~= 'boolean' then abbrev = abbrev .. '=' .. tostring(value) end
+
       -- Generate compact form (just the letters)
       local compact = table.concat(abbrev_letters, '')
-      
+
       return full_flag, abbrev, compact
     end
 
@@ -265,21 +261,21 @@ return {
       if formatter_cache[cache_key] then return formatter_cache[cache_key] end
 
       local flag_levels = { '', '', '' }
-      
+
       -- Discover config files
       local config_files = discover_config_files(formatter_name)
       if #config_files == 0 then
         formatter_cache[cache_key] = flag_levels
         return flag_levels
       end
-      
+
       -- Try to parse config from any found file
       local config = nil
       for _, config_file in ipairs(config_files) do
         config = parse_config_file(config_file, formatter_name)
         if config then break end
       end
-      
+
       if not config then
         formatter_cache[cache_key] = flag_levels
         return flag_levels
@@ -292,7 +288,7 @@ return {
       -- Generate flags for all config options
       for key, value in pairs(config) do
         -- Skip nil/false values (except explicit false for boolean toggles)
-        if value ~= nil and (type(value) ~= 'boolean' or value ~= false or key:match('semi')) then
+        if value ~= nil and (type(value) ~= 'boolean' or value ~= false or key:match 'semi') then
           local full, abbrev, compact = generate_flag_variants(key, value)
           table.insert(full_flags, full)
           table.insert(abbrev_flags, abbrev)
@@ -352,7 +348,7 @@ return {
         local lsp_width = 6 -- "  nvim" default
         for _, client in ipairs(buf_clients) do
           local is_excluded = false
-          for _, excluded_name in ipairs({ 'copilot', 'efm', 'null-ls', 'conform' }) do
+          for _, excluded_name in ipairs { 'copilot', 'efm', 'null-ls', 'conform' } do
             if client.name:lower():find(excluded_name:lower()) then
               is_excluded = true
               break
@@ -495,7 +491,7 @@ return {
           return table.concat(result, '')
         end
       end,
-      update = { "FocusGained" },
+      update = { "BufEnter" },
       hl = { fg = 'Normal' },
     }
 
@@ -698,12 +694,12 @@ return {
       group = 'Heirline',
       callback = function()
         utils.on_colorscheme(get_theme_colors)
-        
+
         -- Reapply transparent.nvim settings
         local ok, transparent = pcall(require, 'transparent')
         if ok then
-          transparent.clear_prefix('heirline')
-          vim.cmd('TransparentEnable')
+          transparent.clear_prefix 'heirline'
+          vim.cmd 'TransparentEnable'
         end
       end,
     })

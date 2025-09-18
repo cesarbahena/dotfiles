@@ -3,29 +3,25 @@ return {
   branch = 'harpoon2',
   dependencies = { 'nvim-lua/plenary.nvim' },
   lazy = false,
-  config = function() 
-    local harpoon = require('harpoon')
+  config = function()
+    local harpoon = require 'harpoon'
     harpoon:setup()
-    
+
     -- Trigger heirline update when harpoon list changes
-    harpoon:extend({
+    harpoon:extend {
       ADD = function() 
-        print("Harpoon ADD triggered")
-        vim.api.nvim_exec_autocmds('FocusGained', {}) 
+        vim.api.nvim_exec_autocmds('BufEnter', {}) 
       end,
       REMOVE = function() 
-        print("Harpoon REMOVE triggered")
-        vim.api.nvim_exec_autocmds('FocusGained', {}) 
+        vim.api.nvim_exec_autocmds('BufEnter', {}) 
       end,
       REORDER = function()
-        print("Harpoon REORDER triggered")
-        vim.api.nvim_exec_autocmds('FocusGained', {}) 
+        vim.api.nvim_exec_autocmds('BufEnter', {}) 
       end,
       LIST_CHANGE = function()
-        print("Harpoon LIST_CHANGE triggered")
-        vim.api.nvim_exec_autocmds('FocusGained', {}) 
+        vim.api.nvim_exec_autocmds('BufEnter', {}) 
       end,
-    })
+    }
   end,
   keys = {
     motion { 'Harpoon 1', function() require('harpoon'):list():select(1) end },
