@@ -10,15 +10,21 @@ This is a personal dotfiles repository using GNU Stow structure for managing con
 
 - **nvim**: Neovim configuration at `nvim/.config/nvim/`
 - **tmux**: Tmux configuration at `tmux/.config/tmux/`
+- **bin**: Utility scripts at `bin/.local/bin/`
+- **zsh**: Shell configuration at `zsh/`
+- **starship**: Prompt configuration at `starship/`
+- **oh-my-posh**: Alternative prompt configuration at `oh-my-posh/`
 
 ## Key Commands
 
-### Testing
+### Testing (Run from nvim/.config/nvim/)
 
 - `make test` - Run all tests with plenary.nvim
+- `make test-minimal` - Run tests with minimal output
 - `make test-verbose` - Run tests with verbose output
-- `make test-file` - Run a specific test file
+- `make test-file` - Run specific test file (try_spec.lua)
 - `make dev-test` - Interactive testing (run `:PlenaryBustedDirectory tests/` in nvim)
+- `make clean` - Clean test artifacts
 
 ### Stow Management
 
@@ -27,7 +33,7 @@ This is a personal dotfiles repository using GNU Stow structure for managing con
 
 ### Backup and Sync
 
-- `./sync-nvim-backup.sh` - Sync nvim config to backup location (complete replacement)
+- `sync-nvim-backup` - Sync nvim config to backup location (complete replacement) (located in `bin/.local/bin/`)
 
 ### Environment Variables
 
@@ -69,20 +75,26 @@ See `docs/fn_api.md` for comprehensive documentation and examples.
 nvim/.config/nvim/
 ├── init.lua              # Entry point with backup/safe mode logic
 ├── Makefile             # Test commands
-├── lazy-lock.json       # Package lockfile
+├── json/lazy-lock.json  # Package lockfile
 ├── stylua.toml         # Lua formatter config
+├── docs/               # Documentation (cli_theme.md, fn_api.md, etc.)
+├── after/              # Vim runtime overrides
 ├── lsp/                # Language server configurations
 ├── lua/
+│   ├── actions/        # Custom action handlers
+│   ├── blink/          # Blink completion sources
+│   ├── components/     # UI components
+│   ├── config/         # Configuration modules
 │   ├── core/           # Core system modules
 │   │   ├── init.lua    # Main loader with try() usage
 │   │   ├── lsp/        # LSP configuration
 │   │   ├── package_manager.lua  # lazy.nvim setup
 │   │   └── retry.lua   # Module retry logic
 │   ├── plugins/        # Plugin configurations (~30+ plugins)
-│   ├── utils/          # Utility modules
-│   │   └── try.lua     # Core error handling API
-│   └── ui/             # UI-related modules
-└── tests/              # Test suite for try API
+│   └── utils/          # Utility modules
+│       ├── fn.lua      # Enhanced function utilities
+│       └── try.lua     # Core error handling API
+└── tests/              # Test suite for try and fn APIs
 ```
 
 ### Try API
@@ -128,6 +140,8 @@ Language servers are configured in `lsp/` directory with automatic loading:
 - Backup configuration path is configurable via environment variable
 - The setup automatically handles plugin installation and lazy loading
 - Use GNU Stow for managing dotfile symlinks
+- Code formatting uses stylua with 2-space indentation and 120-character width
+- Repository structure follows GNU Stow patterns with package directories
 
 ### CLI Theme Implementation
 
