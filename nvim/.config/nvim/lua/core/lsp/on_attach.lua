@@ -10,7 +10,6 @@ return function(_, bufnr)
     key { 'Code Implementation', vim.lsp.buf.implementation },
 
     -- Actions (using existing keys)
-    key { 'code rename', vim.lsp.buf.rename },
     key { 'Code Suggestions', vim.lsp.buf.code_action },
     key { 'Code Format', function() require('conform').format { async = true, lsp_fallback = true } end },
 

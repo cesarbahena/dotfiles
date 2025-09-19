@@ -13,6 +13,7 @@
   "grug-far.nvim": { "branch": "main", "commit": "50d9ee2b5a19634670441948e7e4afaa042f1059" },
   "harpoon": { "branch": "harpoon2", "commit": "ed1f853847ffd04b2b61c314865665e1dadf22c7" },
   "heirline.nvim": { "branch": "master", "commit": "fae936abb5e0345b85c3a03ecf38525b0828b992" },
+  "inc-rename.nvim": { "branch": "main", "commit": "8ae25b35ae16ca4bd5de3d3c472eec3b574018d4" },
   "incline.nvim": { "branch": "main", "commit": "0fd2d5a27504dba7fdc507a53275f22c081fe640" },
   "kanagawa.nvim": { "branch": "master", "commit": "debe91547d7fb1eef34ce26a5106f277fbfdd109" },
   "kulala.nvim": { "branch": "main", "commit": "ab3effad17d5dbb4d5d34b6289fa4dc97155045c" },
