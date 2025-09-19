@@ -5,12 +5,18 @@ return {
   ---@type snacks.Config
   opts = {
     bigfile = { enabled = false },
+    quickfile = { enabled = true },
     dashboard = { enabled = false },
     indent = { enabled = true },
     input = { enabled = true },
     notifier = {
       enabled = true,
       timeout = 3000,
+    },
+    styles = {
+      notification = {
+        wo = { wrap = true },
+      },
     },
     picker = {
       enabled = true,
@@ -31,7 +37,6 @@ return {
             ['<F35>'] = { 'toggle_maximize', mode = { 'i', 'n' } },
             ['<F3>'] = { 'toggle_live', mode = { 'i', 'n' } },
             ['/'] = 'toggle_focus',
-            ['<c-p>'] = { 'history_back', mode = { 'i', 'n' } },
             ['<c-w>'] = { '<c-s-w>', mode = { 'i' }, expr = true, desc = 'delete word' },
             ['<a-d>'] = { 'inspect', mode = { 'n', 'i' } },
             ['<a-p>'] = false,
@@ -41,7 +46,7 @@ return {
             ['<c-d>'] = false,
             ['<c-j>'] = false,
             ['<c-k>'] = false,
-            ['<c-e>'] = { 'list_up', mode = { 'i', 'n' } },
+            ['<c-p>'] = { 'list_up', mode = { 'i', 'n' } },
             ['<c-q>'] = false,
             ['<c-s>'] = false,
             ['<c-t>'] = false,
@@ -73,7 +78,7 @@ return {
         list = {
           keys = {
             ['<leader>'] = 'cancel',
-            n = { { 'cycle_win', 'cycle_win', 'preview_scroll_down' } },
+            h = { { 'cycle_win', 'cycle_win', 'preview_scroll_down' } },
             gG = 'select_all',
             x = 'trouble_open',
             ['_'] = 'edit_split',
@@ -108,14 +113,8 @@ return {
         },
       },
     },
-    quickfile = { enabled = false },
     statuscolumn = { enabled = false },
     words = { enabled = false },
-    styles = {
-      notification = {
-        wo = { wrap = true },
-      },
-    },
   },
   keys = {
     -- Top Pickers & Explorer
