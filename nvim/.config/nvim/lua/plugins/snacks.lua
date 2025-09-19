@@ -14,14 +14,15 @@ return {
     },
     picker = {
       enabled = true,
-      show_hidden = true,
+      sources = {
+        files = { hidden = true, ignored = true },
+        git_files = { hidden = true },
+      },
       actions = {
         trouble_open = fn 'trouble.sources.snacks::actions.trouble_open.action',
       },
       toggles = {
         follow = false,
-        hidden = false,
-        ignored = 'i',
       },
       win = {
         input = {
