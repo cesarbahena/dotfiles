@@ -167,7 +167,7 @@ return {
             },
           },
         },
-        when = function() return vim.fn.finddir('.git', '.;') ~= '' end,
+        when = { fn(vim.fn.finddir, '.git', '.;'), ne = '' },
         or_else = 'snacks.picker.files',
       },
     },
