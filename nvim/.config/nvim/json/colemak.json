@@ -1,5 +1,6 @@
 {
   "keys": {
+    "<esc>": "reject agent changes",
     "q": "clean",
     "z": "prev whitespace",
     "gs": "Git Status",
@@ -123,6 +124,10 @@
     "a": "move line up"
   },
   "leader": {
+    "ar": "AI agent Reset session",
+    "c": "send Context",
+    "aI": "AI agent select session",
+    "ai": "AI agent continue session",
     "p": "Paste below",
     "P": "Paste above",
     "B": "grep buffers",
@@ -158,11 +163,11 @@
     "gg": "LazyGit"
   },
   "control": {
+    "u": "accept Agent changes",
     "a": "increment",
     "x": "decrement",
     "o": ["one of", "right window"],
     "h": "Signature",
-    "u": "Undo jump",
     "k": "left window",
     "n": "bottom window",
     "e": ["escape to normal mode", "top window"],

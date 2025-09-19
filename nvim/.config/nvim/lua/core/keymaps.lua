@@ -80,7 +80,6 @@ keymap {
   insert { 'escape to normal mode', fn 'actions.treesitter.clean_exit' },
   insert { 'one of', '<c-o>' },
 
-  key { 'Undo jump', fn { feed '<c-t>', or_else = feed '<c-o>' } },
   key { 'Move line down', cmd [[execute 'move .+' . v:count1]] .. '==' },
   key { 'Move line up', cmd [[execute 'move .-' . (v:count1 + 1)]] .. '==' },
   key { 'hover', fn 'actions.hover_overload.hover_handler' },
