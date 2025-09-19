@@ -7,8 +7,9 @@ return {
         enabled = true,
         keys = { 't', 'T' },
       },
-      search = {},
-      enabled = true,
+      search = {
+        enabled = true,
+      },
       treesitter = {
         labels = 'NEIOH"MKARST',
         jump = { autojump = false },
@@ -18,10 +19,17 @@ return {
   keys = {
     key { 'Remote', fn 'flash.remote', mode = 'o' },
 
-    key { 'Visual mode', proc {
-      bang 'v',
-      fn 'flash.treesitter',
-    }, details = '(TS enhanced)' },
+    key {
+      'Visual mode',
+      proc {
+        bang 'v',
+        fn {
+          'flash.treesitter',
+          when = { vim.treesitter.get_parser, ok = true },
+        },
+      },
+      details = '(TS enhanced)',
+    },
   },
   config = function(_, opts)
     require('flash').setup(opts)

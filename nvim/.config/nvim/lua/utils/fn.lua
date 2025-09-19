@@ -362,7 +362,11 @@ local function evaluate_condition(condition)
       result = base_condition
     elseif type(base_condition) == 'function' then
       local success, val = pcall(base_condition)
-      result = success and val or false
+      if options.ok then
+        result = success  -- Return pcall success status
+      else
+        result = success and val or false  -- Return function result or false
+      end
     else
       result = base_condition
     end
