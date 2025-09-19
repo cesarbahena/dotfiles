@@ -19,7 +19,7 @@ return {
         git_files = { hidden = true },
       },
       actions = {
-        trouble_open = fn 'trouble.sources.snacks::actions.trouble_open.action',
+        trouble_open = function(picker) fn('trouble.sources.snacks::actions.trouble_open.action', picker)() end,
       },
       toggles = {
         follow = false,
