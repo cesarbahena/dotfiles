@@ -13,7 +13,7 @@ keymap {
   motion { 'prev whitespace', 'B' },
   key { 'Quit!', cmd 'q!' },
   key { 'Replace', 'r' },
-  key { 'Delete one', [["_x]], details = '(no yank)' },
+  key { 'Delete character', [["_x]], details = '(no yank)' },
   key { 'Find', '/' },
   key { 'next match', 'n' },
   key { 'add argument', fn 'actions.treesitter.add_argument' },
@@ -65,7 +65,6 @@ keymap {
   },
 
   on_selection { 'Yank', 'y`>' },
-  on_selection { 'Paste', 'P' },
   on_selection { 'indent', '>gv' },
   on_selection { 'deindent', '<gv' },
   on_selection { 'Uppercase', 'U' },
