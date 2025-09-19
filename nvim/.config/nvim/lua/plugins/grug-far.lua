@@ -16,6 +16,13 @@ return {
     },
   },
   {
+    'folke/noice.nvim',
+    optional = true,
+    opts = {
+      presets = { inc_rename = true },
+    },
+  },
+  {
     'MagicDuck/grug-far.nvim',
     opts = { headerMaxWidth = 80 },
     cmd = 'GrugFar',
