@@ -491,7 +491,7 @@ return {
           return table.concat(result, '')
         end
       end,
-      update = { "BufEnter" },
+      update = { 'BufEnter' },
       hl = { fg = 'Normal' },
     }
 
@@ -675,11 +675,11 @@ return {
 
     -- Setup heirline once
     heirline.setup {
-      statusline = {
-        StatusAlign,
-        Diagnostics, -- Use basic diagnostics instead of trouble statusline
-        StatusAlign,
-      },
+      -- statusline = {
+      --   StatusAlign,
+      --   Diagnostics, -- Use basic diagnostics instead of trouble statusline
+      --   StatusAlign,
+      -- },
       tabline = {
         LeftSide,
         Align,

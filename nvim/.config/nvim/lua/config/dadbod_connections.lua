@@ -48,6 +48,12 @@ M.connections = {
     )
   },
   
+  -- Test database for document templates (local development)
+  {
+    name = 'mein_test_mysql',
+    url = 'mysql://mein_test_user:mein_test_pass@127.0.0.1:3306/mein_test'
+  },
+  
   -- SQLite example
   -- {
   --   name = 'local_sqlite',

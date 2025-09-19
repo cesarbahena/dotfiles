@@ -34,7 +34,7 @@ local opts = {
   showmode = false,
   showcmd = false,
   cmdheight = 0,
-  laststatus = 3,
+  laststatus = 0,
   showcmdloc = 'statusline',
 
   -- Folding
