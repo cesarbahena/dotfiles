@@ -2,7 +2,6 @@ return {
   'monaqa/dial.nvim',
   recommended = true,
   desc = 'Increment and decrement numbers, dates, and more',
-  -- stylua: ignore
   keys = {
     key { 'increment', fn('dial.map.manipulate', 'increment', 'normal') },
     key { 'decrement', fn('dial.map.manipulate', 'decrement', 'normal') },

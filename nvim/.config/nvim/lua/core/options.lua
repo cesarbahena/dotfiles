@@ -14,6 +14,7 @@ local opts = {
   wrap = false,
 
   -- Search
+  hlsearch = false,
   incsearch = true,
   updatetime = 50,
   ignorecase = true, -- Ignore case when searching...
