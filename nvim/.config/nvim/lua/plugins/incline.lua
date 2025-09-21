@@ -90,12 +90,36 @@ return {
 
       local git_color = get_git_status_color()
       local has_diagnostics = #vim.diagnostic.get(props.buf) > 0
-      
+
       local gui_style = 'none'
       if vim.bo[props.buf].modified then gui_style = 'italic' end
-      if has_diagnostics then 
-        gui_style = vim.bo[props.buf].modified and 'italic,underline' or 'underline'
+      if has_diagnostics then gui_style = vim.bo[props.buf].modified and 'italic,underline' or 'underline' end
+
+      -- File format detection
+      local fileformat = vim.api.nvim_get_option_value('fileformat', { buf = props.buf })
+
+      local system_format = 'unix' -- default
+      -- Check for WSL first (reports as unix, not windows)
+      if vim.fn.has 'wsl' == 1 then
+        system_format = 'unix'
+      elseif vim.fn.has 'win32' == 1 or vim.fn.has 'win64' == 1 then
+        system_format = 'dos'
+      elseif vim.fn.has 'mac' == 1 then
+        system_format = 'mac'
       end
+
+      local function get_format_icon()
+        if fileformat == 'dos' then
+          return ' ' -- Windows CRLF
+        elseif fileformat == 'mac' then
+          return ' ' -- Mac CR
+        elseif fileformat == 'unix' then
+          return "F0311 " -- Unix LF
+        end
+        return ''
+      end
+
+      local format_icon = get_format_icon()
 
       local result = {}
       table.insert(result, { ft_icon and (ft_icon .. ' ') or '', guifg = ft_color })
@@ -104,6 +128,9 @@ return {
         guifg = git_color or '#C0C0C0',
         gui = gui_style,
       })
+
+      -- Show format icon unconditionally (matches heirline)
+      table.insert(result, { format_icon, guifg = '#f38ba8' }) -- ErrorMsg color
 
       return result
     end,
