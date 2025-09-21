@@ -590,14 +590,56 @@ return {
         local rightmost_win = get_rightmost_window()
         local buf = vim.api.nvim_win_get_buf(rightmost_win)
         local has_diagnostics = #vim.diagnostic.get(buf) > 0
-        
+
         local hl_attrs = { fg = self.color }
         if self.modified then hl_attrs.italic = true end
         if has_diagnostics then hl_attrs.underline = true end
-        
+
         return hl_attrs
       end,
       update = { 'BufEnter', 'BufWritePost', 'BufModifiedSet', 'DiagnosticChanged' },
+    }
+
+    local FileFormat = {
+      static = {
+        system_format = (function()
+          -- Check for WSL first (reports as unix, not windows)
+          if vim.fn.has 'wsl' == 1 then
+            return 'unix'
+          elseif vim.fn.has 'win32' == 1 or vim.fn.has 'win64' == 1 then
+            return 'dos'
+          elseif vim.fn.has 'mac' == 1 then
+            return 'mac'
+          else
+            return 'unix'
+          end
+        end)(),
+      },
+      init = function(self)
+        -- Get current buffer's format
+        local rightmost_win = get_rightmost_window()
+        local buf = vim.api.nvim_win_get_buf(rightmost_win)
+        local fileformat = vim.api.nvim_get_option_value('fileformat', { buf = buf })
+
+        -- Set icon based on the file's actual format
+        if fileformat == 'dos' then
+          self.format_icon = ' ' -- Windows CRLF
+        elseif fileformat == 'mac' then
+          self.format_icon = ' ' -- Mac CR
+        else
+          self.format_icon = ' ' -- Unix LF
+        end
+      end,
+      provider = function(self) return self.format_icon end,
+      condition = function(self)
+        -- Only show if different from system default
+        local rightmost_win = get_rightmost_window()
+        local buf = vim.api.nvim_win_get_buf(rightmost_win)
+        local fileformat = vim.api.nvim_get_option_value('fileformat', { buf = buf })
+        return fileformat ~= self.system_format
+      end,
+      hl = { fg = 'ErrorMsg' },
+      update = { 'BufEnter', 'BufWritePost' },
     }
 
     -- Spacer to push rightmost components to the right
@@ -671,6 +713,7 @@ return {
         Align,
         RightmostIcon,
         RightmostFilename,
+        FileFormat,
       },
     }
 
