@@ -56,10 +56,16 @@ return {
       local hl_attrs = vim.api.nvim_get_hl(0, { name = ft_hl_group })
       local ft_color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg)
 
+      -- Helper function to get highlight group colors (matches heirline approach)
+      local function get_hl_color(group)
+        local hl = vim.api.nvim_get_hl(0, { name = group })
+        return hl.fg and string.format('#%06x', hl.fg) or nil
+      end
+
       -- Get git status color
       local function get_git_status_color()
         local filepath = vim.api.nvim_buf_get_name(props.buf)
-        if filepath == '' then return nil end
+        if filepath == '' then return get_hl_color('Normal') end
 
         local handle = io.popen('git status --porcelain ' .. vim.fn.shellescape(filepath) .. ' 2>/dev/null')
         if not handle then return nil end
@@ -67,25 +73,25 @@ return {
         local result = handle:read '*a'
         handle:close()
 
-        if result == '' then return nil end
+        if result == '' then return get_hl_color('Normal') end
 
         local status = result:sub(1, 2)
 
         -- Check for serious git states (red - immediate attention needed)
         if status:match 'UU' or status:match 'AA' or status:match 'DD' then
-          return '#f38ba8' -- Red for merge conflicts
+          return get_hl_color('ErrorMsg') -- Red for merge conflicts
         elseif status:match 'AU' or status:match 'UA' or status:match 'UD' or status:match 'DU' then
-          return '#f38ba8' -- Red for conflict states
+          return get_hl_color('ErrorMsg') -- Red for conflict states
         end
 
         -- Regular git states
         if status:match '^%?%?' then
-          return '#a6e3a1' -- Green for untracked
+          return get_hl_color('GitSignsAdd') -- Green for untracked
         elseif status:match '[AM]' then
-          return '#fab387' -- Orange for modified/added
+          return get_hl_color('GitSignsChange') -- Orange for modified/added
         end
 
-        return nil
+        return get_hl_color('Normal')
       end
 
       local git_color = get_git_status_color()
@@ -125,12 +131,14 @@ return {
       table.insert(result, { ft_icon and (ft_icon .. ' ') or '', guifg = ft_color })
       table.insert(result, {
         filename,
-        guifg = git_color or '#C0C0C0',
+        guifg = git_color or get_hl_color('Normal'),
         gui = gui_style,
       })
 
-      -- Show format icon unconditionally (matches heirline)
-      table.insert(result, { format_icon, guifg = '#f38ba8' }) -- ErrorMsg color
+      -- Show format icon only when different from system (matches heirline)
+      if fileformat ~= system_format then
+        table.insert(result, { format_icon, guifg = get_hl_color('ErrorMsg') }) -- ErrorMsg color
+      end
 
       return result
     end,

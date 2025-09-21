@@ -21,8 +21,8 @@ return {
         Normal = fg 'Normal',
         Comment = fg 'Comment',
         ErrorMsg = fg 'ErrorMsg',
-        Added = fg 'Added',
-        Changed = fg 'Changed',
+        GitSignsAdd = fg 'GitSignsAdd',
+        GitSignsChange = fg 'GitSignsChange',
         NonText = fg 'NonText',
       }
     end
@@ -65,7 +65,7 @@ return {
       end,
       provider = fn 'components.file_info.git_status',
       update = { 'BufWritePost', 'BufEnter' },
-      hl = { fg = 'WarningMsg', bold = true },
+      hl = { fg = 'GitSignsChange', bold = true },
     }
 
     local LspServer = {
@@ -575,10 +575,10 @@ return {
             self.color = 'ErrorMsg'
           elseif git_status:match '^%?%?' then
             -- File is untracked
-            self.color = 'Added'
+            self.color = 'GitSignsAdd'
           elseif git_status:match '[AM]' then
             -- Modified/added files
-            self.color = 'Changed'
+            self.color = 'GitSignsChange'
           else
             -- Unknown status, default to clean
             self.color = 'Normal'
