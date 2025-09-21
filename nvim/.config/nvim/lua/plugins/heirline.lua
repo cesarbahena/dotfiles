@@ -587,10 +587,17 @@ return {
       end,
       provider = function(self) return self.filename ~= '' and (' ' .. self.filename) or '' end,
       hl = function(self)
-        if self.modified then return { fg = self.color, italic = true } end
-        return { fg = self.color }
+        local rightmost_win = get_rightmost_window()
+        local buf = vim.api.nvim_win_get_buf(rightmost_win)
+        local has_diagnostics = #vim.diagnostic.get(buf) > 0
+        
+        local hl_attrs = { fg = self.color }
+        if self.modified then hl_attrs.italic = true end
+        if has_diagnostics then hl_attrs.underline = true end
+        
+        return hl_attrs
       end,
-      update = { 'BufEnter', 'BufWritePost', 'BufModifiedSet' },
+      update = { 'BufEnter', 'BufWritePost', 'BufModifiedSet', 'DiagnosticChanged' },
     }
 
     -- Spacer to push rightmost components to the right

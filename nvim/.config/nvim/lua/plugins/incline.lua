@@ -89,7 +89,13 @@ return {
       end
 
       local git_color = get_git_status_color()
-      local gui_style = vim.bo[props.buf].modified and 'italic' or 'none'
+      local has_diagnostics = #vim.diagnostic.get(props.buf) > 0
+      
+      local gui_style = 'none'
+      if vim.bo[props.buf].modified then gui_style = 'italic' end
+      if has_diagnostics then 
+        gui_style = vim.bo[props.buf].modified and 'italic,underline' or 'underline'
+      end
 
       local result = {}
       table.insert(result, { ft_icon and (ft_icon .. ' ') or '', guifg = ft_color })
