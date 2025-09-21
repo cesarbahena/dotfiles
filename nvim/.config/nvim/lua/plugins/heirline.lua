@@ -128,11 +128,11 @@ return {
         end
 
         -- Get LSP progress spinner
-        local lsp_indicator = '  '
+        local lsp_indicator = ' '
         local ok, lsp_progress = pcall(require, 'lsp-progress')
         if ok then
           local progress = lsp_progress.progress()
-          lsp_indicator = progress ~= '' and (progress .. ' ') or '  '
+          lsp_indicator = progress ~= '' and (progress .. ' ') or ' '
         end
 
         if #language_servers == 0 then return lsp_indicator .. 'nvim' end
@@ -579,7 +579,7 @@ return {
           end
         end
       end,
-      provider = function(self) return self.filename ~= '' and (' ' .. self.filename) or ' [No Name]' end,
+      provider = function(self) return self.filename ~= '' and (' ' .. self.filename) or '' end,
       hl = function(self)
         if self.modified then return { fg = self.color, italic = true } end
         return { fg = self.color }
@@ -594,10 +594,10 @@ return {
     local Diagnostics = {
       condition = function() return #vim.diagnostic.get(0) > 0 end,
       static = {
-        error_icon = ' ',
-        warn_icon = ' ',
-        info_icon = ' ',
-        hint_icon = ' ',
+        error_icon = ' ',
+        warn_icon = '󱈸 ',
+        info_icon = ' ',
+        hint_icon = ' ',
       },
       provider = function(self)
         local count = {}
@@ -630,41 +630,25 @@ return {
     -- Center diagnostics in statusline
     local StatusAlign = { provider = '%=' }
 
-    -- Trouble statusline component
-    local TroubleStatusline = {
-      provider = function()
-        local trouble = require 'trouble'
-        local symbols = trouble.statusline {
-          mode = 'lsp_document_symbols',
-          groups = {},
-          title = false,
-          filter = { range = true },
-          format = '{kind_icon}{symbol.name:Normal}',
-        }
-        return symbols.get()
-      end,
-      condition = function()
-        local trouble = require 'trouble'
-        local symbols = trouble.statusline {
-          mode = 'lsp_document_symbols',
-          groups = {},
-          title = false,
-          filter = { range = true },
-          format = '{kind_icon}{symbol.name:Normal}',
-        }
-        return symbols.has()
-      end,
-      hl = { fg = 'Comment' },
-    }
-
     -- Enable tabline
     vim.o.showtabline = 2 -- Always show tabline
+
+    -- Global errors component
+    local GlobalErrors = {
+      provider = function()
+        if _G.Errors and type(_G.Errors) == 'table' and #_G.Errors > 0 then return '' end
+        return ' '
+      end,
+      condition = function() return _G.Errors and type(_G.Errors) == 'table' and #_G.Errors > 0 end,
+      hl = { fg = '#f38ba8', bold = true },
+    }
 
     -- Left side components
     local LeftSide = {
       WorkingDir,
       GitBranch,
       GitStatus,
+      GlobalErrors,
       LspServer,
       HarpoonMarks,
       LintersFormatters,
@@ -675,11 +659,11 @@ return {
 
     -- Setup heirline once
     heirline.setup {
-      -- statusline = {
-      --   StatusAlign,
-      --   Diagnostics, -- Use basic diagnostics instead of trouble statusline
-      --   StatusAlign,
-      -- },
+      statusline = {
+        -- StatusAlign,
+        -- Diagnostics, -- Use basic diagnostics instead of trouble statusline
+        -- StatusAlign,
+      },
       tabline = {
         LeftSide,
         Align,
