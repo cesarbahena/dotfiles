@@ -127,12 +127,18 @@ return {
           if not is_excluded then table.insert(language_servers, client) end
         end
 
-        -- Get LSP progress spinner
-        local lsp_indicator = ' '
-        local ok, lsp_progress = pcall(require, 'lsp-progress')
-        if ok then
-          local progress = lsp_progress.progress()
-          lsp_indicator = progress ~= '' and (progress .. ' ') or ' '
+        -- Get LSP progress spinner or error indicator
+        local lsp_indicator
+        if _G.Errors and type(_G.Errors) == 'table' and #_G.Errors > 0 then
+          lsp_indicator = 'E '
+        else
+          local ok, lsp_progress = pcall(require, 'lsp-progress')
+          if ok then
+            local progress = lsp_progress.progress()
+            lsp_indicator = progress ~= '' and (progress .. ' ') or '  '
+          else
+            lsp_indicator = '  '
+          end
         end
 
         if #language_servers == 0 then return lsp_indicator .. 'nvim' end
@@ -633,22 +639,11 @@ return {
     -- Enable tabline
     vim.o.showtabline = 2 -- Always show tabline
 
-    -- Global errors component
-    local GlobalErrors = {
-      provider = function()
-        if _G.Errors and type(_G.Errors) == 'table' and #_G.Errors > 0 then return '' end
-        return ' '
-      end,
-      condition = function() return _G.Errors and type(_G.Errors) == 'table' and #_G.Errors > 0 end,
-      hl = { fg = '#f38ba8', bold = true },
-    }
-
     -- Left side components
     local LeftSide = {
       WorkingDir,
       GitBranch,
       GitStatus,
-      GlobalErrors,
       LspServer,
       HarpoonMarks,
       LintersFormatters,
