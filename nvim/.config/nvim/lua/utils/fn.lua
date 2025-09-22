@@ -215,6 +215,11 @@ local function evaluate_condition(condition)
         for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
           table.insert(vim_tables, { table = vim.bo[bufnr], id = bufnr })
         end
+      elseif scope == 'buffer:window' then
+        for _, winid in ipairs(vim.api.nvim_list_wins()) do
+          local bufnr = vim.api.nvim_win_get_buf(winid)
+          table.insert(vim_tables, { table = vim.b[bufnr], id = bufnr, winid = winid })
+        end
       else
         return false -- Invalid scope (global scopes don't iterate)
       end
@@ -233,6 +238,10 @@ local function evaluate_condition(condition)
             -- Check both vim.b[bufnr] and vim.bo[bufnr]
             result = entry.table[base_condition] -- vim.b[bufnr][key]
             if not result then result = vim.bo[entry.id][base_condition] end
+          elseif scope == 'buffer:window' then
+            -- Check both vim.b[bufnr] and vim.bo[bufnr] for buffers attached to windows
+            result = entry.table[base_condition] -- vim.b[bufnr][key]
+            if not result then result = vim.bo[entry.id][base_condition] end
           else
             result = entry.table[base_condition]
           end
@@ -241,6 +250,8 @@ local function evaluate_condition(condition)
             result = base_condition(entry.table, vim.wo[entry.id], entry.id)
           elseif scope == 'buffer' then
             result = base_condition(entry.table, vim.bo[entry.id], entry.id)
+          elseif scope == 'buffer:window' then
+            result = base_condition(entry.table, vim.bo[entry.id], entry.id, entry.winid)
           else
             result = base_condition(entry.table, entry.id)
           end
@@ -281,69 +292,6 @@ local function evaluate_condition(condition)
       return false -- No match found
     end
 
-    -- Handle forEach option
-    if options.forEach then
-      local iterable = options.forEach
-      local is_windows = false
-
-      if type(iterable) == 'string' and iterable == 'windows' then
-        iterable = vim.api.nvim_list_wins()
-        is_windows = true
-      elseif type(iterable) == 'function' then
-        iterable = iterable()
-      end
-
-      for _, item in ipairs(iterable) do
-        local context = { item = item, vim = vim }
-
-        -- For windows, add winid and buf to context
-        if is_windows then
-          context.winid = item
-          context.buf = vim.api.nvim_win_get_buf(item)
-        end
-
-        local result
-        if type(base_condition) == 'string' then
-          local func = load('return ' .. base_condition, nil, 't', context)
-          result = func and func() or false
-        elseif type(base_condition) == 'function' then
-          result = base_condition(item)
-        else
-          result = base_condition
-        end
-
-        -- Apply comparison if specified, otherwise check truthiness
-        local matches = false
-        if options.eq ~= nil then
-          matches = result == options.eq
-        elseif options.ne ~= nil then
-          matches = result ~= options.ne
-        elseif options.gt ~= nil then
-          matches = result > options.gt
-        elseif options.lt ~= nil then
-          matches = result < options.lt
-        elseif options.gte ~= nil then
-          matches = result >= options.gte
-        elseif options.lte ~= nil then
-          matches = result <= options.lte
-        elseif options.contains ~= nil then
-          if type(result) == 'table' then
-            matches = result[options.contains] ~= nil
-          elseif type(result) == 'string' then
-            matches = result:find(options.contains) ~= nil
-          else
-            matches = false
-          end
-        else
-          matches = not not result
-        end
-
-        if matches then
-          return item -- Early return with the matching item
-        end
-      end
-      return false -- No match found
-    end
 
     -- Evaluate base condition
     local result
