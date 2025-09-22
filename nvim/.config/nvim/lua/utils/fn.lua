@@ -207,14 +207,6 @@ local function evaluate_condition(condition)
         for _, tabnr in ipairs(vim.api.nvim_list_tabpages()) do
           table.insert(vim_tables, { table = vim.t[tabnr], id = tabnr })
         end
-      elseif scope == 'wo' then
-        for _, winid in ipairs(vim.api.nvim_list_wins()) do
-          table.insert(vim_tables, { table = vim.wo[winid], id = winid })
-        end
-      elseif scope == 'bo' then
-        for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-          table.insert(vim_tables, { table = vim.bo[bufnr], id = bufnr })
-        end
       elseif scope == 'buffer:window' then
         for _, winid in ipairs(vim.api.nvim_list_wins()) do
           local bufnr = vim.api.nvim_win_get_buf(winid)

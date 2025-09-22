@@ -57,6 +57,18 @@ Call a module function with arguments:
 local module_fn = fn({'module.function_name', arg1, arg2})
 ```
 
+### 4a. Deferred Function Calls
+
+Execute a function after a delay using the `defer` option:
+
+```lua
+-- Defer execution by 500ms
+local deferred_fn = fn({ vim.cmd, 'echo "Hello"', defer = 500 })
+
+-- Also works with module paths
+local deferred_module_fn = fn({ 'module.function', arg1, defer = 1000 })
+```
+
 ### 5. Conditional Execution
 
 Execute different functions based on a condition:
@@ -145,12 +157,10 @@ when = { 'TERM', eq = 'xterm-256color', in_this = 'env' }
 in_this = 'buffer'   -- vim.b[key] or vim.bo[key]
 
 -- Iterate through all items, return ID of first match
-in_any = 'window'    -- Check all windows, return winid
-
--- Custom iteration
-forEach = { 1, 2, 3, 4, 5 }           -- Iterate array
-forEach = 'windows'                   -- Shortcut for vim.api.nvim_list_wins()
-forEach = function() return my_list() end  -- Dynamic iteration
+in_any = 'window'    -- Check all windows (vim.w + vim.wo), return winid
+in_any = 'buffer'    -- Check all buffers (vim.b + vim.bo), return bufnr
+in_any = 'buffer:window'  -- Check buffers attached to windows, return bufnr
+in_any = 'tab'       -- Check all tabs, return tabnr
 ```
 
 ### Comparison Operators
@@ -210,6 +220,9 @@ local fn_with_args = fn({vim.cmd, 'edit ~/.vimrc'})
 
 -- Module path call
 local formatter = fn({'conform.format', { async = true }})
+
+-- Deferred execution
+local delayed_save = fn({vim.cmd.write, defer = 1000})
 ```
 
 ### Conditional Execution Examples
