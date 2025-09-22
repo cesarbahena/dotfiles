@@ -688,6 +688,8 @@ return {
     -- Enable tabline
     vim.o.showtabline = 2 -- Always show tabline
 
+    vim.o.laststatus = 0 -- Global statusline
+
     -- Left side components
     local LeftSide = {
       WorkingDir,
