@@ -22,44 +22,63 @@ The `fn` API creates **lazy functions** - functions that are defined now but exe
 
 ## Usage Patterns
 
-### 1. Conditional Execution
+### 1. Direct Function Call (No Arguments)
+
+Wrap a function with basic error handling:
+
+```lua
+local safe_fn = fn(function_reference)
+```
+
+### 2. Direct Module Path Call (No Arguments)
+
+Call a module function by string path (most common case):
+
+```lua
+local module_fn = fn('module.function_name')
+-- Supports both syntaxes:
+-- Legacy: 'module.function' (only last dot)
+-- New: 'module::nested.property.path' (full dot notation after ::)
+```
+
+### 3. Function Call with Arguments
+
+Use table format for functions with arguments:
+
+```lua
+local fn_with_args = fn({function_reference, arg1, arg2, arg3})
+```
+
+### 4. Module Path Call with Arguments
+
+Call a module function with arguments:
+
+```lua
+local module_fn = fn({'module.function_name', arg1, arg2})
+```
+
+### 5. Conditional Execution
 
 Execute different functions based on a condition:
 
 ```lua
 local conditional_fn = fn {
-  when = condition,           -- boolean, string, or function
-  main_function,              -- function to call if condition is true
-  or_else = fallback_function -- function to call if condition is false
+  when = condition,           -- boolean, string, function, or table
+  [1] = main_function,        -- MUST be a function (use nested fn() for lazy)
+  or_else = fallback_function -- MUST be a function (optional)
 }
 ```
 
-### 2. Try/Notify with Error Handling
+### 6. Try/Catch with Error Handling
 
 Handle function errors with configurable notifications:
 
 ```lua
 local try_fn = fn {
-  main_function,              -- function to try first
-  or_else = fallback,         -- function to call if main fails
+  [1] = main_function,        -- MUST be a function (use nested fn() for lazy)
+  or_else = fallback,         -- MUST be a function (optional)
   notify = 'fallback'         -- notification strategy ('main'|'fallback'|'both')
 }
-```
-
-### 3. Direct Function Call
-
-Wrap a function with basic error handling:
-
-```lua
-local safe_fn = fn(function_reference, arg1, arg2, ...)
-```
-
-### 4. Module Path Call
-
-Call a function from a module by string path:
-
-```lua
-local module_fn = fn('module.function_name', arg1, arg2, ...)
 ```
 
 ## Enhanced Condition Evaluation
@@ -162,100 +181,6 @@ when = { vim.fn.line, eq = 5 }  -- Current line is 5
 when = { 'vim.bo.filetype', eq = 'lua' }  -- Literal string comparison
 ```
 
-#### Syntax Rules
-
-- **Functions**: Direct function references (type-safe, no string evaluation)
-- **`at` option**: Access properties/indices from function results
-- **Literal strings**: Kept as-is, no dangerous evaluation
-- **Safe evaluation**: Functions called with pcall for error handling
-- **Works everywhere**: Both conditions and comparison values support `at`
-
-### Function-Aware Comparisons
-
-Comparison operators can now accept functions or property access syntax:
-
-```lua
--- Compare function results
-when = { 
-  function() return vim.fn.line('.') end,
-  lt = function() return vim.fn.line('$') end 
-}
-
--- Mix literal values with function results  
-when = { vim.fn.undotree, at = 'seq_cur', lt = { vim.fn.undotree, at = 'seq_last' } }
-
--- Use in any comparison operator
-when = { 'vim.lsp.get_clients', contains = function() return get_target_client() end }
-```
-
-### Advanced Examples
-
-#### Multiple Windows with TypeScript Files
-```lua
-local typescript_keymap = fn {
-  'typescript.organize_imports',
-  when = { 'filetype', eq = 'typescript', in_any = 'buffer' },
-  or_else = function() print('No TypeScript files open') end
-}
-```
-
-#### Conditional Behavior Based on Vim State
-```lua
-local smart_motion = fn {
-  when = { 'count', gt = 1, in_this = 'state' },
-  function() vim.cmd('normal! ' .. vim.v.count .. 'j') end,
-  or_else = function() vim.cmd('normal! gj') end -- Visual line movement
-}
-```
-
-#### Environment-Aware Configuration
-```lua
-local dev_tools = fn {
-  when = { 'NODE_ENV', eq = 'development', in_this = 'env' },
-  function() require('dev_tools').setup() end,
-  or_else = function() print('Production mode - dev tools disabled') end
-}
-```
-
-#### Smart Undo/Redo with State Tables
-```lua
-local smart_undo = fn {
-  feed('<c-r>'),  -- Redo by default
-  when = { vim.fn.undotree, at = 'seq_cur', lt = { vim.fn.undotree, at = 'seq_last' } },
-  or_else = { feed('.') }  -- Repeat last action if at latest change
-}
-```
-
-#### LSP Client State Detection  
-```lua
-local tailwind_action = fn {
-  'show_tailwind_values',
-  when = { vim.lsp.get_clients, at = '1.name', eq = 'tailwindcss' },
-  or_else = function() print('Tailwind LSP not active') end
-}
-```
-
-#### Complex Window State Detection
-```lua
-local close_floating_windows = fn {
-  when = { 
-    function(w_table, wo_table, winid) 
-      return wo_table.winblend > 0  -- Check if window is floating/transparent
-    end,
-    in_any = 'window'
-  },
-  function() 
-    -- Close all floating windows
-    for _, winid in ipairs(vim.api.nvim_list_wins()) do
-      if vim.wo[winid].winblend > 0 then
-        vim.api.nvim_win_close(winid, true)
-      end
-    end
-  end,
-  or_else = function() print('No floating windows found') end
-}
-```
-
 ## Notify Options
 
 The `notify` option controls when and how errors are reported:
@@ -274,186 +199,169 @@ The `notify` option controls when and how errors are reported:
 
 ## Examples
 
+### Basic Function Calls
+
+```lua
+-- Direct function (no arguments)
+local simple_fn = fn(vim.cmd.write)
+
+-- Function with arguments  
+local fn_with_args = fn({vim.cmd, 'edit ~/.vimrc'})
+
+-- Module path call
+local formatter = fn({'conform.format', { async = true }})
+```
+
 ### Conditional Execution Examples
 
-#### Boolean Condition
 ```lua
-local toggle_fn = fn {
+-- Simple boolean condition
+local toggle_wrap = fn {
   when = vim.o.wrap,
-  function() vim.cmd('set nowrap') end,
-  or_else = function() vim.cmd('set wrap') end,
+  [1] = fn({vim.cmd, 'set nowrap'}),
+  or_else = fn({vim.cmd, 'set wrap'}),
 }
-```
 
-#### Function Condition
-```lua
+-- Function condition
 local smart_save = fn {
   when = function() return vim.bo.modified end,
-  function() vim.cmd.write() end,
-  or_else = function() print('Buffer not modified') end,
+  [1] = fn(vim.cmd.write),
+  or_else = fn(function() print('Buffer not modified') end),
 }
-```
 
-#### String Condition (Lazy Evaluation)
-```lua
-local conditional_format = fn {
-  when = 'vim.bo.filetype == "lua"',
-  function() vim.cmd('!stylua %') end,
-  or_else = function() print('Not a Lua file') end,
+-- Advanced vim scope condition
+local typescript_action = fn {
+  when = { 'filetype', eq = 'typescript', in_any = 'buffer' },
+  [1] = fn({'typescript.organize_imports'}),
+  or_else = fn(function() print('No TypeScript files open') end),
 }
 ```
 
 ### Error Handling Examples
 
-#### Smart Navigation with Graceful Fallback
 ```lua
-local prev_diagnostic = fn {
-  when = fn('trouble.is_open'),
-  { 'trouble.prev', { skip_groups = true, jump = true } },
-  or_else = fn {
-    vim.cmd.cprev,
-    or_else = vim.diagnostic.goto_prev,
-  },
-}
-```
-
-#### Function with Custom Error Notification
-```lua
-local safe_require = fn {
-  function() return require('optional_module') end,
-  notify = 'main',  -- Show error if module not found
-  or_else = function() return {} end,  -- Return empty table as fallback
-}
-```
-
-### Module Path Examples
-
-#### Simple Module Call
-```lua
-local formatter = fn('conform.format', { async = true })
-formatter()  -- Calls conform.format({ async = true })
-```
-
-#### With Error Handling
-```lua
+-- Basic try/catch
 local safe_format = fn {
-  { 'conform.format', { async = true } },
-  notify = 'main',
-  or_else = function() vim.cmd('!stylua %') end,
+  [1] = fn({'conform.format', { async = true }}),
+  or_else = fn({vim.cmd, '!stylua %'}),
+  notify = 'main'  -- Show error if conform fails
 }
-```
 
-### Complex Composition Examples
-
-#### Nested fn Calls
-```lua
+-- Nested error handling
 local complex_operation = fn {
-  when = fn('project.has_config'),
-  fn {
-    { 'project.load_config' },
-    notify = 'both',
-    or_else = fn('project.create_default_config'),
+  [1] = fn {
+    [1] = fn({'project.load_config'}),
+    or_else = fn({'project.create_default_config'}),
+    notify = 'both'
   },
-  or_else = function() print('No project detected') end,
+  or_else = fn(function() print('Project setup failed') end),
 }
 ```
 
-#### Multi-step Process
+### Real-world Keymap Example
+
 ```lua
-local build_and_test = fn {
-  function() 
-    -- Chain multiple operations
-    local build = fn('build.compile')()
-    if build.success then
-      return fn('test.run_all')()
-    end
-    error('Build failed: ' .. build.error)
-  end,
-  notify = 'main',
-  or_else = function() print('Build process failed') end,
+-- Your original keymap, updated for new API
+local claude_keymap = fn {
+  when = { fn({'vim.fn.system', 'pgrep -f claude'}), eq = '' },
+  [1] = fn({vim.cmd, 'ClaudeCode --continue'}),
+  or_else = fn({vim.cmd, 'ClaudeCodeAdd %'}),
 }
 ```
 
 ## API Reference
 
-### fn(spec, ...)
+### fn(spec)
 
 Creates a lazy function wrapper.
 
 #### Parameters
 
-- `spec` (function|string|table): The function specification
-- `...` (any): Arguments to pass to the function
+- `spec` (function|string|table): The function, module path, or specification table
 
 #### Returns
 
 - `function`: A lazy function that executes the specified logic when called
 
-#### Function Specification Types
+#### Specification Types
 
-##### Table Specifications
-
-**Conditional Table:**
+**1. Direct Function:**
 ```lua
-{
-  when = condition,    -- boolean|string|function
-  [1] = main_function, -- function|string|table
-  or_else = fallback   -- function|string|table (optional)
-}
+fn(function_reference)
 ```
 
-**Try/Notify Table:**
+**2. Direct Module Path:**
 ```lua
-{
-  [1] = main_function,       -- function|string|table
-  or_else = fallback,        -- function|string|table (optional)
-  notify = notification_mode -- 'main'|'fallback'|'both' (optional, default: 'fallback')
-}
+fn('module.function')
 ```
 
-##### Function Reference
-Direct function calls with basic error handling:
+**3. Function with Arguments:**
 ```lua
-fn(function_reference, arg1, arg2, ...)
+fn({function_reference, arg1, arg2, ...})
 ```
 
-##### Module Path String
-Call module functions by string path:
+**4. Module Path with Arguments:**
 ```lua
-fn('module.function_name', arg1, arg2, ...)
+fn({'module.function', arg1, arg2, ...})
 ```
 
-### Error Handling
+**5. Conditional Execution:**
+```lua
+fn({
+  when = condition,    -- any condition type
+  [1] = function,      -- MUST be function
+  or_else = function   -- MUST be function (optional)
+})
+```
 
-The API uses `pcall` internally to catch errors and handle them according to the `notify` option:
-
-- **Successful execution**: Returns the function result
-- **Failed execution**: Follows notify strategy and executes fallback if available
-- **No fallback**: Returns `nil` or propagates error based on notify option
+**6. Try/Catch:**
+```lua
+fn({
+  [1] = function,      -- MUST be function
+  or_else = function,  -- MUST be function (optional)
+  notify = 'option'    -- 'main'|'fallback'|'both' (optional, default: 'fallback')
+})
+```
 
 ### Module Path Resolution
 
-Module paths follow the format `'module.function_name'`:
+Module paths support two syntaxes:
 
-- ✅ Valid: `'string.format'`, `'vim.cmd'`, `'my_module.my_function'`
-- ❌ Invalid: `'just_a_function'`, `'module.'`, `'.function'`
+- **Legacy**: `'module.function'` (splits on last dot only)
+- **New**: `'module::nested.property.path'` (supports deep property access)
 
-Module resolution is lazy - modules are only required when the function is executed.
+Examples:
+- ✅ `'vim.cmd'`, `'conform.format'`, `'telescope::extensions.ui-select.ui_select'`
+- ❌ `'just_a_function'`, `'module.'`, `'.function'`
+
+### Error Handling Strategy
+
+- **Direct/Module calls**: Always use pcall, notify errors appropriately
+- **Conditional execution**: No error handling - errors propagate naturally
+- **Try/catch**: Configurable error handling based on `notify` option
+
+## Key Changes from Previous API
+
+1. **Simplified Arguments**: No more variadic parameters - use tables for arguments
+2. **Functions Only for Conditionals**: `[1]` and `or_else` must be functions in conditional/try-catch patterns
+3. **Nested fn() for Lazy Functions**: Use `fn()` calls explicitly instead of table specifications
+4. **Cleaner Separation**: Clear distinction between function calls and control flow
 
 ## Best Practices
 
-### 1. Use Descriptive Conditions
+### 1. Use fn() for Lazy Functions in Conditionals
 ```lua
 -- Good
 fn {
-  when = function() return vim.bo.modified and vim.bo.filetype == 'lua' end,
-  -- ...
+  when = condition,
+  [1] = fn({vim.cmd, 'command'}),
+  or_else = fn(fallback_function),
 }
 
--- Avoid
+-- Avoid (this will error)
 fn {
-  when = vim.bo.modified,  -- Not clear what happens next
-  -- ...
+  when = condition, 
+  [1] = {vim.cmd, 'command'},  -- Error: must be function
 }
 ```
 
@@ -461,52 +369,19 @@ fn {
 ```lua
 -- For user-facing operations, notify main errors
 local save_file = fn {
-  vim.cmd.write,
+  [1] = fn(vim.cmd.write),
   notify = 'main',
-  or_else = function() print('Save failed, trying backup...') end,
-}
-
--- For internal operations, use fallback notifications
-local internal_op = fn {
-  risky_internal_function,
-  notify = 'fallback',  -- Default - only notify if fallback fails too
-  or_else = safe_fallback,
+  or_else = fn(function() print('Save failed') end),
 }
 ```
 
-### 3. Keep Functions Pure When Possible
-```lua
--- Good - pure function
-local calculate = fn(function(x, y) return x + y end, 5, 3)
-
--- Avoid - side effects make testing harder
-local impure = fn(function() 
-  local x = get_global_state()
-  update_global_state(x + 1)
-  return x
-end)
-```
-
-### 4. Use Module Paths for External Dependencies
+### 3. Use Module Paths for External Dependencies
 ```lua
 -- Good - clear dependency
-local format = fn('conform.format', options)
+local format = fn({'conform.format', options})
 
--- Avoid - hidden dependency
-local format = fn(function() 
-  local conform = require('conform')
-  return conform.format(options)
-end)
+-- Also good - explicit function reference
+local format = fn({require('conform').format, options})
 ```
 
-## Implementation Notes
-
-The `fn` API is implemented with:
-
-- **Guard clauses** for clear control flow
-- **Helper functions** for code reusability
-- **Comprehensive error handling** with proper cleanup
-- **Type annotations** for better developer experience
-- **Modular design** for maintainability
-
-All functionality is thoroughly tested with a comprehensive test suite covering edge cases and error conditions.
+This API provides a clean, predictable interface for complex function composition while maintaining powerful condition evaluation capabilities.
