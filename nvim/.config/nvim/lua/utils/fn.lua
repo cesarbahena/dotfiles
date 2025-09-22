@@ -635,24 +635,37 @@ function M.fn(spec)
     return handle_try_notify(spec)
   end
 
-  -- Handle function calls with arguments: {function|string, arg1, arg2, ...}
+  -- Handle function calls with arguments: {function|string, arg1, arg2, ..., defer = ms}
   if not spec[1] then error 'Table must have [1] as function or module path' end
 
   local target = spec[1]
+  local defer_ms = spec.defer
   local args = {}
+  
+  -- Extract numbered arguments, skipping defer option
   for i = 2, #spec do
     table.insert(args, spec[i])
   end
 
+  local base_fn
   if type(target) == 'function' then
-    return handle_direct_function(target, args)
+    base_fn = handle_direct_function(target, args)
   elseif type(target) == 'table' and getmetatable(target) and getmetatable(target).__call then
     -- Handle callable tables like vim.cmd
-    return handle_direct_function(target, args)
+    base_fn = handle_direct_function(target, args)
   elseif type(target) == 'string' then
-    return handle_module_path(target, args)
+    base_fn = handle_module_path(target, args)
   else
     error('spec[1] must be function or string, got ' .. type(target))
+  end
+
+  -- If defer option is specified, wrap in vim.defer_fn
+  if defer_ms then
+    return function()
+      vim.defer_fn(base_fn, defer_ms)
+    end
+  else
+    return base_fn
   end
 end
 
