@@ -9,7 +9,7 @@ local M = {}
 ---@return string|nil function_name The function name or property path
 ---@return string|nil error_msg Error message if parsing fails
 local function parse_module_path(module_path)
-  -- Check for :: syntax for nested properties
+  -- Check for :: syntax to mark module/table boundary for nested access
   if module_path:find '::' then
     local module_name, property_path = module_path:match '^(.-)::(.+)$'
     if module_name and property_path then
@@ -19,7 +19,7 @@ local function parse_module_path(module_path)
     end
   end
 
-  -- Legacy single-level syntax (only last dot)
+  -- Dot syntax for top-level exports (split on last dot only)
   local last_dot = module_path:match '.*()%.'
   if not last_dot then
     return nil,
@@ -45,7 +45,7 @@ local function resolve_module_function(module_path)
   local success, module = pcall(require, module_name)
   if not success then return nil, 'Module not found: ' .. module_name end
 
-  -- Handle nested property access for :: syntax
+  -- Handle nested property access for :: syntax (module::nested.property.path)
   if module_path:find '::' then
     local current = module
     local properties = vim.split(function_name, '.', { plain = true })
@@ -61,7 +61,7 @@ local function resolve_module_function(module_path)
 
     return current, nil
   else
-    -- Legacy single-level access (last dot only)
+    -- Dot syntax for top-level exports (module.function)
     local module_fn = module[function_name]
     if not module_fn then return nil, 'Function ' .. function_name .. ' not found in module ' .. module_name end
     return module_fn, nil
@@ -75,7 +75,21 @@ end
 local function call_module_function_direct(module_path, args)
   local module_name, function_name = parse_module_path(module_path)
   local module = require(module_name)
-  return module[function_name](unpack(args))
+
+  -- Handle nested property access for :: syntax (module::nested.property.path)
+  if module_path:find '::' then
+    local current = module
+    local properties = vim.split(function_name, '.', { plain = true })
+
+    for _, property in ipairs(properties) do
+      current = current[property]
+    end
+
+    return current(unpack(args))
+  else
+    -- Dot syntax for top-level exports (module.function)
+    return module[function_name](unpack(args))
+  end
 end
 
 ---Call a module function with pcall
@@ -86,7 +100,6 @@ end
 local function call_module_function_safe(module_path, args)
   return pcall(function() return call_module_function_direct(module_path, args) end)
 end
-
 
 ---Evaluate a condition (string, function, boolean, or options table)
 ---@param condition any The condition to evaluate
@@ -469,7 +482,6 @@ local function evaluate_condition(condition)
   return false
 end
 
-
 -- Main API Functions --
 
 ---Handle conditional execution: { when = condition, [1] = fn, or_else = fn }
@@ -599,24 +611,18 @@ end
 ---@return function lazy_function A function that executes the specified logic when called
 function M.fn(spec)
   -- Guard clause: Handle direct function calls (no arguments)
-  if type(spec) == 'function' then 
-    return handle_direct_function(spec, {})
-  end
+  if type(spec) == 'function' then return handle_direct_function(spec, {}) end
 
   -- Guard clause: Handle direct module path calls (no arguments)
-  if type(spec) == 'string' then
-    return handle_module_path(spec, {})
-  end
+  if type(spec) == 'string' then return handle_module_path(spec, {}) end
 
   -- Guard clause: Validate table input
-  if type(spec) ~= 'table' then
-    error('Expected function, string, or table, got ' .. type(spec))
-  end
+  if type(spec) ~= 'table' then error('Expected function, string, or table, got ' .. type(spec)) end
 
   -- Guard clause: Handle conditional execution
   if spec['when'] ~= nil then
     if type(spec[1]) ~= 'function' or (spec['or_else'] and type(spec['or_else']) ~= 'function') then
-      error('Conditional [1] and or_else must be functions. Use fn() for lazy functions.')
+      error 'Conditional [1] and or_else must be functions. Use fn() for lazy functions.'
     end
     return handle_conditional(spec)
   end
@@ -624,15 +630,13 @@ function M.fn(spec)
   -- Guard clause: Handle try/catch with or_else (with or without notify)
   if spec['or_else'] ~= nil then
     if type(spec[1]) ~= 'function' or type(spec['or_else']) ~= 'function' then
-      error('Try/catch [1] and or_else must be functions. Use fn() for lazy functions.')
+      error 'Try/catch [1] and or_else must be functions. Use fn() for lazy functions.'
     end
     return handle_try_notify(spec)
   end
 
   -- Handle function calls with arguments: {function|string, arg1, arg2, ...}
-  if not spec[1] then
-    error('Table must have [1] as function or module path')
-  end
+  if not spec[1] then error 'Table must have [1] as function or module path' end
 
   local target = spec[1]
   local args = {}
@@ -641,6 +645,9 @@ function M.fn(spec)
   end
 
   if type(target) == 'function' then
+    return handle_direct_function(target, args)
+  elseif type(target) == 'table' and getmetatable(target) and getmetatable(target).__call then
+    -- Handle callable tables like vim.cmd
     return handle_direct_function(target, args)
   elseif type(target) == 'string' then
     return handle_module_path(target, args)

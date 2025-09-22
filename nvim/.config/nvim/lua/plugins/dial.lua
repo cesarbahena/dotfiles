@@ -3,12 +3,12 @@ return {
   recommended = true,
   desc = 'Increment and decrement numbers, dates, and more',
   keys = {
-    key { 'increment', fn('dial.map.manipulate', 'increment', 'normal') },
-    key { 'decrement', fn('dial.map.manipulate', 'decrement', 'normal') },
-    on_selection { 'fixed increment', fn('dial.map.manipulate', 'increment', 'visual') },
-    on_selection { 'fixed decrement', fn('dial.map.manipulate', 'decrement', 'visual') },
-    on_selection { 'increment', fn('dial.map.manipulate', 'increment', 'gvisual') },
-    on_selection { 'decrement', fn('dial.map.manipulate', 'decrement', 'gvisual') },
+    key { 'increment', fn { 'dial.map.manipulate', 'increment', 'normal' } },
+    key { 'decrement', fn { 'dial.map.manipulate', 'decrement', 'normal' } },
+    on_selection { 'fixed increment', fn { 'dial.map.manipulate', 'increment', 'visual' } },
+    on_selection { 'fixed decrement', fn { 'dial.map.manipulate', 'decrement', 'visual' } },
+    on_selection { 'increment', fn { 'dial.map.manipulate', 'increment', 'gvisual' } },
+    on_selection { 'decrement', fn { 'dial.map.manipulate', 'decrement', 'gvisual' } },
   },
   opts = function()
     local augend = require 'dial.augend'

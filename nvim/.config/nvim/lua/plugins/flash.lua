@@ -24,8 +24,8 @@ return {
       proc {
         bang 'v',
         fn {
-          'flash.treesitter',
           when = { vim.treesitter.get_parser, ok = true },
+          fn 'flash.treesitter',
         },
       },
       details = '(TS enhanced)',

@@ -36,10 +36,24 @@ return {
           buffer = buffer,
 
           -- Navigation
-          key { 'next Hunk', fn { bang ']c', when = 'vim.wo.diff', or_else = { 'gitsigns.nav_hunk', 'next' } } },
-          key { 'prev Hunk', fn { bang '[c', when = 'vim.wo.diff', or_else = { 'gitsigns.nav_hunk', 'prev' } } },
-          key { 'last Hunk', fn('gitsigns.nav_hunk', 'last') },
-          key { 'first Hunk', fn('gitsigns.nav_hunk', 'first') },
+          key {
+            'next Hunk',
+            fn {
+              when = { 'diff', in_this = 'window' },
+              bang ']c',
+              or_else = fn { 'gitsigns.nav_hunk', 'next' },
+            },
+          },
+          key {
+            'prev Hunk',
+            fn {
+              when = { 'diff', in_this = 'window' },
+              bang '[c',
+              or_else = fn { 'gitsigns.nav_hunk', 'prev' },
+            },
+          },
+          key { 'last Hunk', fn { 'gitsigns.nav_hunk', 'last' } },
+          key { 'first Hunk', fn { 'gitsigns.nav_hunk', 'first' } },
 
           -- Stage/Reset operations
           auto_select { 'Git Add hunk', cmd 'Gitsigns stage_hunk' },
@@ -50,12 +64,12 @@ return {
 
           -- Preview and blame
           key { 'Preview hunk inline', fn 'gitsigns.preview_hunk_inline' },
-          key { 'Blame line', fn('gitsigns.blame_line', { full = true }) },
+          key { 'Blame line', fn { 'gitsigns.blame_line', { full = true } } },
           key { 'Blame buffer', fn 'gitsigns.blame' },
 
           -- Diff operations
           key { 'diff This', fn 'gitsigns.diffthis' },
-          key { 'diff This ~', fn('gitsigns.diffthis', '~') },
+          key { 'diff This ~', fn { 'gitsigns.diffthis', '~' } },
 
           -- Text object
           operator { 'Inner Hunk', cmd 'Gitsigns select_hunk' },

@@ -4,6 +4,7 @@
 keymap({
   operator {
     'Indentation with line above',
-    fn('various-textobjs.indentation', 'outer', 'inner'),
-  }
+    fn { 'various-textobjs.indentation', 'outer', 'inner' },
+  },
 }, { buffer = true })
+

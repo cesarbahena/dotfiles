@@ -14,8 +14,8 @@ return function(_, bufnr)
     key { 'Code Format', function() require('conform').format { async = true, lsp_fallback = true } end },
 
     -- Signature
-    key { 'signature', fn(vim.lsp.buf.signature_help, { border = 'rounded' }) },
-    insert { 'signature', fn(vim.lsp.buf.signature_help, { border = 'rounded' }) },
+    key { 'signature', fn { vim.lsp.buf.signature_help, { border = 'rounded' } } },
+    insert { 'signature', fn { vim.lsp.buf.signature_help, { border = 'rounded' } } },
   }
 
   -- Enable completion triggered by <c-x><c-o>

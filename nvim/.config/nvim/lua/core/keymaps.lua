@@ -29,9 +29,9 @@ keymap {
   key {
     'Unundo',
     fn {
-      feed '<c-r>',
       when = { vim.fn.undotree, at = 'seq_cur', lt = { vim.fn.undotree, at = 'seq_last' } },
-      or_else = { feed '.' },
+      feed '<c-r>',
+      or_else = feed '.',
     },
   },
   -- key { "Insert comma at the end", "mzA,<Esc>`z" },
@@ -58,9 +58,9 @@ keymap {
   auto_select {
     'last window',
     fn {
-      { vim.cmd, 'CopilotChatOpen' },
-      when = function() return fn('utils.is_win_open', 'copilot-chat')() and vim.bo.ft ~= 'copilot-chat' end,
-      or_else = { vim.cmd, 'wincmd p' },
+      when = function() return fn { 'utils.is_win_open', 'copilot-chat' }() and vim.bo.ft ~= 'copilot-chat' end,
+      fn { vim.cmd, 'CopilotChatOpen' },
+      or_else = fn { vim.cmd, 'wincmd p' },
     },
   },
 
@@ -120,11 +120,11 @@ vim.keymap.set(
   'n',
   '<leader>g1',
   fn {
-    'gitsigns.blame',
     when = { 'gitsigns_preview', eq = 'blame', in_any = 'window' },
+    fn 'gitsigns.blame',
     or_else = proc {
-      fn('gitsigns.blame_line', { full = true }),
-      fn(vim.cmd, 'wincmd p'),
+      fn { 'gitsigns.blame_line', { full = true } },
+      fn { vim.cmd, 'wincmd p' },
     },
   }
 )
@@ -133,8 +133,8 @@ vim.keymap.set(
   'n',
   'g0',
   fn {
-    'gitsigns.preview_hunk_inline',
     when = { fn 'gitsigns.get_actions', contains = 'stage_hunk' },
-    or_else = { 'gitsigns.blame_line', { full = true } },
+    fn 'gitsigns.preview_hunk_inline',
+    or_else = fn { 'gitsigns.blame_line', { full = true } },
   }
 )

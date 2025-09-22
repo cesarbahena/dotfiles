@@ -26,7 +26,7 @@ return {
   keys = {
     key {
       'file explorer',
-      function() fn('mini.files.open', vim.fn.expand '%:p:h', true)() end,
+      function() fn { 'mini.files.open', vim.fn.expand '%:p:h', true }() end,
     },
   },
 }

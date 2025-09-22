@@ -16,12 +16,12 @@ return {
       {
         desc = 'Breakpoint condition',
         'bf',
-        fn(vim.fn.input, { prompt = 'Breakpoint condition:' }),
+        fn { vim.fn.input, { prompt = 'Breakpoint condition:' } },
       },
       {
         desc = 'Logpoint',
         'bl',
-        fn(vim.fn.input, { prompt = 'Log:' }),
+        fn { vim.fn.input, { prompt = 'Log:' } },
       },
     },
     config = function()

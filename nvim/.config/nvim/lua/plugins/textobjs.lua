@@ -241,7 +241,7 @@ return {
             end
           end
 
-          custom_textobjects[key] = fn('mini.ai::gen_spec.treesitter', ts_spec)()
+          custom_textobjects[key] = fn { 'mini.ai::gen_spec.treesitter', ts_spec }()
         end
 
         if spec.provider == 'mini.ai' then
@@ -256,7 +256,7 @@ return {
       return {
         custom_textobjects = vim.tbl_deep_extend('force', custom_textobjects, {
           u = fn 'mini.ai::gen_spec.function_call',
-          U = fn('mini.ai::gen_spec.function_call', { name_pattern = '[%w_]' }),
+          U = fn { 'mini.ai::gen_spec.function_call', { name_pattern = '[%w_]' } },
         }),
         mappings = {
           goto_left = '', -- custom behavior defined in keys
@@ -278,19 +278,19 @@ return {
 
           table.insert(keys, {
             (']%s'):format(key),
-            fn('mini.ai.move_cursor', 'left', 'a', key, { search_method = 'next' }),
+            fn { 'mini.ai.move_cursor', 'left', 'a', key, { search_method = 'next' } },
             desc = ('next %s start'):format(desc),
           })
 
           table.insert(keys, {
             ('[%s'):format(key),
-            fn('mini.ai.move_cursor', 'left', 'a', key, { search_method = 'cover_or_prev' }),
+            fn { 'mini.ai.move_cursor', 'left', 'a', key, { search_method = 'cover_or_prev' } },
             desc = ('this or previous %s start'):format(desc),
           })
 
           table.insert(keys, {
             ('{%s'):format(key),
-            fn('mini.ai.move_cursor', 'right', 'a', key, { search_method = 'prev' }),
+            fn { 'mini.ai.move_cursor', 'right', 'a', key, { search_method = 'prev' } },
             desc = ('previous %s end'):format(desc),
           })
         end

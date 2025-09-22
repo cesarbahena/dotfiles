@@ -37,8 +37,8 @@ Call a module function by string path (most common case):
 ```lua
 local module_fn = fn('module.function_name')
 -- Supports both syntaxes:
--- Legacy: 'module.function' (only last dot)
--- New: 'module::nested.property.path' (full dot notation after ::)
+-- Dot: 'module.function' (top-level exports, last dot only)
+-- Double-colon: 'module::nested.property.path' (:: marks module/table boundary)
 ```
 
 ### 3. Function Call with Arguments
@@ -91,7 +91,7 @@ The `when` condition in `fn` supports advanced evaluation patterns for vim varia
 -- String expression (lazy evaluation)
 when = 'vim.bo.filetype == "lua"'
 
--- Function (lazy evaluation)  
+-- Function (lazy evaluation)
 when = function() return vim.bo.filetype == "lua" end
 
 -- Boolean (immediate evaluation)
@@ -123,20 +123,20 @@ when = { 'TERM', eq = 'xterm-256color', in_this = 'env' }
 
 #### Merged Scopes (check both variables and options)
 
-| Scope | Variables | Options | Description |
-|-------|-----------|---------|-------------|
-| `window` | `vim.w` | `vim.wo` | Window variables + options |
-| `buffer` | `vim.b` | `vim.bo` | Buffer variables + options |
-| `global` | `vim.g` | `vim.go` | Global variables + options |
+| Scope    | Variables | Options  | Description                |
+| -------- | --------- | -------- | -------------------------- |
+| `window` | `vim.w`   | `vim.wo` | Window variables + options |
+| `buffer` | `vim.b`   | `vim.bo` | Buffer variables + options |
+| `global` | `vim.g`   | `vim.go` | Global variables + options |
 
 #### Single Scopes
 
-| Scope | Access | Description |
-|-------|--------|-------------|
-| `tab` | `vim.t` | Tab-local variables |
-| `option` | `vim.o` | Global options |
-| `env` | `vim.env` | Environment variables |
-| `state` | `vim.v` | Vim internal state (count, version, register, etc.) |
+| Scope    | Access    | Description                                         |
+| -------- | --------- | --------------------------------------------------- |
+| `tab`    | `vim.t`   | Tab-local variables                                 |
+| `option` | `vim.o`   | Global options                                      |
+| `env`    | `vim.env` | Environment variables                               |
+| `state`  | `vim.v`   | Vim internal state (count, version, register, etc.) |
 
 ### Iteration Options
 
@@ -144,7 +144,7 @@ when = { 'TERM', eq = 'xterm-256color', in_this = 'env' }
 -- Check current context only
 in_this = 'buffer'   -- vim.b[key] or vim.bo[key]
 
--- Iterate through all items, return ID of first match  
+-- Iterate through all items, return ID of first match
 in_any = 'window'    -- Check all windows, return winid
 
 -- Custom iteration
@@ -155,14 +155,14 @@ forEach = function() return my_list() end  -- Dynamic iteration
 
 ### Comparison Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `eq` | Equal to | `{ 'filetype', eq = 'lua' }` |
-| `ne` | Not equal to | `{ 'filetype', ne = 'help' }` |
-| `gt` | Greater than | `{ 'count', gt = 0 }` |
-| `lt` | Less than | `{ 'line_count', lt = 100 }` |
-| `gte` | Greater than or equal | `{ 'version', gte = 801 }` |
-| `lte` | Less than or equal | `{ 'tabstop', lte = 4 }` |
+| Operator   | Description            | Example                               |
+| ---------- | ---------------------- | ------------------------------------- |
+| `eq`       | Equal to               | `{ 'filetype', eq = 'lua' }`          |
+| `ne`       | Not equal to           | `{ 'filetype', ne = 'help' }`         |
+| `gt`       | Greater than           | `{ 'count', gt = 0 }`                 |
+| `lt`       | Less than              | `{ 'line_count', lt = 100 }`          |
+| `gte`      | Greater than or equal  | `{ 'version', gte = 801 }`            |
+| `lte`      | Less than or equal     | `{ 'tabstop', lte = 4 }`              |
 | `contains` | Contains key/substring | `{ result, contains = 'stage_hunk' }` |
 
 ### Property Access with `at` Option
@@ -185,11 +185,11 @@ when = { 'vim.bo.filetype', eq = 'lua' }  -- Literal string comparison
 
 The `notify` option controls when and how errors are reported:
 
-| Option | Description | Main Function Error | Fallback Function Error |
-|--------|-------------|---------------------|-------------------------|
-| `'main'` | Notify only main errors | ✅ Notified | ❌ Silent (propagates) |
-| `'fallback'` | Notify only fallback errors (default) | ❌ Silent | ✅ Notified |
-| `'both'` | Notify both main and fallback errors | ✅ Notified | ✅ Notified |
+| Option       | Description                           | Main Function Error | Fallback Function Error |
+| ------------ | ------------------------------------- | ------------------- | ----------------------- |
+| `'main'`     | Notify only main errors               | ✅ Notified         | ❌ Silent (propagates)  |
+| `'fallback'` | Notify only fallback errors (default) | ❌ Silent           | ✅ Notified             |
+| `'both'`     | Notify both main and fallback errors  | ✅ Notified         | ✅ Notified             |
 
 ### Notification Behavior Details
 
@@ -205,7 +205,7 @@ The `notify` option controls when and how errors are reported:
 -- Direct function (no arguments)
 local simple_fn = fn(vim.cmd.write)
 
--- Function with arguments  
+-- Function with arguments
 local fn_with_args = fn({vim.cmd, 'edit ~/.vimrc'})
 
 -- Module path call
@@ -286,26 +286,31 @@ Creates a lazy function wrapper.
 #### Specification Types
 
 **1. Direct Function:**
+
 ```lua
 fn(function_reference)
 ```
 
 **2. Direct Module Path:**
+
 ```lua
 fn('module.function')
 ```
 
 **3. Function with Arguments:**
+
 ```lua
 fn({function_reference, arg1, arg2, ...})
 ```
 
 **4. Module Path with Arguments:**
+
 ```lua
 fn({'module.function', arg1, arg2, ...})
 ```
 
 **5. Conditional Execution:**
+
 ```lua
 fn({
   when = condition,    -- any condition type
@@ -315,6 +320,7 @@ fn({
 ```
 
 **6. Try/Catch:**
+
 ```lua
 fn({
   [1] = function,      -- MUST be function
@@ -327,10 +333,11 @@ fn({
 
 Module paths support two syntaxes:
 
-- **Legacy**: `'module.function'` (splits on last dot only)
-- **New**: `'module::nested.property.path'` (supports deep property access)
+- **Dot syntax**: `'module.function'` (top-level exports, splits on last dot only)
+- **Double-colon syntax**: `'module::nested.property.path'` (:: marks module/table boundary for nested access)
 
 Examples:
+
 - ✅ `'vim.cmd'`, `'conform.format'`, `'telescope::extensions.ui-select.ui_select'`
 - ❌ `'just_a_function'`, `'module.'`, `'.function'`
 
@@ -350,6 +357,7 @@ Examples:
 ## Best Practices
 
 ### 1. Use fn() for Lazy Functions in Conditionals
+
 ```lua
 -- Good
 fn {
@@ -360,12 +368,13 @@ fn {
 
 -- Avoid (this will error)
 fn {
-  when = condition, 
+  when = condition,
   [1] = {vim.cmd, 'command'},  -- Error: must be function
 }
 ```
 
 ### 2. Choose Appropriate Notify Options
+
 ```lua
 -- For user-facing operations, notify main errors
 local save_file = fn {
@@ -376,6 +385,7 @@ local save_file = fn {
 ```
 
 ### 3. Use Module Paths for External Dependencies
+
 ```lua
 -- Good - clear dependency
 local format = fn({'conform.format', options})
@@ -385,3 +395,4 @@ local format = fn({require('conform').format, options})
 ```
 
 This API provides a clean, predictable interface for complex function composition while maintaining powerful condition evaluation capabilities.
+
