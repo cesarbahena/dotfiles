@@ -64,7 +64,7 @@ return {
           if git_branch and git_branch.git_info then return git_branch.git_info.is_git_repo end
           return vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
         end,
-        provider = fn 'components.file_info.git_status',
+        provider = fn 'ui.components.git.git_status',
         update = { 'BufWritePost', 'BufEnter' },
         hl = { fg = 'GitSignsChange', bold = true },
       }
@@ -318,18 +318,6 @@ return {
       vim.api.nvim_create_autocmd('DirChanged', {
         callback = function() formatter_cache = {} end,
       })
-
-      -- Helper function to get best flag level that fits in max_width
-      local function get_formatter_flags_progressive(formatter_name, max_width)
-        local flag_levels = get_formatter_flag_levels(formatter_name)
-
-        -- Find the longest level that fits within max_width
-        for _, level in ipairs(flag_levels) do
-          if #level <= max_width then return level end
-        end
-
-        return flag_levels[#flag_levels] or '' -- Return most compact or empty
-      end
 
       local LintersFormatters = {
         static = {
@@ -646,49 +634,7 @@ return {
       -- Spacer to push rightmost components to the right
       local Align = { provider = '%=' }
 
-      -- Statusline Components
-      local Diagnostics = {
-        condition = function() return #vim.diagnostic.get(0) > 0 end,
-        static = {
-          error_icon = ' ',
-          warn_icon = '󱈸 ',
-          info_icon = ' ',
-          hint_icon = ' ',
-        },
-        provider = function(self)
-          local count = {}
-          local diagnostics = vim.diagnostic.get(0)
-
-          for _, diagnostic in ipairs(diagnostics) do
-            local severity = diagnostic.severity
-            count[severity] = (count[severity] or 0) + 1
-          end
-
-          local result = {}
-          if count[vim.diagnostic.severity.ERROR] then
-            table.insert(result, self.error_icon .. count[vim.diagnostic.severity.ERROR])
-          end
-          if count[vim.diagnostic.severity.WARN] then
-            table.insert(result, self.warn_icon .. count[vim.diagnostic.severity.WARN])
-          end
-          if count[vim.diagnostic.severity.INFO] then
-            table.insert(result, self.info_icon .. count[vim.diagnostic.severity.INFO])
-          end
-          if count[vim.diagnostic.severity.HINT] then
-            table.insert(result, self.hint_icon .. count[vim.diagnostic.severity.HINT])
-          end
-
-          return table.concat(result, ' ')
-        end,
-        hl = { fg = 'Comment' },
-      }
-
-      -- Center diagnostics in statusline
-      local StatusAlign = { provider = '%=' }
-
-      -- Enable tabline
       vim.o.showtabline = 2 -- Always show tabline
-
       vim.o.laststatus = 0 -- Global statusline
 
       -- Left side components
@@ -706,11 +652,7 @@ return {
 
       -- Setup heirline once
       heirline.setup {
-        statusline = {
-          -- StatusAlign,
-          -- Diagnostics, -- Use basic diagnostics instead of trouble statusline
-          -- StatusAlign,
-        },
+        statusline = {},
         tabline = {
           LeftSide,
           Align,
