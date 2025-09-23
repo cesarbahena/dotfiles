@@ -1,10 +1,10 @@
 return {
   {
     'coder/claudecode.nvim',
-    dependencies = { 'folke/snacks.nvim' },
     opts = {
       terminal = {
         split_side = 'left',
+        provider = 'native',
       },
       terminal_cmd = 'claude --continue',
       focus_after_send = true,

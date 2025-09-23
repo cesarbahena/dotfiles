@@ -54,9 +54,7 @@ return {
               complete_func = function()
                 -- Ensure omnifunc is set for SQL files
                 if vim.tbl_contains({ 'sql', 'mysql', 'plsql' }, vim.bo.filetype) then
-                  if vim.bo.omnifunc == '' then
-                    vim.bo.omnifunc = 'vim_dadbod_completion#omni'
-                  end
+                  if vim.bo.omnifunc == '' then vim.bo.omnifunc = 'vim_dadbod_completion#omni' end
                   return vim.bo.omnifunc
                 end
                 return nil
@@ -130,6 +128,21 @@ return {
         },
       },
       debug = false,
+    },
+  },
+  {
+    'zbirenbaum/copilot.lua',
+    enabled = false,
+    cmd = 'Copilot',
+    build = ':Copilot auth',
+    event = 'InsertEnter',
+    opts = {
+      suggestion = {
+        auto_trigger = true,
+        keymap = {
+          accept = '<c-u>',
+        },
+      },
     },
   },
 }

@@ -1,23 +1,7 @@
 return {
   'folke/snacks.nvim',
-  priority = 1000,
-  lazy = false,
   ---@type snacks.Config
   opts = {
-    bigfile = { enabled = true },
-    quickfile = { enabled = true },
-    dashboard = { enabled = false },
-    indent = { enabled = true },
-    input = { enabled = true },
-    notifier = {
-      enabled = true,
-      timeout = 3000,
-    },
-    styles = {
-      notification = {
-        wo = { wrap = true },
-      },
-    },
     picker = {
       enabled = true,
       sources = {
@@ -113,8 +97,6 @@ return {
         },
       },
     },
-    statuscolumn = { enabled = false },
-    words = { enabled = false },
   },
   keys = {
     -- Top Pickers & Explorer
@@ -193,15 +175,6 @@ return {
     key { 'find in undo history', fn 'snacks.picker.undo' },
     key { 'find in quickfix list', fn 'snacks.picker.qflist' },
     key { 'resume picker', fn 'snacks.picker.resume' },
-    -- Other
-    motion { 'zen mode', fn 'snacks.zen' },
-    motion { 'zoom', fn 'snacks.zen.zoom' },
-    motion { 'scratch buffer', fn 'snacks.scratch' },
-    motion { 'select scratch buffer', fn 'snacks.scratch.select' },
-    motion { 'notification history', fn 'snacks.notifier.show_history' },
-    motion { 'dismiss all Notifications', fn 'snacks.notifier.hide' },
-    motion { 'delete buffer', fn 'snacks.bufdelete' },
-    key { 'file Rename', fn 'snacks.rename.rename_file' },
     key {
       'reFine search',
       proc {
@@ -214,30 +187,5 @@ return {
       },
       mode = 'c',
     },
-    -- { '/', function() Snacks.picker.smart() end, desc = 'Smart Find Files' },
-    -- { '<leader>fr', function() Snacks.picker.recent() end, desc = 'Recent' },
   },
-  init = function()
-    vim.api.nvim_create_autocmd('User', {
-      pattern = 'VeryLazy',
-      callback = function()
-        -- Setup some globals for debugging (lazy-loaded)
-        _G.dd = function(...) Snacks.debug.inspect(...) end
-        _G.bt = function() Snacks.debug.backtrace() end
-        vim.print = _G.dd -- Override print to use snacks for `:=` command
-
-        -- Create some toggle mappings
-        Snacks.toggle.option('spell', { name = 'Spelling' }):map '<leader>us'
-        Snacks.toggle.option('wrap', { name = 'Wrap' }):map '<leader>uw'
-        Snacks.toggle.diagnostics():map '<leader>ud'
-        Snacks.toggle
-          .option('conceallevel', { off = 0, on = vim.o.conceallevel > 0 and vim.o.conceallevel or 2 })
-          :map '<leader>uc'
-        Snacks.toggle.treesitter():map '<leader>uT'
-        Snacks.toggle.inlay_hints():map '<leader>uh'
-        Snacks.toggle.indent():map '<leader>ug'
-        Snacks.toggle.dim():map '<leader>uD'
-      end,
-    })
-  end,
 }

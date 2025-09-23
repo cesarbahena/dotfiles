@@ -35,7 +35,7 @@ return {
         'tenth',
       },
       -- if true, it only matches strings with word boundary. firstDate wouldn't work for example
-      word = false,
+      word = true,
       -- do we cycle back and forth (tenth to first on increment, first to tenth on decrement).
       -- Otherwise nothing will happen when there are no further values
       cyclic = true,
