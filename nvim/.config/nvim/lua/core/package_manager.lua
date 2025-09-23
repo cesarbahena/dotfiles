@@ -25,9 +25,13 @@ local lazy, ok = try(require, 'lazy')
 if ok then
   lazy.setup {
     spec = {
-      { import = 'plugins' },
+      { import = 'code' },
+      { import = 'editor' },
+      { import = 'integration' },
+      { import = 'navigation' },
+      { import = 'ui' },
     },
-    lockfile = vim.fn.stdpath('config') .. '/json/lazy-lock.json',
+    lockfile = vim.fn.stdpath 'config' .. '/json/lazy-lock.json',
     checker = { enabled = true },
     install = { colorscheme = { 'kanagawa' } },
     performance = {
@@ -46,4 +50,3 @@ if ok then
     },
   }
 end
-

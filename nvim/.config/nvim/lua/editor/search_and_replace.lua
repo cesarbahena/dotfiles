@@ -1,6 +1,9 @@
 return {
   {
     'smjonas/inc-rename.nvim',
+    depedencies = {
+      { 'folke/noice.nvim', optional = true, opts = { presets = { inc_rename = true } } },
+    },
     cmd = 'IncRename',
     opts = {},
     keys = {
@@ -15,32 +18,26 @@ return {
       },
     },
   },
-  {
-    'folke/noice.nvim',
-    optional = true,
-    opts = {
-      presets = { inc_rename = true },
-    },
-  },
+
   {
     'MagicDuck/grug-far.nvim',
     opts = { headerMaxWidth = 80 },
     cmd = 'GrugFar',
     keys = {
-      {
-        '<leader><F3>',
+      auto_select {
+        'Search and Replace',
         function()
-          local grug = require 'grug-far'
           local ext = vim.bo.buftype == '' and vim.fn.expand '%:e'
-          grug.open {
-            transient = true,
-            prefills = {
-              filesFilter = ext and ext ~= '' and '*.' .. ext or nil,
+          fn {
+            'grug-far.open',
+            {
+              transient = true,
+              prefills = {
+                filesFilter = ext and ext ~= '' and '*.' .. ext or nil,
+              },
             },
           }
         end,
-        mode = { 'n', 'v' },
-        desc = 'Search and Replace',
       },
     },
   },
