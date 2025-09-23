@@ -65,6 +65,14 @@ keymap {
   on_selection { 'Move line up', ":<C-u>execute \"'<,'>move '<-\" . (v:count1 + 1)<cr>gv=gv" },
   on_selection { 'Change visual mode', fn 'actions.change_visual_mode', expr = true },
   on_selection { 'clean', '<Esc>', details = '(exit visual mode)' },
+  key {
+    'escape to normal mode',
+    proc {
+      feed '<c-\\><c-n>',
+      feed 'M',
+    },
+    mode = 't',
+  },
 
   insert { 'Comma with auto undo breakpoints', ',<C-g>u' },
   insert { 'Semicolon with auto undo breakpoints', ';<C-g>u' },
