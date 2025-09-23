@@ -1,42 +1,46 @@
 return {
   {
-    'wtfox/claude-chat.nvim',
-    opts = {
-      -- Optional configuration
-      split = 'vsplit', -- "vsplit" or "split"
-      position = 'left', -- "right", "left", "top", "bottom"
-      width = 0.4, -- percentage of screen width (for vsplit)
-      height = 0.4, -- percentage of screen height (for split)
-      claude_cmd = 'claude --continue', -- command to invoke Claude Code
-    },
-    keys = {
-      { '?', ':ClaudeChat<CR>', desc = 'Ask Claude', mode = { 'n', 'v' } },
-    },
-  },
-  {
     'coder/claudecode.nvim',
     dependencies = { 'folke/snacks.nvim' },
-    config = true,
+    opts = {
+      terminal = {
+        split_side = 'left',
+      },
+      terminal_cmd = 'claude --continue',
+      focus_after_send = true,
+      diff_opts = {
+        open_in_current_tab = true,
+      },
+    },
     keys = {
-      key { 'AI agent continue session', cmd 'ClaudeCode --continue' },
-      key { 'AI agent select session', cmd 'ClaudeCode --resume' },
-      key { 'AI agent reset session', cmd 'ClaudeCode' },
-      key { 'accept Agent changes', cmd 'ClaudeCodeDiffAccept' },
-      key { 'reject Agent changes', cmd 'ClaudeCodeDiffDeny' },
+      key { 'give context', cmd 'ClaudeCodeAdd %' },
+      key { 'give context', cmd 'ClaudeCodeTreeAdd', ft = { 'minifiles' } },
+      on_selection { 'give context', cmd 'ClaudeCodeSend' },
       key {
-        'agent',
-        fn {
-          when = { fn { vim.fn.system, 'pgrep -f claude' }, eq = '' },
-          fn { vim.cmd, 'ClaudeCode --continue' },
-          or_else = proc {
-            fn { vim.cmd, 'ClaudeCode --continue' },
-            fn { vim.cmd, 'ClaudeCodeAdd %', defer = 500 },
-          },
+        'give context',
+        proc {
+          when = { 'diff', in_any = 'window' },
+          fn { vim.cmd, 'ClaudeCodeDiffDeny' },
+          or_else = fn { vim.cmd, 'ClaudeCode Add %' },
         },
       },
-      key { 'send Context', cmd 'ClaudeCodeAdd %' },
-      key { 'send Context', cmd 'ClaudeCodeTreeAdd', ft = { 'NvimTree', 'neo-tree', 'oil', 'minifiles' } },
-      on_selection { 'send Context', cmd 'ClaudeCodeSend' },
+      key { 'lgtm', cmd 'ClaudeCodeDiffAccept' },
+      key {
+        'new agent',
+        proc {
+          fn { 'claudecode.setup', { terminal_cmd = 'claude' } },
+          fn { vim.cmd, 'ClaudeCode' },
+          fn { 'claudecode.setup', { terminal_cmd = 'claude --continue' } },
+        },
+      },
+      auto_select {
+        'select agent',
+        proc {
+          fn { 'claudecode.setup', { terminal_cmd = 'claude --resume' } },
+          fn { vim.cmd, 'ClaudeCode' },
+          fn { 'claudecode.setup', { terminal_cmd = 'claude --continue' } },
+        },
+      },
     },
   },
 }
