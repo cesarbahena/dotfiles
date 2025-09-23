@@ -13,18 +13,19 @@ return {
       },
     },
     keys = {
-      key { 'give context', cmd 'ClaudeCodeAdd %' },
-      key { 'give context', cmd 'ClaudeCodeTreeAdd', ft = { 'minifiles' } },
       on_selection { 'give context', cmd 'ClaudeCodeSend' },
+      key { 'give context', cmd 'ClaudeCodeTreeAdd', ft = { 'minifiles' } },
       key {
         'give context',
-        proc {
+        fn {
           when = { 'diff', in_any = 'window' },
           fn { vim.cmd, 'ClaudeCodeDiffDeny' },
-          or_else = fn { vim.cmd, 'ClaudeCode Add %' },
+          or_else = fn { vim.cmd, 'ClaudeCodeAdd %' },
         },
       },
+
       key { 'lgtm', cmd 'ClaudeCodeDiffAccept' },
+
       key {
         'new agent',
         proc {
@@ -33,6 +34,7 @@ return {
           fn { 'claudecode.setup', { terminal_cmd = 'claude --continue' } },
         },
       },
+
       auto_select {
         'select agent',
         proc {
