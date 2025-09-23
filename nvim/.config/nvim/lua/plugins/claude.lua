@@ -43,6 +43,12 @@ return {
           fn { 'claudecode.setup', { terminal_cmd = 'claude --continue' } },
         },
       },
+
+      auto_select {
+        'focus agent',
+        fn { vim.cmd, 'ClaudeCodeFocus' },
+      },
+      key { 'focus agent', fn { vim.cmd, 'wincmd p' }, mode = 't' },
     },
   },
 }

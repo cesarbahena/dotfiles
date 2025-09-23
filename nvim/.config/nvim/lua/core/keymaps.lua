@@ -55,14 +55,6 @@ keymap {
   key { 'Toggle macro recording', fn 'actions.toggle_macro_recording' },
   key { 'Repeat macro', '@q' },
   motion { 'visual block mode', '<c-v>' },
-  auto_select {
-    'last window',
-    fn {
-      when = function() return fn { 'utils.is_win_open', 'copilot-chat' }() and vim.bo.ft ~= 'copilot-chat' end,
-      fn { vim.cmd, 'CopilotChatOpen' },
-      or_else = fn { vim.cmd, 'wincmd p' },
-    },
-  },
 
   on_selection { 'Yank', 'y`>' },
   on_selection { 'indent', '>gv' },

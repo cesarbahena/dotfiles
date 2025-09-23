@@ -50,7 +50,7 @@
     "T": "back To",
     "gA": "git add buffer",
     "W": "prev Word",
-    "<tab>": "last window",
+    "<tab>": "focus agent",
     "<F1>": "find help",
     "X": "Prev dx",
     "V": "Change visual mode",
