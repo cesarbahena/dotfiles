@@ -575,16 +575,59 @@ function M.fn(spec)
     return handle_try_notify(spec)
   end
 
-  -- Handle function calls with arguments: {function|string, arg1, arg2, ..., defer = ms}
+  -- Handle function calls with arguments: {function|string, arg1, arg2, ..., defer = ms, args = n}
   if not spec[1] then error 'Table must have [1] as function or module path' end
 
   local target = spec[1]
   local defer_ms = spec.defer
+  local args_count = spec.args
   local args = {}
   
-  -- Extract numbered arguments, skipping defer option
+  -- Extract numbered arguments, skipping defer and args options
   for i = 2, #spec do
     table.insert(args, spec[i])
+  end
+
+  -- If args count is specified, return a function that accepts those arguments
+  if args_count then
+    if type(target) == 'string' then
+      return function(...)
+        local runtime_args = {...}
+        local module_fn, error_msg = resolve_module_function(target)
+        if error_msg then
+          vim.notify(error_msg, vim.log.levels.ERROR)
+          return nil
+        end
+        local success, result = pcall(module_fn, unpack(runtime_args))
+        if not success then
+          vim.notify(tostring(result), vim.log.levels.ERROR)
+          return nil
+        end
+        return result
+      end
+    elseif type(target) == 'function' then
+      return function(...)
+        local runtime_args = {...}
+        local success, result = pcall(target, unpack(runtime_args))
+        if not success then
+          vim.notify(tostring(result), vim.log.levels.WARN)
+          return nil
+        end
+        return result
+      end
+    elseif type(target) == 'table' and getmetatable(target) and getmetatable(target).__call then
+      return function(...)
+        local runtime_args = {...}
+        local success, result = pcall(target, unpack(runtime_args))
+        if not success then
+          vim.notify(tostring(result), vim.log.levels.WARN)
+          return nil
+        end
+        return result
+      end
+    else
+      error('spec[1] must be function or string, got ' .. type(target))
+    end
   end
 
   local base_fn

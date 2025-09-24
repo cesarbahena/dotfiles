@@ -69,6 +69,19 @@ local deferred_fn = fn({ vim.cmd, 'echo "Hello"', defer = 500 })
 local deferred_module_fn = fn({ 'module.function', arg1, defer = 1000 })
 ```
 
+### 4b. Deferred Argument Application
+
+Return a function that accepts arguments at runtime using the `args` option:
+
+```lua
+-- Return a function that accepts 1 argument
+local cache_fn = fn({ 'ui.components.harpoon.cache', args = 1 })
+
+-- Usage in heirline component
+init = fn { 'ui.components.harpoon.cache', args = 1 },  -- Returns function(self)
+provider = function(self) return self.display_text end,
+```
+
 ### 5. Conditional Execution
 
 Execute different functions based on a condition:
@@ -320,6 +333,13 @@ fn({function_reference, arg1, arg2, ...})
 
 ```lua
 fn({'module.function', arg1, arg2, ...})
+```
+
+**4a. Deferred Argument Application:**
+
+```lua
+fn({'module.function', args = n})  -- Returns function expecting n arguments
+fn({function_reference, args = n}) -- Returns function expecting n arguments
 ```
 
 **5. Conditional Execution:**
