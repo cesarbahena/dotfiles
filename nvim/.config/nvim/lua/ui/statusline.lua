@@ -6,7 +6,7 @@ return {
     config = function()
       fn 'mini.icons.mock_nvim_web_devicons'()
 
-      -- Theme-aware color system - just use highlight group names directly
+      -- Theme-aware color system
       local function get_theme_colors()
         local hl_groups = {
           'Normal',
@@ -29,157 +29,6 @@ return {
         end
         return colors
       end
-
-      -- Colors will be loaded via heirline.load_colors() and available as color aliases
-
-      -- CLI Theme Components
-      local WorkingDir = {
-        provider = function() return vim.fn.fnamemodify(vim.fn.getcwd(), ':~') end,
-        hl = { fg = 'Directory' },
-      }
-
-      local GitBranch = {
-        static = {
-          git_info = nil,
-          last_cwd = '',
-        },
-        condition = function(self)
-          local cwd = vim.fn.getcwd()
-          if cwd ~= self.last_cwd or not self.git_info then
-            local is_git_repo = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
-            local branch = ''
-            if is_git_repo then branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '') end
-            self.git_info = { is_git_repo = is_git_repo, branch = branch }
-            self.last_cwd = cwd
-          end
-          return self.git_info.is_git_repo and self.git_info.branch ~= ''
-        end,
-        provider = function(self) return ' on ' .. self.git_info.branch .. ' ' end,
-        update = { 'DirChanged', 'BufEnter' },
-        hl = { fg = 'Statement' },
-      }
-
-      local GitStatus = {
-        condition = function(self)
-          -- Reuse git info from GitBranch if available
-          local git_branch = self.parent and self.parent[2] -- GitBranch is index 2 in LeftSide
-          if git_branch and git_branch.git_info then return git_branch.git_info.is_git_repo end
-          return vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
-        end,
-        provider = fn 'ui.components.git.status_icons',
-        update = { 'BufWritePost', 'BufEnter' },
-        hl = { fg = 'GitSignsChange', bold = true },
-      }
-
-      local LspServer = {
-        static = {
-          excluded = { 'copilot', 'efm', 'null-ls', 'conform' },
-          is_refreshing = false,
-          refresh_timer = nil,
-          start_refresh_cycle = function(self)
-            if self.refresh_timer then self.refresh_timer:stop() end
-
-            local function refresh()
-              if self.is_refreshing then
-                vim.cmd 'redrawtabline'
-                self.refresh_timer = vim.defer_fn(refresh, 200) -- 200ms refresh rate
-              end
-            end
-
-            refresh()
-          end,
-          stop_refresh_cycle = function(self)
-            if self.refresh_timer then
-              self.refresh_timer:stop()
-              self.refresh_timer = nil
-            end
-            vim.cmd 'redrawtabline' -- Final redraw to show completion
-          end,
-        },
-        init = function(self)
-          -- Check if LSP work is happening and manage refresh cycle
-          local ok, lsp_progress = pcall(require, 'lsp-progress')
-          if ok then
-            local progress = lsp_progress.progress()
-            local has_progress = progress ~= ''
-
-            if has_progress and not self.is_refreshing then
-              -- Start refresh cycle when LSP work begins
-              self.is_refreshing = true
-              self:start_refresh_cycle()
-            elseif not has_progress and self.is_refreshing then
-              -- Stop refresh cycle when LSP work is done
-              self.is_refreshing = false
-              self:stop_refresh_cycle()
-            end
-          end
-        end,
-        provider = function(self) return require('ui.components.lsp').server() end,
-        update = {
-          'User',
-          pattern = 'LspProgressStatusUpdated',
-        },
-        hl = { fg = 'Normal' },
-      }
-
-      local LintersFormatters = {
-        static = {
-          lf_names = { 'efm', 'null-ls' },
-        },
-        init = function(self) self.display_text = require('ui.components.formatter').display() end,
-        provider = function(self) return self.display_text or '' end,
-        update = { 'DirChanged', 'BufEnter', 'LspAttach', 'LspDetach' },
-        hl = { fg = 'Comment' },
-      }
-
-      local HarpoonMarks = {
-        init = function(self)
-          local harpoon = require 'harpoon'
-          self.marks = harpoon:list().items
-          self.current_file_path = vim.fn.expand '%:p:.'
-
-          -- Calculate total length for compact mode decision
-          local total_length = 0
-          for _, item in ipairs(self.marks) do
-            local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
-            total_length = total_length + #filename + 4 -- +4 for " -t " or " --"
-          end
-
-          self.use_compact = total_length > (vim.o.columns * 0.4) or #self.marks > 4
-
-          -- Pre-calculate the display text
-          if #self.marks == 0 then
-            self.display_text = ''
-          elseif self.use_compact then
-            -- Compact mode: -Abc (capital for current, lowercase for others)
-            local letters = {}
-            for _, item in ipairs(self.marks) do
-              local first_letter = vim.fn.fnamemodify(item.value, ':t'):sub(1, 1)
-              if item.value == self.current_file_path then
-                table.insert(letters, first_letter:upper()) -- Capital for current
-              else
-                table.insert(letters, first_letter:lower()) -- Lowercase for others
-              end
-            end
-            self.display_text = ' -' .. table.concat(letters, '')
-          else
-            -- Full mode: -t filename --filename
-            local result = {}
-            for _, item in ipairs(self.marks) do
-              local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
-              if item.value == self.current_file_path then
-                table.insert(result, ' -t ' .. filename) -- Active: -t filename
-              else
-                table.insert(result, ' --' .. filename) -- Inactive: --filename
-              end
-            end
-            self.display_text = table.concat(result, '')
-          end
-        end,
-        provider = function(self) return self.display_text end,
-        update = { 'BufEnter' },
-        hl = { fg = 'Normal' },
-      }
 
       -- Helper function to get rightmost window
       local function get_rightmost_window()
@@ -329,7 +178,6 @@ return {
 
       -- Left side components
       local LeftSide = {
-        WorkingDir,
         GitBranch,
         GitStatus,
         LspServer,
@@ -346,7 +194,148 @@ return {
         {
           statusline = {},
           tabline = {
-            LeftSide,
+            {
+              provider = function() return vim.fn.fnamemodify(vim.fn.getcwd(), ':~') end,
+              hl = { fg = 'Directory' },
+            },
+            {
+              provider = function(self) return ' on ' .. self.git_info.branch .. ' ' end,
+              static = {
+                git_info = nil,
+                last_cwd = '',
+              },
+              condition = function(self)
+                local cwd = vim.fn.getcwd()
+                if cwd ~= self.last_cwd or not self.git_info then
+                  local is_git_repo = vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
+                  local branch = ''
+                  if is_git_repo then branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '') end
+                  self.git_info = { is_git_repo = is_git_repo, branch = branch }
+                  self.last_cwd = cwd
+                end
+                return self.git_info.is_git_repo and self.git_info.branch ~= ''
+              end,
+              update = { 'DirChanged', 'BufEnter' },
+              hl = { fg = 'Statement' },
+            },
+            {
+              provider = fn 'ui.components.git.status_icons',
+              condition = function(self)
+                -- Reuse git info from GitBranch if available
+                local git_branch = self.parent and self.parent[2] -- GitBranch is index 2 in LeftSide
+                if git_branch and git_branch.git_info then return git_branch.git_info.is_git_repo end
+                return vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
+              end,
+              update = { 'BufWritePost', 'BufEnter' },
+              hl = { fg = 'GitSignsChange', bold = true },
+            },
+            {
+              static = {
+                excluded = { 'copilot', 'efm', 'null-ls', 'conform' },
+                is_refreshing = false,
+                refresh_timer = nil,
+                start_refresh_cycle = function(self)
+                  if self.refresh_timer then self.refresh_timer:stop() end
+
+                  local function refresh()
+                    if self.is_refreshing then
+                      vim.cmd 'redrawtabline'
+                      self.refresh_timer = vim.defer_fn(refresh, 200) -- 200ms refresh rate
+                    end
+                  end
+
+                  refresh()
+                end,
+                stop_refresh_cycle = function(self)
+                  if self.refresh_timer then
+                    self.refresh_timer:stop()
+                    self.refresh_timer = nil
+                  end
+                  vim.cmd 'redrawtabline' -- Final redraw to show completion
+                end,
+              },
+              init = function(self)
+                -- Check if LSP work is happening and manage refresh cycle
+                local ok, lsp_progress = pcall(require, 'lsp-progress')
+                if ok then
+                  local progress = lsp_progress.progress()
+                  local has_progress = progress ~= ''
+
+                  if has_progress and not self.is_refreshing then
+                    -- Start refresh cycle when LSP work begins
+                    self.is_refreshing = true
+                    self:start_refresh_cycle()
+                  elseif not has_progress and self.is_refreshing then
+                    -- Stop refresh cycle when LSP work is done
+                    self.is_refreshing = false
+                    self:stop_refresh_cycle()
+                  end
+                end
+              end,
+              provider = function(self) return require('ui.components.lsp').server() end,
+              update = {
+                'User',
+                pattern = 'LspProgressStatusUpdated',
+              },
+              hl = { fg = 'Normal' },
+            },
+            {
+              static = {
+                lf_names = { 'efm', 'null-ls' },
+              },
+              init = function(self) self.display_text = require('ui.components.formatter').display() end,
+              provider = function(self) return self.display_text or '' end,
+              update = { 'DirChanged', 'BufEnter', 'LspAttach', 'LspDetach' },
+              hl = { fg = 'Comment' },
+            },
+            {
+              init = function(self)
+                local harpoon = require 'harpoon'
+                self.marks = harpoon:list().items
+                self.current_file_path = vim.fn.expand '%:p:.'
+
+                -- Calculate total length for compact mode decision
+                local total_length = 0
+                for _, item in ipairs(self.marks) do
+                  local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
+                  total_length = total_length + #filename + 4 -- +4 for " -t " or " --"
+                end
+
+                self.use_compact = total_length > (vim.o.columns * 0.4) or #self.marks > 4
+
+                -- Pre-calculate the display text
+                if #self.marks == 0 then
+                  self.display_text = ''
+                elseif self.use_compact then
+                  -- Compact mode: -Abc (capital for current, lowercase for others)
+                  local letters = {}
+                  for _, item in ipairs(self.marks) do
+                    local first_letter = vim.fn.fnamemodify(item.value, ':t'):sub(1, 1)
+                    if item.value == self.current_file_path then
+                      table.insert(letters, first_letter:upper()) -- Capital for current
+                    else
+                      table.insert(letters, first_letter:lower()) -- Lowercase for others
+                    end
+                  end
+                  self.display_text = ' -' .. table.concat(letters, '')
+                else
+                  -- Full mode: -t filename --filename
+                  local result = {}
+                  for _, item in ipairs(self.marks) do
+                    local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
+                    if item.value == self.current_file_path then
+                      table.insert(result, ' -t ' .. filename) -- Active: -t filename
+                    else
+                      table.insert(result, ' --' .. filename) -- Inactive: --filename
+                    end
+                  end
+                  self.display_text = table.concat(result, '')
+                end
+              end,
+              provider = function(self) return self.display_text end,
+              update = { 'BufEnter' },
+              hl = { fg = 'Normal' },
+            },
             Align,
             RightmostIcon,
             RightmostFilename,

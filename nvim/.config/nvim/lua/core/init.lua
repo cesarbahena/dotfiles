@@ -31,4 +31,4 @@ try {
 local retry = require 'core.retry'
 if retry.has_retryable_errors() then retry.retry_failed_modules() end
 
-try(require, 'core.package_manager')
+try(require, 'meta.package_manager')

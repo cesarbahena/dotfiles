@@ -30,6 +30,7 @@ if ok then
       { import = 'integration' },
       { import = 'navigation' },
       { import = 'ui' },
+      { import = 'meta.installer' },
       { import = 'meta.lua_tools' },
     },
     lockfile = vim.fn.stdpath 'config' .. '/json/lazy-lock.json',
