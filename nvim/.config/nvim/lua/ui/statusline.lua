@@ -6,25 +6,28 @@ return {
     config = function()
       fn 'mini.icons.mock_nvim_web_devicons'()
 
-      local heirline = require 'heirline'
-      local utils = require 'heirline.utils'
-
       -- Theme-aware color system - just use highlight group names directly
       local function get_theme_colors()
-        local function fg(group) return string.format('#%06x', utils.get_highlight(group).fg) end
-
-        return {
-          -- Only the highlight groups actually used
-          Directory = fg 'Directory',
-          Statement = fg 'Statement',
-          WarningMsg = fg 'WarningMsg',
-          Normal = fg 'Normal',
-          Comment = fg 'Comment',
-          ErrorMsg = fg 'ErrorMsg',
-          GitSignsAdd = fg 'GitSignsAdd',
-          GitSignsChange = fg 'GitSignsChange',
-          NonText = fg 'NonText',
+        local hl_groups = {
+          'Normal',
+          'Comment',
+          'NonText',
+          'Directory',
+          'Statement',
+          'ErrorMsg',
+          'WarningMsg',
+          'GitSignsAdd',
+          'GitSignsChange',
         }
+
+        local colors = {}
+        for _, hl_group in ipairs(hl_groups) do
+          local hl = fn { 'heirline.utils.get_highlight', hl_group }()
+          if hl and hl.fg then
+            colors[hl_group] = string.format('#%06x', hl.fg)
+          end
+        end
+        return colors
       end
 
       -- Colors will be loaded via heirline.load_colors() and available as color aliases
@@ -119,289 +122,12 @@ return {
         hl = { fg = 'Normal' },
       }
 
-      -- Fully dynamic formatter flag discovery
-      local function discover_config_files(formatter_name)
-        -- Common config file patterns
-        local patterns = {
-          -- Dotfiles in root
-          '.'
-            .. formatter_name
-            .. 'rc',
-          '.' .. formatter_name .. 'rc.json',
-          '.' .. formatter_name .. 'rc.js',
-          '.' .. formatter_name .. 'rc.yaml',
-          '.' .. formatter_name .. 'rc.yml',
-          -- Config files
-          formatter_name .. '.config.js',
-          formatter_name .. '.config.json',
-          -- TOML files
-          formatter_name .. '.toml',
-          '.' .. formatter_name .. '.toml',
-          -- Package.json
-          'package.json',
-          -- Pyproject.toml for Python tools
-          'pyproject.toml',
-        }
-
-        local found = {}
-        for _, pattern in ipairs(patterns) do
-          if vim.fn.filereadable(pattern) == 1 then table.insert(found, pattern) end
-        end
-        return found
-      end
-
-      local function parse_config_file(filepath, formatter_name)
-        local content = vim.fn.readfile(filepath)
-        if #content == 0 then return nil end
-
-        local full_content = table.concat(content, '\n')
-
-        -- Try JSON first
-        local ok, config = pcall(vim.json.decode, full_content)
-        if ok then
-          -- For package.json, look for formatter-specific key
-          if filepath:match 'package%.json$' then return config[formatter_name] or config.prettier or config.eslint end
-          return config
-        end
-
-        -- Try TOML parsing (simple key=value)
-        config = {}
-        for _, line in ipairs(content) do
-          local trimmed = line:match '^%s*(.-)%s*$'
-          if trimmed and not trimmed:match '^[#%[]' and trimmed:find '=' then
-            -- key = value
-            local key, value = trimmed:match '^([^=]+)%s*=%s*(.+)$'
-            if key and value then
-              key = key:gsub('%s+', ''):gsub('%-', '_')
-              value = value:gsub('^["\']', ''):gsub('["\']$', '') -- Remove quotes
-              -- Try to convert numbers
-              local num = tonumber(value)
-              if num then
-                config[key] = num
-              elseif value:lower() == 'true' then
-                config[key] = true
-              elseif value:lower() == 'false' then
-                config[key] = false
-              else
-                config[key] = value
-              end
-            end
-          end
-        end
-
-        return next(config) and config or nil
-      end
-
-      local function generate_flag_variants(key, value)
-        -- Convert camelCase/snake_case to kebab-case for flags
-        local flag_name = key:gsub('([a-z])([A-Z])', '%1-%2'):gsub('_', '-'):lower()
-
-        -- Generate full flag
-        local full_flag
-        if type(value) == 'boolean' then
-          if value then
-            full_flag = '--' .. flag_name
-          else
-            -- Handle negative boolean (like semi: false -> --no-semi)
-            full_flag = '--no-' .. flag_name:gsub('^no%-', '')
-          end
-        else
-          full_flag = '--' .. flag_name .. '=' .. tostring(value)
-        end
-
-        -- Generate abbreviated flag (first letter of each word)
-        local abbrev_letters = {}
-        for word in flag_name:gmatch '[^-]+' do
-          table.insert(abbrev_letters, word:sub(1, 1))
-        end
-        local abbrev = '-' .. table.concat(abbrev_letters, '')
-        if type(value) ~= 'boolean' then abbrev = abbrev .. '=' .. tostring(value) end
-
-        -- Generate compact form (just the letters)
-        local compact = table.concat(abbrev_letters, '')
-
-        return full_flag, abbrev, compact
-      end
-
-      local formatter_cache = {}
-      local function get_formatter_flag_levels(formatter_name)
-        local cwd = vim.fn.getcwd()
-        local cache_key = formatter_name .. ':' .. cwd
-
-        -- Return cached result if available
-        if formatter_cache[cache_key] then return formatter_cache[cache_key] end
-
-        local flag_levels = { '', '', '' }
-
-        -- Discover config files
-        local config_files = discover_config_files(formatter_name)
-        if #config_files == 0 then
-          formatter_cache[cache_key] = flag_levels
-          return flag_levels
-        end
-
-        -- Try to parse config from any found file
-        local config = nil
-        for _, config_file in ipairs(config_files) do
-          config = parse_config_file(config_file, formatter_name)
-          if config then break end
-        end
-
-        if not config then
-          formatter_cache[cache_key] = flag_levels
-          return flag_levels
-        end
-
-        local full_flags = {}
-        local abbrev_flags = {}
-        local compact_letters = {}
-
-        -- Generate flags for all config options
-        for key, value in pairs(config) do
-          -- Skip nil/false values (except explicit false for boolean toggles)
-          if value ~= nil and (type(value) ~= 'boolean' or value ~= false or key:match 'semi') then
-            local full, abbrev, compact = generate_flag_variants(key, value)
-            table.insert(full_flags, full)
-            table.insert(abbrev_flags, abbrev)
-            table.insert(compact_letters, compact)
-          end
-        end
-
-        flag_levels = {
-          table.concat(full_flags, ' '),
-          table.concat(abbrev_flags, ' '),
-          #compact_letters > 0 and ('-' .. table.concat(compact_letters, '')) or '',
-        }
-
-        -- Cache the result
-        formatter_cache[cache_key] = flag_levels
-        return flag_levels
-      end
-
-      -- Clear cache when directory changes
-      vim.api.nvim_create_autocmd('DirChanged', {
-        callback = function() formatter_cache = {} end,
-      })
-
       local LintersFormatters = {
         static = {
           lf_names = { 'efm', 'null-ls' },
         },
-        provider = function(self)
-          -- Calculate space budget dynamically for responsive behavior
-          local current_cwd = vim.fn.getcwd()
-          local total_width = vim.o.columns
-          local working_dir_width = #vim.fn.fnamemodify(current_cwd, ':~')
-
-          -- Get git info from GitBranch component if available
-          local branch_width = 0
-          local git_branch = self.parent and self.parent[2] -- GitBranch is index 2 in LeftSide
-          if git_branch and git_branch.git_info then
-            branch_width = git_branch.git_info.branch ~= '' and #(' on ' .. git_branch.git_info.branch .. ' ') or 0
-          end
-
-          local git_status_width = 10
-
-          -- Calculate LSP width
-          local buf_clients = vim.lsp.get_clients { bufnr = 0 }
-          local lsp_width = 6 -- "  nvim" default
-          for _, client in ipairs(buf_clients) do
-            local is_excluded = false
-            for _, excluded_name in ipairs { 'copilot', 'efm', 'null-ls', 'conform' } do
-              if client.name:lower():find(excluded_name:lower()) then
-                is_excluded = true
-                break
-              end
-            end
-            if not is_excluded then
-              lsp_width = #('  ' .. client.name)
-              break
-            end
-          end
-
-          -- Calculate harpoon width
-          local harpoon = require 'harpoon'
-          local marks = harpoon:list().items
-          local harpoon_width = 0
-          if #marks > 0 then
-            local harpoon_total_length = 0
-            for _, item in ipairs(marks) do
-              local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', '')
-              harpoon_total_length = harpoon_total_length + #filename + 4
-            end
-            local harpoon_use_compact = harpoon_total_length > (total_width * 0.4) or #marks > 4
-            if harpoon_use_compact then
-              harpoon_width = 2 + #marks -- " -" + letters
-            else
-              harpoon_width = harpoon_total_length
-            end
-          end
-
-          -- Calculate right side width
-          local rightmost_win = vim.api.nvim_get_current_win()
-          local buf = vim.api.nvim_win_get_buf(rightmost_win)
-          local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
-          local right_side_width = 2 + #(filename ~= '' and filename or '[No Name]')
-
-          -- Calculate available space budget
-          local used_width = working_dir_width
-            + branch_width
-            + git_status_width
-            + lsp_width
-            + harpoon_width
-            + right_side_width
-          local space_budget = total_width - used_width - 5
-
-          local result = {}
-
-          -- Check for LSP-based linters/formatters
-          for _, client in ipairs(buf_clients) do
-            for _, lf_name in ipairs(self.lf_names) do
-              if client.name:lower():find(lf_name:lower()) then
-                table.insert(result, client.name)
-                break
-              end
-            end
-          end
-
-          -- Check for conform.nvim formatters with config flags (using cached config parsing)
-          local ok, conform = pcall(require, 'conform')
-          if ok then
-            local formatters = conform.list_formatters(0)
-            local space_used = 0
-
-            for i, formatter in ipairs(formatters) do
-              if formatter.available then
-                local formatter_name = formatter.name
-                local flag_levels = get_formatter_flag_levels(formatter_name) -- Uses cached config parsing
-
-                local chosen_flags = ''
-                local space_remaining = space_budget - space_used
-                local separator_cost = (#result > 0) and 3 or 0 -- " | "
-
-                -- Try each level to see what fits
-                for j, level in ipairs(flag_levels) do
-                  local full_text = formatter_name .. (level ~= '' and (' ' .. level) or '')
-                  local total_cost = #full_text + separator_cost
-
-                  if total_cost <= space_remaining then
-                    chosen_flags = level
-                    space_used = space_used + total_cost
-                    break
-                  end
-                end
-
-                local formatter_str = formatter_name .. (chosen_flags ~= '' and (' ' .. chosen_flags) or '')
-                table.insert(result, formatter_str)
-              end
-            end
-          end
-
-          if #result == 0 then return '' end
-
-          local full_text = ' | ' .. table.concat(result, ' | ')
-          return full_text
-        end,
+        init = function(self) self.display_text = require('ui.components.formatter').display() end,
+        provider = function(self) return self.display_text or '' end,
         update = { 'DirChanged', 'BufEnter', 'LspAttach', 'LspDetach' },
         hl = { fg = 'Comment' },
       }
@@ -420,11 +146,11 @@ return {
           end
 
           self.use_compact = total_length > (vim.o.columns * 0.4) or #self.marks > 4
-        end,
-        provider = function(self)
-          if #self.marks == 0 then return '' end
 
-          if self.use_compact then
+          -- Pre-calculate the display text
+          if #self.marks == 0 then
+            self.display_text = ''
+          elseif self.use_compact then
             -- Compact mode: -Abc (capital for current, lowercase for others)
             local letters = {}
             for _, item in ipairs(self.marks) do
@@ -435,7 +161,7 @@ return {
                 table.insert(letters, first_letter:lower()) -- Lowercase for others
               end
             end
-            return ' -' .. table.concat(letters, '')
+            self.display_text = ' -' .. table.concat(letters, '')
           else
             -- Full mode: -t filename --filename
             local result = {}
@@ -447,9 +173,10 @@ return {
                 table.insert(result, ' --' .. filename) -- Inactive: --filename
               end
             end
-            return table.concat(result, '')
+            self.display_text = table.concat(result, '')
           end
         end,
+        provider = function(self) return self.display_text end,
         update = { 'BufEnter' },
         hl = { fg = 'Normal' },
       }
@@ -480,25 +207,24 @@ return {
       end
 
       local RightmostIcon = {
-        provider = function()
-          local rightmost_win = get_rightmost_window()
-          local buf = vim.api.nvim_win_get_buf(rightmost_win)
-          local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })
-          local icon, hl = require('mini.icons').get('filetype', filetype)
-          return icon
-        end,
-        hl = function()
+        init = function(self)
           local rightmost_win = get_rightmost_window()
           local buf = vim.api.nvim_win_get_buf(rightmost_win)
           local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })
           local icon, hl_group = require('mini.icons').get('filetype', filetype)
 
+          self.icon = icon
+          self.hl_group = hl_group
+        end,
+        provider = function(self) return self.icon end,
+        hl = function(self)
           -- Get the color from the highlight group
-          local hl_attrs = vim.api.nvim_get_hl(0, { name = hl_group })
+          local hl_attrs = vim.api.nvim_get_hl(0, { name = self.hl_group })
           local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or 'NonText'
 
           return { fg = color }
         end,
+        update = { 'BufEnter', 'FileType' },
       }
 
       local RightmostFilename = {
@@ -611,30 +337,33 @@ return {
         LintersFormatters,
       }
 
-      -- Load colors using heirline's proper theming system
-      heirline.load_colors(get_theme_colors)
+      -- Load colors using heirline's proper theming system  
+      fn { 'heirline.load_colors', get_theme_colors }()
 
       -- Setup heirline once
-      heirline.setup {
-        statusline = {},
-        tabline = {
-          LeftSide,
-          Align,
-          RightmostIcon,
-          RightmostFilename,
-          FileFormat,
+      fn {
+        'heirline.setup',
+        {
+          statusline = {},
+          tabline = {
+            LeftSide,
+            Align,
+            RightmostIcon,
+            RightmostFilename,
+            FileFormat,
+          },
         },
-      }
+      }()
 
       -- Proper theme refresh using heirline's API
       vim.api.nvim_create_augroup('Heirline', { clear = true })
       vim.api.nvim_create_autocmd('ColorScheme', {
         group = 'Heirline',
         callback = function()
-          utils.on_colorscheme(get_theme_colors)
+          fn { 'heirline.utils.on_colorscheme', get_theme_colors }()
 
           -- Reapply transparent.nvim settings
-          local ok, transparent = pcall(require, 'transparent')
+          local transparent, ok = try(require, 'transparent')
           if ok then
             transparent.clear_prefix 'heirline'
             vim.cmd 'TransparentEnable'

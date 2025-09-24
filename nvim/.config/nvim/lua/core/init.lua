@@ -18,7 +18,6 @@ if not success then
   _G.try = try_module.try
 end
 
-_G.try = require('utils.try').try
 try {
   require,
   { 'core.globals' },
