@@ -4,7 +4,7 @@ return {
     lazy = false,
     dependencies = { 'echasnovski/mini.icons', 'linrongbin16/lsp-progress.nvim' },
     config = function()
-      require('mini.icons').mock_nvim_web_devicons()
+      fn 'mini.icons.mock_nvim_web_devicons'()
 
       local heirline = require 'heirline'
       local utils = require 'heirline.utils'
@@ -12,7 +12,6 @@ return {
       -- Theme-aware color system - just use highlight group names directly
       local function get_theme_colors()
         local function fg(group) return string.format('#%06x', utils.get_highlight(group).fg) end
-        local function bg(group) return string.format('#%06x', utils.get_highlight(group).bg) end
 
         return {
           -- Only the highlight groups actually used
@@ -50,9 +49,9 @@ return {
             self.git_info = { is_git_repo = is_git_repo, branch = branch }
             self.last_cwd = cwd
           end
-          return self.git_info.is_git_repo
+          return self.git_info.is_git_repo and self.git_info.branch ~= ''
         end,
-        provider = function(self) return self.git_info.branch ~= '' and (' on ' .. self.git_info.branch .. ' ') or '' end,
+        provider = function(self) return ' on ' .. self.git_info.branch .. ' ' end,
         update = { 'DirChanged', 'BufEnter' },
         hl = { fg = 'Statement' },
       }
@@ -64,7 +63,7 @@ return {
           if git_branch and git_branch.git_info then return git_branch.git_info.is_git_repo end
           return vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true'
         end,
-        provider = fn 'ui.components.git.git_status',
+        provider = fn 'ui.components.git.status_icons',
         update = { 'BufWritePost', 'BufEnter' },
         hl = { fg = 'GitSignsChange', bold = true },
       }
@@ -112,42 +111,7 @@ return {
             end
           end
         end,
-        provider = function(self)
-          local buf_clients = vim.lsp.get_clients { bufnr = 0 }
-
-          -- Filter for main language servers only using static excluded list
-          local language_servers = {}
-          for _, client in ipairs(buf_clients) do
-            local is_excluded = false
-            for _, excluded_name in ipairs(self.excluded) do
-              if client.name:lower():find(excluded_name:lower()) then
-                is_excluded = true
-                break
-              end
-            end
-            if not is_excluded then table.insert(language_servers, client) end
-          end
-
-          -- Get LSP progress spinner or error indicator
-          local lsp_indicator
-          if _G.Errors and type(_G.Errors) == 'table' and #_G.Errors > 0 then
-            lsp_indicator = 'E '
-          else
-            local ok, lsp_progress = pcall(require, 'lsp-progress')
-            if ok then
-              local progress = lsp_progress.progress()
-              lsp_indicator = progress ~= '' and (progress .. ' ') or '  '
-            else
-              lsp_indicator = '  '
-            end
-          end
-
-          if #language_servers == 0 then return lsp_indicator .. 'nvim' end
-
-          -- Get the main LSP server (first language server)
-          local client = language_servers[1]
-          return lsp_indicator .. client.name
-        end,
+        provider = function(self) return require('ui.components.lsp').server() end,
         update = {
           'User',
           pattern = 'LspProgressStatusUpdated',

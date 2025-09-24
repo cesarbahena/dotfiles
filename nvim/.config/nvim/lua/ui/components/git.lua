@@ -30,14 +30,12 @@ local symbols = {
   deleted = '󱀷 ',
 }
 
-function M.git_status()
-  -- not a git repfunction M.git_status()
-  -- Not a git repo
+function M.status_icons()
   if vim.fn.system('git rev-parse --is-inside-work-tree 2>/dev/null'):match 'true' ~= 'true' then return '' end
 
   local output = vim.fn.systemlist 'git status --porcelain 2>/dev/null'
   local flags = {
-    staged = false, -- staged changes excluding renames
+    staged = false,
     modified = false,
     deleted = false,
     renamed = false,
@@ -48,24 +46,19 @@ function M.git_status()
     local x = line:sub(1, 1)
     local y = line:sub(2, 2)
 
-    -- staged changes (exclude renamed from "staged")
     if x == 'A' or x == 'M' or x == 'D' then flags.staged = true end
     if x == 'D' then flags.deleted = true end
     if x == 'R' then flags.renamed = true end
 
-    -- unstaged changes
     if y == 'M' then flags.modified = true end
     if y == 'D' then flags.deleted = true end
 
-    -- untracked
     if x == '?' then flags.untracked = true end
   end
 
-  -- stashes
   local stash_count = tonumber(vim.fn.system 'git stash list 2>/dev/null | wc -l') or 0
   local stash = stash_count > 0 and symbols.stashed or ''
 
-  -- ahead/behind/diverged
   local ahead, behind = 0, 0
   local rev = vim.fn.systemlist 'git rev-list --left-right --count @{upstream}...HEAD 2>/dev/null'
   if #rev == 1 then
@@ -76,7 +69,6 @@ function M.git_status()
   local ahead_sym = (ahead > 0 and behind == 0) and symbols.ahead or ''
   local behind_sym = (behind > 0 and ahead == 0) and symbols.behind or ''
 
-  -- assemble result in Staship order
   local result = {
     stash,
     flags.deleted and symbols.deleted or '',
@@ -90,6 +82,31 @@ function M.git_status()
   }
   return table.concat(result, '')
 end
+
+function M.status_colors(filepath)
+  if filepath == '' then return 'Normal' end
+
+  local git_status = vim.fn
+    .system('git status --porcelain ' .. vim.fn.shellescape(filepath) .. ' 2>/dev/null')
+    :gsub('\n', '')
+
+  if git_status == '' then
+    return 'Normal'
+  elseif git_status:match 'UU' or git_status:match 'AA' or git_status:match 'DD' then
+    return 'ErrorMsg'
+  elseif git_status:match 'AU' or git_status:match 'UA' or git_status:match 'UD' or git_status:match 'DU' then
+    return 'ErrorMsg'
+  elseif git_status:match '^%?%?' then
+    return 'GitSignsAdd'
+  elseif git_status:match '[AM]' then
+    return 'GitSignsChange'
+  else
+    return 'Normal'
+  end
+end
+
+-- Backwards compatibility
+M.git_status = M.status_icons
 
 local function last_word(str) return string.match(str, '[^% ]+$') end
 
