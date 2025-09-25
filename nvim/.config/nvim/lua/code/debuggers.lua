@@ -129,6 +129,11 @@ return {
           pathMappings = {
             ['/var/www/html'] = '${workspaceFolder}',
           },
+          xdebugSettings = {
+            max_children = 0,
+            max_data = 0,
+            max_depth = 0,
+          },
         },
         {
           type = 'php',
@@ -139,6 +144,11 @@ return {
           program = '${file}',
           runtimeExecutable = 'php',
           runtimeArgs = { '-dxdebug.mode=debug', '-dxdebug.start_with_request=yes', '-dxdebug.client_port=9003' },
+          xdebugSettings = {
+            max_children = 0,
+            max_data = 0,
+            max_depth = 0,
+          },
         },
       }
     end,
@@ -204,10 +214,10 @@ return {
       local dap = require 'dap'
       local dapui = require 'dapui'
       dapui.setup(opts)
-      dap.listeners.after.event_initialized['dapui_config'] = function() dapui.open {} end
-      dap.listeners.before.event_terminated['dapui_config'] = function() dapui.close {} end
-      dap.listeners.before.event_exited['dapui_config'] = function() dapui.close {} end
-      dap.listeners.before.disconnect['dapui_config'] = function() dapui.close {} end
+      dap.listeners.after.event_initialized['dapui_config'] = fn 'dapui.open'
+      dap.listeners.before.event_terminated['dapui_config'] = fn 'dapui.close'
+      dap.listeners.before.event_exited['dapui_config'] = fn 'dapui.close'
+      dap.listeners.before.disconnect['dapui_config'] = fn 'dapui.close'
     end,
   },
 }
