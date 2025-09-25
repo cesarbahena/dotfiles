@@ -8,7 +8,12 @@ function M.cache(self)
   -- Calculate total length for compact mode decision
   local total_length = 0
   for _, item in ipairs(self.marks) do
-    local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', ''):gsub('_', '-')
+    local filename = vim.fn.fnamemodify(item.value, ':t')
+    -- Don't remove extension if file starts with dot (dotfiles like .env, .gitignore)
+    if not filename:match('^%.') then
+      filename = filename:gsub('%..*', '')
+    end
+    filename = filename:gsub('_', '-')
     total_length = total_length + #filename + 4 -- +4 for " -t " or " --"
   end
 
@@ -33,7 +38,12 @@ function M.cache(self)
     -- Full mode: -t filename --filename
     local result = {}
     for _, item in ipairs(self.marks) do
-      local filename = vim.fn.fnamemodify(item.value, ':t'):gsub('%..*', ''):gsub('_', '-')
+      local filename = vim.fn.fnamemodify(item.value, ':t')
+      -- Don't remove extension if file starts with dot (dotfiles like .env, .gitignore)
+      if not filename:match('^%.') then
+        filename = filename:gsub('%..*', '')
+      end
+      filename = filename:gsub('_', '-')
       if item.value == self.current_file_path then
         table.insert(result, ' -t ' .. filename) -- Active: -t filename
       else
