@@ -591,13 +591,13 @@ function M.fn(spec)
   -- If args count is specified, return a function that accepts those arguments
   if args_count then
     if type(target) == 'string' then
+      -- Resolve module function at creation time, not call time
+      local module_fn, error_msg = resolve_module_function(target)
+      if error_msg then
+        error(error_msg)
+      end
       return function(...)
         local runtime_args = {...}
-        local module_fn, error_msg = resolve_module_function(target)
-        if error_msg then
-          vim.notify(error_msg, vim.log.levels.ERROR)
-          return nil
-        end
         local success, result = pcall(module_fn, unpack(runtime_args))
         if not success then
           vim.notify(tostring(result), vim.log.levels.ERROR)
