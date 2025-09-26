@@ -4,6 +4,6 @@ config:
   icon-position: "left" # show the icon to the "left" or "right" of the window name (defaults to left)
 
 icons:
-  gemini: "󰅏"
-  claude: "󰅏"
-  opencode: "󰅏"
+  gemini: "󰚩"
+  claude: "󰚩"
+  opencode: "󰚩"

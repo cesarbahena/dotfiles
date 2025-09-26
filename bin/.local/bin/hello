@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-# Read input from stdin
-read -r input
-
-# Add "Hello World " to the end of the input
-echo "${input}Hello World "
