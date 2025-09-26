@@ -1,58 +1,149 @@
 #!/usr/bin/env bash
-# teams-status - Show current Teams meeting status for tmux
+# teams-status - Enhanced Teams meeting status for tmux with colors and icons
+
+# Environment variables (optional, disabled if not set)
+# WORK_END_TIME="17:30"     # 5:30 PM in HH:MM format
+# LUNCH_TIME="14:00"        # 2:00 PM in HH:MM format
+# LUNCH_DURATION="60"       # Lunch duration in minutes (default: 60)
 
 # Check if Microsoft Graph CLI is available
-if ! command -v mgc &> /dev/null; then
-    echo "◦"  # zen dot for no meetings/offline
+if ! command -v mgc &> /dev/null || ! command -v jq &> /dev/null; then
+    echo "#[fg=default]◦ #[fg=default]$(date +%d)"  # zen fallback
     exit 0
 fi
 
-# Get current time in ISO format
+# Get current time info
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 TODAY_START=$(date -u +"%Y-%m-%dT00:00:00Z")
 TODAY_END=$(date -u +"%Y-%m-%dT23:59:59Z")
+CURRENT_LOCAL_TIME=$(date +"%H:%M")
+DAY=$(date +%d)
 
-# Try to get today's calendar events (suppress errors)
+# Get calendar events and presence
 EVENTS=$(mgc users calendar events list --user-id "me" \
   --filter "start/dateTime ge '$TODAY_START' and end/dateTime le '$TODAY_END'" \
   --output json 2>/dev/null)
 
-# If no events or error, show zen dot
-if [ -z "$EVENTS" ] || [ "$EVENTS" = "null" ]; then
-    echo "◦"
-    exit 0
-fi
+PRESENCE=$(mgc users presence get --user-id "me" --output json 2>/dev/null)
 
-# Parse events with jq (if available)
-if command -v jq &> /dev/null; then
-    # Check if currently in a meeting (normalize datetime formats)
-    IN_MEETING=$(echo "$EVENTS" | jq -r --arg now "$NOW" '
+# Parse current meeting status
+CURRENT_MEETING=""
+NEXT_MEETING_TIME=""
+HAS_FUTURE_MEETINGS=false
+
+if [ -n "$EVENTS" ] && [ "$EVENTS" != "null" ]; then
+    # Check if currently in a meeting
+    CURRENT_MEETING=$(echo "$EVENTS" | jq -r --arg now "$NOW" '
         .value[]? | 
         select((.start.dateTime | sub("\\..*"; "Z")) <= $now and (.end.dateTime | sub("\\..*"; "Z")) > $now) |
         .subject // "Meeting"
     ' | head -1)
     
-    if [ -n "$IN_MEETING" ]; then
-        echo "●"  # solid dot for active meeting
-        exit 0
-    fi
-    
     # Get next meeting time
-    NEXT_MEETING=$(echo "$EVENTS" | jq -r --arg now "$NOW" '
+    NEXT_MEETING_TIME=$(echo "$EVENTS" | jq -r --arg now "$NOW" '
         .value[]? | 
         select((.start.dateTime | sub("\\..*"; "Z")) > $now) |
         .start.dateTime
     ' | head -1)
     
-    if [ -n "$NEXT_MEETING" ] && [ "$NEXT_MEETING" != "null" ]; then
-        # Convert UTC to local time and show hour:minute
-        NEXT_TIME=$(date -d "${NEXT_MEETING%.*}Z" +"%H:%M" 2>/dev/null)
-        if [ -n "$NEXT_TIME" ]; then
-            echo "◯ $NEXT_TIME"  # hollow dot with next meeting time
-            exit 0
+    # Check if there are any future meetings today
+    HAS_FUTURE_MEETINGS=$(echo "$EVENTS" | jq -r --arg now "$NOW" '
+        .value[]? | 
+        select((.end.dateTime | sub("\\..*"; "Z")) > $now) |
+        .subject
+    ' | head -1)
+fi
+
+# Check Teams presence status
+IN_TEAMS_MEETING=false
+TEAMS_AVAILABLE=false
+if [ -n "$PRESENCE" ] && [ "$PRESENCE" != "null" ]; then
+    ACTIVITY=$(echo "$PRESENCE" | jq -r '.activity // "Unknown"')
+    AVAILABILITY=$(echo "$PRESENCE" | jq -r '.availability // "Unknown"')
+    
+    if [[ "$ACTIVITY" == *"Meeting"* ]] || [[ "$ACTIVITY" == *"InACall"* ]] || [[ "$ACTIVITY" == *"Presenting"* ]]; then
+        IN_TEAMS_MEETING=true
+    fi
+    
+    if [[ "$AVAILABILITY" == "Available" ]] || [[ "$AVAILABILITY" == "Busy"* ]]; then
+        TEAMS_AVAILABLE=true
+    fi
+fi
+
+# Determine time color based on conditions
+TIME_COLOR="green"  # Default green when >5min to meeting
+CURRENT_HOUR_MIN=$(date +"%H:%M")
+CURRENT_EPOCH=$(date +%s)
+
+# Check lunch time first
+IS_LUNCH_TIME=false
+if [ -n "$LUNCH_TIME" ]; then
+    LUNCH_DURATION_MIN=${LUNCH_DURATION:-60}
+    LUNCH_START_EPOCH=$(date -d "today $LUNCH_TIME" +%s 2>/dev/null)
+    LUNCH_END_EPOCH=$((LUNCH_START_EPOCH + LUNCH_DURATION_MIN * 60))
+    
+    if [ -n "$LUNCH_START_EPOCH" ] && [ "$CURRENT_EPOCH" -ge "$LUNCH_START_EPOCH" ] && [ "$CURRENT_EPOCH" -lt "$LUNCH_END_EPOCH" ]; then
+        TIME_COLOR="yellow"
+        IS_LUNCH_TIME=true
+    fi
+fi
+
+# Check work end time
+if [ -n "$WORK_END_TIME" ]; then
+    WORK_END_EPOCH=$(date -d "today $WORK_END_TIME" +%s 2>/dev/null)
+    
+    if [ -n "$WORK_END_EPOCH" ]; then
+        if [ "$CURRENT_EPOCH" -gt "$WORK_END_EPOCH" ]; then
+            TIME_COLOR="red"  # After work hours (overrides everything)
+        elif [ "$IS_LUNCH_TIME" = false ]; then
+            MINUTES_TO_END=$(( (WORK_END_EPOCH - CURRENT_EPOCH) / 60 ))
+            if [ "$MINUTES_TO_END" -le 5 ] && [ "$MINUTES_TO_END" -gt 0 ]; then
+                TIME_COLOR="yellow"  # 5 min to end of work
+            fi
         fi
     fi
 fi
 
-# Default: zen dot
-echo "◦"
+# Check meeting proximity (overrides lunch but not after-work)
+if [ -n "$NEXT_MEETING_TIME" ] && [ "$NEXT_MEETING_TIME" != "null" ]; then
+    NEXT_LOCAL=$(date -d "${NEXT_MEETING_TIME%.*}Z" +"%Y-%m-%d %H:%M" 2>/dev/null)
+    if [ -n "$NEXT_LOCAL" ]; then
+        NEXT_EPOCH=$(date -d "$NEXT_LOCAL" +%s 2>/dev/null)
+        MINUTES_TO_MEETING=$(( (NEXT_EPOCH - CURRENT_EPOCH) / 60 ))
+        
+        if [ "$MINUTES_TO_MEETING" -le 5 ] && [ "$MINUTES_TO_MEETING" -gt 0 ]; then
+            # Only override if not after work hours
+            if [ -n "$WORK_END_TIME" ]; then
+                WORK_END_EPOCH=$(date -d "today $WORK_END_TIME" +%s 2>/dev/null)
+                if [ -n "$WORK_END_EPOCH" ] && [ "$CURRENT_EPOCH" -le "$WORK_END_EPOCH" ]; then
+                    TIME_COLOR="red"
+                fi
+            else
+                TIME_COLOR="red"
+            fi
+        fi
+    fi
+fi
+
+# Determine icon and day status
+ICON="󱏧 "
+DAY_COLOR="default"
+
+# Check if disconnected from active meeting
+if [ -n "$CURRENT_MEETING" ] && [ "$IN_TEAMS_MEETING" = false ]; then
+    ICON="󱅫 "
+    DAY_COLOR="red"
+    TIME_COLOR="red"
+elif [ -n "$CURRENT_MEETING" ]; then
+    ICON="󰂚 "
+    DAY_COLOR="green"
+elif [ -n "$HAS_FUTURE_MEETINGS" ]; then
+    ICON="󱅫 "
+    DAY_COLOR="yellow"
+else
+    ICON="󱇥 "
+    DAY_COLOR="green"
+fi
+
+# Output formatted status
+echo "#[fg=$TIME_COLOR]$CURRENT_HOUR_MIN #[fg=$DAY_COLOR]$ICON$DAY"

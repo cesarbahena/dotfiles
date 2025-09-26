@@ -58,14 +58,14 @@ export PATH=$HOME/.npm-global/bin:$PATH
 export PATH=$HOME/.fzf/bin:$PATH
 export PATH=/usr/local/go/bin:$PATH
 
-
-
 # Cargo
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
 # opencode
 export PATH=/home/cesar/.opencode/bin:$PATH
 
+# Microsoft CLI
+export PATH="$PATH:/mnt/c/Tools/msgraph/"
 # ============================================================
 # Prompt handled by Starship
 # ============================================================
@@ -133,3 +133,11 @@ export _ZO_FZF_OPTS="--layout=reverse --info=inline"
 # secrets
 # ===========================================================
 source ~/dotfiles/.env.local
+
+# Teams status configuration
+export WORK_END_TIME="17:30"
+export LUNCH_TIME="14:00"
+
+
+export LUNCH_DURATION="60"   # 1 hour lunch
+
