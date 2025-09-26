@@ -134,10 +134,3 @@ export _ZO_FZF_OPTS="--layout=reverse --info=inline"
 # ===========================================================
 source ~/dotfiles/.env.local
 
-# Teams status configuration
-export WORK_END_TIME="17:30"
-export LUNCH_TIME="14:00"
-
-
-export LUNCH_DURATION="60"   # 1 hour lunch
-
