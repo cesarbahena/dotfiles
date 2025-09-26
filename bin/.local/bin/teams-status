@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# teams-status - Show current Teams meeting status for tmux
+
+# Check if Microsoft Graph CLI is available
+if ! command -v mgc &> /dev/null; then
+    echo "◦"  # zen dot for no meetings/offline
+    exit 0
+fi
+
+# Get current time in ISO format
+NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+TODAY_START=$(date -u +"%Y-%m-%dT00:00:00Z")
+TODAY_END=$(date -u +"%Y-%m-%dT23:59:59Z")
+
+# Try to get today's calendar events (suppress errors)
+EVENTS=$(mgc users calendar events list --user-id "me" \
+  --filter "start/dateTime ge '$TODAY_START' and end/dateTime le '$TODAY_END'" \
+  --output json 2>/dev/null)
+
+# If no events or error, show zen dot
+if [ -z "$EVENTS" ] || [ "$EVENTS" = "null" ]; then
+    echo "◦"
+    exit 0
+fi
+
+# Parse events with jq (if available)
+if command -v jq &> /dev/null; then
+    # Check if currently in a meeting (normalize datetime formats)
+    IN_MEETING=$(echo "$EVENTS" | jq -r --arg now "$NOW" '
+        .value[]? | 
+        select((.start.dateTime | sub("\\..*"; "Z")) <= $now and (.end.dateTime | sub("\\..*"; "Z")) > $now) |
+        .subject // "Meeting"
+    ' | head -1)
+    
+    if [ -n "$IN_MEETING" ]; then
+        echo "●"  # solid dot for active meeting
+        exit 0
+    fi
+    
+    # Get next meeting time
+    NEXT_MEETING=$(echo "$EVENTS" | jq -r --arg now "$NOW" '
+        .value[]? | 
+        select((.start.dateTime | sub("\\..*"; "Z")) > $now) |
+        .start.dateTime
+    ' | head -1)
+    
+    if [ -n "$NEXT_MEETING" ] && [ "$NEXT_MEETING" != "null" ]; then
+        # Convert UTC to local time and show hour:minute
+        NEXT_TIME=$(date -d "${NEXT_MEETING%.*}Z" +"%H:%M" 2>/dev/null)
+        if [ -n "$NEXT_TIME" ]; then
+            echo "◯ $NEXT_TIME"  # hollow dot with next meeting time
+            exit 0
+        fi
+    fi
+fi
+
+# Default: zen dot
+echo "◦"
