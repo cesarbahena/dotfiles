@@ -6,6 +6,7 @@ return {
       'nvim-telescope/telescope-ui-select.nvim',
     },
     keys = {
+      key { 'Hello', function() vim.notify 'Hello from js' end, ft = 'javascript' },
       { desc = 'Continue', 'B', fn 'dap.continue' },
       { desc = 'Step over', 'bn', fn 'dap.step_over' },
       { desc = 'Step into', 'bi', fn 'dap.step_into' },

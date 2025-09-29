@@ -4,8 +4,7 @@ return {
     keys = {
       key { 'left window', fn 'tmux.move_left', mode = { 'n', 't' } },
       key { 'right window', fn 'tmux.move_right', mode = { 'n', 't' } },
-      -- I my config this overlaps with escape to normal mode in terminal
-      key { 'top window', fn 'tmux.move_top', mode = 'n' },
+      key { 'top window', fn 'tmux.move_top', mode = { 'n', 't' } },
       key { 'bottom window', fn 'tmux.move_bottom', mode = { 'n', 't' } },
       key { 'resize left', fn 'tmux.resize_left', mode = { 'n', 't' } },
       key { 'resize right', fn 'tmux.resize_right', mode = { 'n', 't' } },

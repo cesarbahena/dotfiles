@@ -13,8 +13,21 @@ return {
       },
     },
     keys = {
-      on_selection { 'give context', cmd 'ClaudeCodeSend' },
-      key { 'give context', cmd 'ClaudeCodeTreeAdd', ft = { 'minifiles' } },
+      on_selection {
+        'give context',
+        proc {
+          fn { vim.cmd, 'ClaudeCodeSend' },
+          fn { vim.cmd, 'ClaudeCodeFocus' },
+        },
+      },
+      key {
+        'give context',
+        proc {
+          fn { vim.cmd, 'ClaudeCodeTreeAdd' },
+          fn { vim.cmd, 'ClaudeCodeFocus' },
+        },
+        ft = { 'minifiles' },
+      },
       key {
         'give context',
         fn {
@@ -24,7 +37,15 @@ return {
         },
       },
 
-      key { 'lgtm', cmd 'ClaudeCodeDiffAccept' },
+      key {
+        'lgtm',
+        proc {
+          fn { vim.cmd, 'wincmd l' },
+          fn { vim.cmd, 'wincmd l' },
+          fn { vim.cmd, 'wincmd l' },
+          fn { vim.cmd, 'ClaudeCodeDiffAccept' },
+        },
+      },
 
       key {
         'new agent',

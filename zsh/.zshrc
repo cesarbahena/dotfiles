@@ -39,6 +39,105 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 autoload -Uz compinit
 compinit
 
+# Enhanced completion settings
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}-- no matches found --%f'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' completer _complete _match _approximate
+zstyle ':completion:*:match:*' original only
+zstyle ':completion:*:approximate:*' max-errors 1 numeric
+
+# Command existence highlighting (requires zsh-syntax-highlighting)
+if [ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
+    ZSH_HIGHLIGHT_STYLES[command]='fg=green'
+    ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=red,bold'
+    ZSH_HIGHLIGHT_STYLES[alias]='fg=cyan'
+    ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow'
+    ZSH_HIGHLIGHT_STYLES[function]='fg=blue'
+fi
+
+# ============================================================
+# Vim keymaps
+# ============================================================
+bindkey -v  # Enable vim mode
+
+# Custom vim keymaps
+bindkey '^u' vi-cmd-mode               # Ctrl+E to enter normal mode (escape to normal mode)
+bindkey '^k' delete-char
+
+# Colemak movement in vi mode
+bindkey -M vicmd 'n' down-line-or-history      # n = down (next line)
+# Custom function for 'e' key - up line or tmux copy if at top
+function up-line-or-tmux-copy() {
+    if zle up-line; then
+        # Successfully moved up a line
+        return 0
+    else
+        # Couldn't move up (at top), try tmux copy mode
+        if [[ -n "$TMUX" ]]; then
+            tmux copy-mode \; send -X cursor-up
+        fi
+    fi
+}
+zle -N up-line-or-tmux-copy
+bindkey -M vicmd 'e' up-line-or-tmux-copy      # e = up line or tmux copy if at top  
+bindkey -M vicmd 'k' backward-char              # k = left
+bindkey -M vicmd 'o' forward-char               # o = right
+bindkey -M vicmd 'K' beginning-of-line          # K = beginning of line
+bindkey -M vicmd 'O' end-of-line                # O = end of line
+bindkey -M vicmd 'l' vi-open-line-below         # l = open line below
+bindkey -M vicmd 'L' vi-open-line-above         # L = open line above
+bindkey -M vicmd ',' vi-forward-word            # h = next page/word
+bindkey -M vicmd 'z' vi-backward-word           # z = prev page/word
+
+# Custom function for 'm' key - enter tmux copy mode and half page up
+function tmux-copy-halfpage-up() {
+    if [[ -n "$TMUX" ]]; then
+        tmux copy-mode \; send -X halfpage-up
+    fi
+}
+zle -N tmux-copy-halfpage-up
+bindkey -M vicmd 'm' tmux-copy-halfpage-up      # m = tmux copy mode + half page up
+
+# Vi mode visual indicators
+function zle-keymap-select {
+    if [[ ${KEYMAP} == vicmd ]] || [[ $1 = 'block' ]]; then
+        echo -ne '\e[2 q'  # Block cursor for normal mode
+    elif [[ ${KEYMAP} == main ]] || [[ ${KEYMAP} == viins ]] || [[ ${KEYMAP} = '' ]] || [[ $1 = 'beam' ]]; then
+        echo -ne '\e[6 q'  # Beam cursor for insert mode
+    fi
+}
+zle -N zle-keymap-select
+
+# Initialize cursor
+function zle-line-init() {
+    echo -ne '\e[6 q'  # Beam cursor
+}
+zle -N zle-line-init
+
+# Autosuggestions
+if [ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=240'
+    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+    bindkey '^y' autosuggest-accept  # Right arrow to accept
+fi
+
+# Additional useful features
+setopt CORRECT              # command correction
+setopt GLOB_COMPLETE        # complete globs
+setopt NO_BEEP              # disable beep
+setopt EXTENDED_GLOB        # extended globbing
+
+# Better word selection
+autoload -U select-word-style
+select-word-style bash
+
 # ============================================================
 # Environment paths
 # ============================================================
@@ -128,6 +227,9 @@ export _ZO_FZF_ENABLE_PREVIEW=1
 export _ZO_FZF_OPTS="--layout=reverse --info=inline"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+# FZF custom keybindings (after fzf is loaded)
+bindkey '^p' fzf-history-widget
 
 # ============================================================
 # secrets

@@ -3,23 +3,21 @@ local git = require 'ui.components.git'
 
 local M = {}
 
-function M.icon()
+function M.icon_init(self)
+  -- Cache the expensive window/buffer lookup once
   local rightmost_win = utils.window()
   local buf = vim.api.nvim_win_get_buf(rightmost_win)
   local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })
-  local icon, hl = require('mini.icons').get('filetype', filetype)
-  return icon
+
+  -- Cache icon data
+  local icon, hl_group = require('mini.icons').get('filetype', filetype)
+  self.icon = icon .. ' '
+  self.hl_group = hl_group
 end
 
-function M.icon_hl()
-  local rightmost_win = utils.window()
-  local buf = vim.api.nvim_win_get_buf(rightmost_win)
-  local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })
-  local icon, hl_group = require('mini.icons').get('filetype', filetype)
-
-  local hl_attrs = vim.api.nvim_get_hl(0, { name = hl_group })
+function M.icon_hl(self)
+  local hl_attrs = vim.api.nvim_get_hl(0, { name = self.hl_group })
   local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or 'NonText'
-
   return { fg = color }
 end
 
@@ -28,7 +26,7 @@ function M.name()
   local buf = vim.api.nvim_win_get_buf(rightmost_win)
   local filepath = vim.api.nvim_buf_get_name(buf)
   local filename = vim.fn.fnamemodify(filepath, ':t')
-  return filename ~= '' and (' ' .. filename) or ''
+  return filename ~= '' and filename or ''
 end
 
 function M.name_hl()
@@ -52,11 +50,11 @@ function M.format()
   local fileformat = vim.api.nvim_get_option_value('fileformat', { buf = buf })
 
   if fileformat == 'dos' then
-    return ' '
+    return ''
   elseif fileformat == 'mac' then
-    return ' '
+    return ''
   else
-    return ' '
+    return ''
   end
 end
 

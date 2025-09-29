@@ -54,23 +54,9 @@ return {
       end
 
       local RightmostIcon = {
-        init = function(self)
-          local rightmost_win = get_rightmost_window()
-          local buf = vim.api.nvim_win_get_buf(rightmost_win)
-          local filetype = vim.api.nvim_get_option_value('filetype', { buf = buf })
-          local icon, hl_group = require('mini.icons').get('filetype', filetype)
-
-          self.icon = icon
-          self.hl_group = hl_group
-        end,
+        init = fn { 'ui.components.file.icon_init', args = 1 },
         provider = function(self) return self.icon end,
-        hl = function(self)
-          -- Get the color from the highlight group
-          local hl_attrs = vim.api.nvim_get_hl(0, { name = self.hl_group })
-          local color = hl_attrs.fg and string.format('#%06x', hl_attrs.fg) or 'NonText'
-
-          return { fg = color }
-        end,
+        hl = fn { 'ui.components.file.icon_hl', args = 1 },
         update = { 'BufEnter', 'FileType' },
       }
 
@@ -111,7 +97,7 @@ return {
             end
           end
         end,
-        provider = function(self) return self.filename ~= '' and (' ' .. self.filename) or '' end,
+        provider = function(self) return self.filename ~= '' and self.filename or '' end,
         hl = function(self)
           local rightmost_win = get_rightmost_window()
           local buf = vim.api.nvim_win_get_buf(rightmost_win)

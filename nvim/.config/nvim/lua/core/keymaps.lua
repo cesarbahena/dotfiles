@@ -104,9 +104,6 @@ local mappings_to_disable = {
     'u',
     'U',
   },
-  i = {
-    '<C-u>',
-  },
 }
 
 for mode, keys in pairs(mappings_to_disable) do

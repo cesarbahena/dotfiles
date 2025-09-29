@@ -140,7 +140,7 @@ return {
       suggestion = {
         auto_trigger = true,
         keymap = {
-          accept = '<c-u>',
+          accept = '<c-y>',
         },
       },
     },
