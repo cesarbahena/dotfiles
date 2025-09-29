@@ -15,7 +15,7 @@ return {
     keys = {
       on_selection {
         'give context',
-        'ClaudeCodeSend',
+        cmd 'ClaudeCodeSend',
       },
       key {
         'give context',
