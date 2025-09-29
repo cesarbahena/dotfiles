@@ -218,6 +218,12 @@ return {
                 excluded = { 'copilot', 'efm', 'null-ls', 'conform' },
                 is_refreshing = false,
                 refresh_timer = nil,
+                -- Cache colors for zsh-style syntax highlighting using theme palette
+                colors = {
+                  working = 'GitSignsAdd', -- Valid LSP server (green like valid commands)
+                  error = 'ErrorMsg', -- LSP with errors (red like unknown tokens)
+                  fallback = 'Statement', -- nvim fallback (blue like shell functions)
+                },
                 start_refresh_cycle = function(self)
                   if self.refresh_timer then self.refresh_timer:stop() end
 
@@ -255,13 +261,95 @@ return {
                     self:stop_refresh_cycle()
                   end
                 end
+
+                -- Cache LSP status for color coding
+                local buf_clients = vim.lsp.get_clients { bufnr = 0 }
+                local active_servers = {}
+                for _, client in ipairs(buf_clients) do
+                  local is_excluded = false
+                  for _, excluded_name in ipairs(self.excluded) do
+                    if client.name:lower():find(excluded_name:lower()) then
+                      is_excluded = true
+                      break
+                    end
+                  end
+                  if not is_excluded then table.insert(active_servers, client) end
+                end
+
+                -- Check if current filetype should have an LSP server and find expected server name
+                local current_ft = vim.bo.filetype
+                local expected_server = nil
+                
+                if current_ft and current_ft ~= '' then
+                  -- Check enabled LSP configs for this filetype
+                  for server_name, config in pairs(vim.lsp._enabled_configs or {}) do
+                    if config.resolved_config and config.resolved_config.filetypes then
+                      for _, ft in ipairs(config.resolved_config.filetypes) do
+                        if ft == current_ft then
+                          expected_server = server_name
+                          break
+                        end
+                      end
+                      if expected_server then break end
+                    end
+                  end
+                end
+
+                -- Store expected server name for the provider to use
+                self.expected_server = expected_server
+
+                -- Determine status for color coding
+                local has_lsp_server_errors = false
+
+                -- Check for LSP server/client issues only
+                for _, client in ipairs(active_servers) do
+                  if vim.lsp.client_is_stopped(client.id) or not client.initialized then
+                    has_lsp_server_errors = true
+                    break
+                  end
+                end
+
+                local has_lsp_servers = #active_servers > 0
+
+                if has_lsp_server_errors then
+                  self.status = 'error' -- Red for LSP server errors only
+                elseif expected_server and not has_lsp_servers then
+                  self.status = 'error' -- Red for missing expected LSP
+                elseif has_lsp_servers then
+                  self.status = 'working' -- Green for working LSP servers
+                else
+                  self.status = 'fallback' -- Blue for nvim fallback
+                end
               end,
-              provider = function(self) return require('ui.components.lsp').server() end,
+              provider = function(self) 
+                -- If we expect an LSP but don't have one, show the expected server name
+                if self.status == 'error' and self.expected_server then
+                  local ok, lsp_progress = pcall(require, 'lsp-progress')
+                  local lsp_indicator = '  '
+                  if ok then
+                    local progress = lsp_progress.progress()
+                    lsp_indicator = progress ~= '' and (progress .. ' ') or '  '
+                  end
+                  return lsp_indicator .. self.expected_server
+                else
+                  -- Use the normal LSP component logic
+                  return require('ui.components.lsp').server()
+                end
+              end,
               update = {
                 'User',
                 pattern = 'LspProgressStatusUpdated',
               },
-              hl = { fg = 'Normal' },
+              hl = function(self)
+                -- Use cached status for zsh-style color coding
+                if self.status == 'error' then
+                  return { fg = self.colors.error }
+                elseif self.status == 'working' then
+                  return { fg = self.colors.working }
+                else
+                  return { fg = self.colors.fallback }
+                end
+              end,
             },
             {
               init = fn { 'ui.components.harpoon.cache', args = 1 },
