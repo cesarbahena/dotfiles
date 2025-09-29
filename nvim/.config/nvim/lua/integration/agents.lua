@@ -15,10 +15,7 @@ return {
     keys = {
       on_selection {
         'give context',
-        proc {
-          fn { vim.cmd, 'ClaudeCodeSend' },
-          fn { vim.cmd, 'ClaudeCodeFocus' },
-        },
+        'ClaudeCodeSend',
       },
       key {
         'give context',

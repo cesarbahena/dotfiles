@@ -67,10 +67,7 @@ keymap {
   on_selection { 'clean', '<Esc>', details = '(exit visual mode)' },
   key {
     'escape to normal mode',
-    proc {
-      feed '<c-\\><c-n>',
-      feed 'M',
-    },
+    '<c-\\><c-n>?><cr>2l',
     mode = 't',
   },
 
