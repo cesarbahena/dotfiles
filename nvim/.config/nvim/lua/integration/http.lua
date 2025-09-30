@@ -12,7 +12,7 @@ return {
     key { 'redo', fn 'kulala.replay', ft = { 'json.kulala_ui' }, details = 'request' },
     auto_select { 'run request', fn 'kulala.run', ft = 'http' },
     key { 'Request Stats', fn 'kulala.show_stats' },
-    key { 'Request Body/headers', fn 'kulala.toggle_view' },
+    key { 'toggle Headers', fn 'kulala.toggle_view' },
   },
   opts = {
     ui = {

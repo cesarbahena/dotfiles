@@ -54,7 +54,6 @@ keymap {
   key { 'add Line above', 'O<esc>' },
   key { 'Toggle macro recording', fn 'actions.toggle_macro_recording' },
   key { 'Repeat macro', '@q' },
-  motion { 'visual block mode', '<c-v>' },
 
   on_selection { 'Yank', 'y`>' },
   on_selection { 'indent', '>gv' },

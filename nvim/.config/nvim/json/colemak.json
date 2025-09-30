@@ -91,7 +91,7 @@
     "rp": "request paste",
     "gh": "next Hunk",
     "F": "next match",
-    "rb": "Request Body/headers",
+    "rh": "toggle Headers",
     "cv": "Code Type",
     ",d": "Delete comma or semicolon at the end",
     "gk": "prev hunK",

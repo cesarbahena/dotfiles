@@ -58,7 +58,7 @@ function M.server()
 
   local lsp_indicator
   if _G.Errors and type(_G.Errors) == 'table' and #_G.Errors > 0 then
-    lsp_indicator = 'E '
+    lsp_indicator = ' '
   else
     if ok then
       local progress = lsp_progress.progress()
@@ -75,3 +75,4 @@ function M.server()
 end
 
 return M
+
