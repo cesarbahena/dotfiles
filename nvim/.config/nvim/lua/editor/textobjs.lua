@@ -23,7 +23,7 @@ local textobjs = {
     provider = 'treesitter',
     'function_def',
   },
-  l = {
+  C = {
     desc = 'Class',
     provider = 'treesitter',
     args = { i = 'outer' },
@@ -104,10 +104,10 @@ local textobjs = {
     'entireBuffer',
   },
   l = {
-    desc = 'Line characterwise',
+    desc = { i = 'Near end of Line', a = 'Line characterwise' },
     provider = 'various-textobjs',
     { i = 'nearEoL', a = 'lineCharacterwise' },
-    args = false,
+    args = { i = false, a = 'inner' },
   },
   ['<c-v>'] = {
     desc = 'Column',

@@ -64,7 +64,7 @@ keymap {
   on_selection { 'Move line down', ":<C-u>execute \"'<,'>move '>+\" . v:count1<cr>gv=gv" },
   on_selection { 'Move line up', ":<C-u>execute \"'<,'>move '<-\" . (v:count1 + 1)<cr>gv=gv" },
   on_selection { 'Change visual mode', fn 'actions.change_visual_mode', expr = true },
-  on_selection { 'clean', '<Esc>', details = '(exit visual mode)' },
+  on_selection { 'escape to normal mode', '<Esc>' },
   key {
     'escape to normal mode',
     '<c-\\><c-n>?><cr>2l',

@@ -18,6 +18,7 @@ return {
           'WarningMsg',
           'GitSignsAdd',
           'GitSignsChange',
+          'Type',
         }
 
         local colors = {}
@@ -222,7 +223,7 @@ return {
                 colors = {
                   working = 'GitSignsAdd', -- Valid LSP server (green like valid commands)
                   error = 'ErrorMsg', -- LSP with errors (red like unknown tokens)
-                  fallback = 'Statement', -- nvim fallback (blue like shell functions)
+                  fallback = 'Type', -- nvim fallback (blue like shell functions)
                 },
                 start_refresh_cycle = function(self)
                   if self.refresh_timer then self.refresh_timer:stop() end
@@ -279,7 +280,7 @@ return {
                 -- Check if current filetype should have an LSP server and find expected server name
                 local current_ft = vim.bo.filetype
                 local expected_server = nil
-                
+
                 if current_ft and current_ft ~= '' then
                   -- Check enabled LSP configs for this filetype
                   for server_name, config in pairs(vim.lsp._enabled_configs or {}) do
@@ -321,7 +322,7 @@ return {
                   self.status = 'fallback' -- Blue for nvim fallback
                 end
               end,
-              provider = function(self) 
+              provider = function(self)
                 -- If we expect an LSP but don't have one, show the expected server name
                 if self.status == 'error' and self.expected_server then
                   local ok, lsp_progress = pcall(require, 'lsp-progress')
