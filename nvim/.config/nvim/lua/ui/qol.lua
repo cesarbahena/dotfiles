@@ -78,7 +78,7 @@ return {
     lazy = false,
     ---@type snacks.Config
     opts = {
-      bigfile = { enabled = true },
+      bigfile = { enabled = false },
       quickfile = { enabled = true },
       dashboard = { enabled = false },
       indent = { enabled = true },

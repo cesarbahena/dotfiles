@@ -91,6 +91,8 @@ keymap {
   motion { '8', '8' },
   motion { '9', '9' },
   motion { '0', '0' },
+
+  key { 'refresh file', cmd 'e!' },
 }
 
 -- Setup numeric keymaps
