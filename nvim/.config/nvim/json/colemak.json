@@ -19,6 +19,7 @@
     "x": "move line down"
   },
   "leader": {
+    "h": "hover 2",
     ",": "Toggle macro recording",
     "M": "harpoon Menu",
     "<": "new agent",
@@ -82,7 +83,7 @@
     ".": ["file explorer", "Dot with auto undo breakpoints"],
     "<tab>": "focus agent",
     ">": "lgtm",
-    "<cr>": "run request",
+    "<cr>": ["run request", "go to definition"],
     "[r": "prev request",
     "e": "prEv line",
     "ih": "inner Hunk",
@@ -92,7 +93,6 @@
     "gh": "next Hunk",
     "F": "next match",
     "rh": "toggle Headers",
-    "cv": "Code Type",
     ",d": "Delete comma or semicolon at the end",
     "gk": "prev hunK",
     "<F11>": "zen mode",
@@ -145,7 +145,6 @@
     "Q": "Quit!",
     "gd": "diff this",
     "M": "prev subword",
-    "cD": "Code Declaration",
     "gs": "Git Status",
     "ga": "git add hunk",
     "ai": "Indentation with line above",
@@ -164,7 +163,6 @@
     "/": "find git files",
     "bq": "delete buffer",
     "cR": "file Rename",
-    "cd": "Code Definition",
     "V": "Change visual mode",
     "cf": "Code Format",
     "g|": "diff this ~"

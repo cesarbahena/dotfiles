@@ -24,6 +24,7 @@ return {
         'bl',
         fn { vim.fn.input, { prompt = 'Log:' } },
       },
+      key { 'clean', vim.cmd.q, ft = 'dap-float' },
     },
     config = function()
       vim.fn.sign_define('DapBreakpoint', { text = '', texthl = 'DiagnosticSignError', linehl = '', numhl = '' })
@@ -131,9 +132,7 @@ return {
             ['/var/www/html'] = '${workspaceFolder}',
           },
           xdebugSettings = {
-            max_children = 0,
             max_data = 0,
-            max_depth = 0,
           },
         },
         {
@@ -146,9 +145,7 @@ return {
           runtimeExecutable = 'php',
           runtimeArgs = { '-dxdebug.mode=debug', '-dxdebug.start_with_request=yes', '-dxdebug.client_port=9003' },
           xdebugSettings = {
-            max_children = 0,
             max_data = 0,
-            max_depth = 0,
           },
         },
       }
@@ -166,44 +163,25 @@ return {
       {
         desc = 'Watch variable',
         'bw',
-        -- This has to be a vim cmd because elements.watches doesn't exist at load time
         fn 'dapui::elements.watches.add',
       },
     },
     opts = {
       mappings = {
-        edit = 's',
-        expand = 'i',
+        edit = 'i',
+        expand = 'l',
         open = '<cr>',
         remove = 'd',
-        toggle = 'c',
-        repl = 'r',
       },
       expand_lines = true,
       layouts = {
         {
           elements = {
-            { id = 'scopes', size = 0.7 },
-            { id = 'watches', size = 0.3 },
-          },
-          size = 40,
-          position = 'left',
-        },
-        {
-          elements = {
-            { id = 'stacks', size = 0.7 },
-            { id = 'breakpoints', size = 0.3 },
+            { id = 'stacks', size = 0.2 },
+            { id = 'scopes', size = 0.6 },
           },
           size = 40,
           position = 'right',
-        },
-        {
-          elements = {
-            { id = 'repl', size = 0.5 },
-            { id = 'console', size = 0.5 },
-          },
-          size = 10,
-          position = 'bottom',
         },
       },
       floating = {

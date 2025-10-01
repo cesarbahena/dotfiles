@@ -1,6 +1,5 @@
 local M = {}
 
-
 local function is_diag_for_cur_pos()
   local diagnostics = vim.diagnostic.get(0)
   local pos = vim.api.nvim_win_get_cursor(0)
@@ -22,8 +21,8 @@ local function is_diag_neotest()
 end
 
 function M.hover_handler()
-  local dap_ok, dap = pcall(require, 'dap')
-  if dap_ok and dap.session() ~= nil then
+  local dap, ok = try(require, 'dap')
+  if ok and dap.session() ~= nil then
     local dapui_ok, dapui = pcall(require, 'dap.ui.widgets')
     if dapui_ok and vim.bo.filetype ~= 'dap-float' then dapui.hover(nil, { border = 'rounded' }) end
   end

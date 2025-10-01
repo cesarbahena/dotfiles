@@ -4,28 +4,31 @@ local M = {}
 -- Uncomment and modify as needed for your databases
 
 M.connections = {
-  -- Direct MySQL connection using environment variables
+  -- Main application database (exam data, patients, etc.)
   {
-    name = 'mein_docker_mysql',
+    name = 'mein',
     url = string.format(
-      'mysql://%s:%s@docker-1.mein.com.mx:9207/%s',
+      'mysql://%s:%s@docker-1.mein.com.mx:9207/mein',
       os.getenv 'MEIN_DB_USER' or 'username',
-      os.getenv 'MEIN_DB_PASS' or 'password',
-      os.getenv 'MEIN_DB_NAME' or 'database'
+      os.getenv 'MEIN_DB_PASS' or 'password'
+    ),
+  },
+
+  -- Authentication database (usernames, pandas table)
+  {
+    name = 'pandax',
+    url = string.format(
+      'mysql://%s:%s@docker-1.mein.com.mx:9207/pandax',
+      os.getenv 'MEIN_DB_USER' or 'username',
+      os.getenv 'MEIN_DB_PASS' or 'password'
     ),
   },
 
   -- Test database for document templates (local development)
   {
-    name = 'mein_test_mysql',
+    name = 'mein_test',
     url = 'mysql://mein_test_user:mein_test_pass@127.0.0.1:3306/mein_test',
   },
-
-  -- SQLite example
-  -- {
-  --   name = 'local_sqlite',
-  --   url = 'sqlite:' .. vim.fn.expand('~') .. '/database.db'
-  -- },
 }
 
 -- URL encode function for special characters in passwords

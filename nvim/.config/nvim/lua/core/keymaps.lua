@@ -69,6 +69,7 @@ keymap {
     '<c-\\><c-n>?><cr>2l',
     mode = 't',
   },
+  key { 'refresh file', cmd 'e!' },
 
   insert { 'Comma with auto undo breakpoints', ',<C-g>u' },
   insert { 'Semicolon with auto undo breakpoints', ';<C-g>u' },
@@ -91,7 +92,16 @@ keymap {
   motion { '9', '9' },
   motion { '0', '0' },
 
-  key { 'refresh file', cmd 'e!' },
+  key {
+    'hover 2',
+    fn {
+      when = { fn 'dap.session', ne = nil },
+      fn {
+        when = { 'ft', in_this = 'buffer', ne = 'dap-float' },
+        fn { 'dap.ui.widgets.hover', nil, { border = 'rounded' } },
+      },
+    },
+  },
 }
 
 -- Setup numeric keymaps

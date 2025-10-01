@@ -64,11 +64,6 @@ autocmd {
     if client then
       keymap {
         buffer = args.buf,
-        key { 'Code Definition', vim.lsp.buf.definition },
-        key { 'Code Declaration', vim.lsp.buf.declaration },
-        key { 'Code Type', vim.lsp.buf.type_definition },
-        key { 'Code References', vim.lsp.buf.references },
-        key { 'Code Implementation', vim.lsp.buf.implementation },
         key { 'Code Suggestions', vim.lsp.buf.code_action },
         key { 'Code Format', function() require('conform').format { async = true, lsp_fallback = true } end },
         key { 'signature', fn { vim.lsp.buf.signature_help, { border = 'rounded' } } },

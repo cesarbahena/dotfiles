@@ -472,7 +472,7 @@ local function handle_try_notify(spec)
     if success then return result end
 
     -- Handle main function failure notification
-    if should_notify_main_error(notify_option) then vim.notify(tostring(result), vim.log.levels.ERROR) end
+    if should_notify_main_error(notify_option) then vim.notify(vim.inspect(result), vim.log.levels.ERROR) end
 
     -- Execute or_else if available
     local or_else_fn = spec['or_else']
@@ -485,7 +485,7 @@ local function handle_try_notify(spec)
       -- Use pcall and handle errors with notifications
       local or_else_success, or_else_result = pcall(or_else_fn)
       if not or_else_success then
-        vim.notify(tostring(or_else_result), vim.log.levels.ERROR)
+        vim.notify(vim.inspect(or_else_result), vim.log.levels.ERROR)
         return nil
       end
       return or_else_result
@@ -504,7 +504,7 @@ local function handle_direct_function(func, args)
   return function()
     local success, result = pcall(func, unpack(args))
     if not success then
-      vim.notify(tostring(result), vim.log.levels.WARN)
+      vim.notify(vim.inspect(result), vim.log.levels.WARN)
       return nil
     end
     return result
@@ -525,7 +525,7 @@ local function handle_module_path(module_path, args)
 
     local success, result = pcall(module_fn, unpack(args))
     if not success then
-      vim.notify(tostring(result), vim.log.levels.ERROR)
+      vim.notify(vim.inspect(result), vim.log.levels.ERROR)
       return nil
     end
 
@@ -584,8 +584,16 @@ function M.fn(spec)
   local args = {}
   
   -- Extract numbered arguments, skipping defer and args options
-  for i = 2, #spec do
-    table.insert(args, spec[i])
+  -- Use rawlen to handle nil values properly in sparse arrays
+  local max_index = 0
+  for k, _ in pairs(spec) do
+    if type(k) == 'number' and k > max_index then
+      max_index = k
+    end
+  end
+  
+  for i = 2, max_index do
+    args[i - 1] = spec[i]  -- Direct assignment preserves nil values
   end
 
   -- If args count is specified, return a function that accepts those arguments
@@ -600,7 +608,7 @@ function M.fn(spec)
         local runtime_args = {...}
         local success, result = pcall(module_fn, unpack(runtime_args))
         if not success then
-          vim.notify(tostring(result), vim.log.levels.ERROR)
+          vim.notify(vim.inspect(result), vim.log.levels.ERROR)
           return nil
         end
         return result
@@ -610,7 +618,7 @@ function M.fn(spec)
         local runtime_args = {...}
         local success, result = pcall(target, unpack(runtime_args))
         if not success then
-          vim.notify(tostring(result), vim.log.levels.WARN)
+          vim.notify(vim.inspect(result), vim.log.levels.WARN)
           return nil
         end
         return result
@@ -620,7 +628,7 @@ function M.fn(spec)
         local runtime_args = {...}
         local success, result = pcall(target, unpack(runtime_args))
         if not success then
-          vim.notify(tostring(result), vim.log.levels.WARN)
+          vim.notify(vim.inspect(result), vim.log.levels.WARN)
           return nil
         end
         return result
