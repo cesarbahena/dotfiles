@@ -94,11 +94,19 @@ keymap {
 
   key {
     'hover 2',
-    fn {
-      when = { fn 'dap.session', ne = nil },
+    proc {
       fn {
-        when = { 'ft', in_this = 'buffer', ne = 'dap-float' },
-        fn { 'dap.ui.widgets.hover', nil, { border = 'rounded' } },
+        when = { fn 'dap.session', ne = nil },
+        fn {
+          when = { 'ft', in_this = 'buffer', ne = 'dap-float' },
+          fn { 'dap.ui.widgets.hover', nil, { border = 'rounded' } },
+        },
+      },
+
+      fn {
+        -- when = fn 'utils.is_diagnostic',
+        when = require('utils').is_diagnostic,
+        vim.diagnostic.open_float,
       },
     },
   },

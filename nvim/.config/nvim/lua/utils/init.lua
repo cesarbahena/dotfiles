@@ -49,6 +49,33 @@ function M.is_win_open(ft)
   return false
 end
 
+function M.is_diagnostic()
+  local diagnostics = vim.diagnostic.get(0)
+  local pos = vim.api.nvim_win_get_cursor(0)
+  if #diagnostics == 0 then return false end
+
+  -- Get word boundaries under cursor
+  local line = vim.api.nvim_get_current_line()
+  local col = pos[2]
+
+  -- Find word start
+  local word_start = col
+  while word_start > 0 and line:sub(word_start, word_start):match '[%w_]' do
+    word_start = word_start - 1
+  end
+
+  -- Find word end
+  local word_end = col
+  while word_end <= #line and line:sub(word_end + 1, word_end + 1):match '[%w_]' do
+    word_end = word_end + 1
+  end
+
+  local message = vim.tbl_filter(function(d)
+    return d.lnum == pos[1] - 1 and not (word_end < d.col or word_start > (d.end_col or d.col)) -- Ranges overlap
+  end, diagnostics)
+  return #message > 0
+end
+
 -- Import fn module
 M.fn = require('utils.fn').fn
 
