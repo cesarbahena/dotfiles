@@ -8,6 +8,15 @@ return {
     'typescriptreact',
     'typescript.tsx',
   },
+  root_markers = { 'package.json', 'tsconfig.json', '.git' },
+  init_options = {
+    plugins = {
+      {
+        name = "@effect/language-service",
+        location = "./node_modules/@effect/language-service"
+      }
+    }
+  },
   settings = {
     javascript = {
       inlayHints = {

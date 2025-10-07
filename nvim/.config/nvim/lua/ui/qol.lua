@@ -85,6 +85,9 @@ return {
       input = { enabled = true },
       statuscolumn = { enabled = false },
       words = { enabled = false },
+      terminal = {
+        win = { title = '', wo = { winbar = '' } },
+      },
       notifier = {
         enabled = true,
         timeout = 3000,

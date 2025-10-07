@@ -45,8 +45,22 @@ return {
       -- Default list of enabled providers defined so that you can extend it
       -- elsewhere in your config, without redefining it, due to `opts_extend`
       sources = {
-        default = { 'lsp', 'path', 'snippets', 'buffer' },
+        default = { 'snippets', 'lsp', 'path', 'buffer' },
         providers = {
+          lsp = {
+            transform_items = function(_, items)
+              for _, item in ipairs(items) do
+                -- Boost Effect gen and fn completions
+                if item.label and (
+                  item.label:match("^gen%(") or 
+                  item.label:match("^fn%(")
+                ) then
+                  item.score_offset = (item.score_offset or 0) + 100
+                end
+              end
+              return items
+            end
+          },
           dadbod = {
             name = 'Dadbod',
             module = 'blink.cmp.sources.complete_func',
@@ -63,9 +77,9 @@ return {
           },
         },
         per_filetype = {
-          sql = { 'dadbod', 'lsp', 'snippets', 'buffer' },
-          mysql = { 'dadbod', 'lsp', 'snippets', 'buffer' },
-          plsql = { 'dadbod', 'lsp', 'snippets', 'buffer' },
+          sql = { 'dadbod', 'snippets', 'lsp', 'buffer' },
+          mysql = { 'dadbod', 'snippets', 'lsp', 'buffer' },
+          plsql = { 'dadbod', 'snippets', 'lsp', 'buffer' },
         },
       },
 

@@ -83,7 +83,7 @@
     ".": ["file explorer", "Dot with auto undo breakpoints"],
     "<tab>": "focus agent",
     ">": "lgtm",
-    "<cr>": ["run request", "go to definition"],
+    "<cr>": ["run request", "go"],
     "[r": "prev request",
     "e": "prEv line",
     "ih": "inner Hunk",

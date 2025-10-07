@@ -79,7 +79,6 @@ keymap {
 
   key { 'Move line down', cmd [[execute 'move .+' . v:count1]] .. '==' },
   key { 'Move line up', cmd [[execute 'move .-' . (v:count1 + 1)]] .. '==' },
-  key { 'hover', fn 'actions.hover_overload.hover_handler' },
 
   motion { '1', '1' },
   motion { '2', '2' },
@@ -93,10 +92,10 @@ keymap {
   motion { '0', '0' },
 
   key {
-    'hover 2',
+    'hover',
     proc {
       fn {
-        when = { fn 'dap.session', ne = nil },
+        when = fn 'dap.session',
         fn {
           when = { 'ft', in_this = 'buffer', ne = 'dap-float' },
           fn { 'dap.ui.widgets.hover', nil, { border = 'rounded' } },
@@ -104,9 +103,18 @@ keymap {
       },
 
       fn {
-        -- when = fn 'utils.is_diagnostic',
-        when = require('utils').is_diagnostic,
+        when = fn 'utils.is_diagnostic',
         vim.diagnostic.open_float,
+        or_else = fn {
+          vim.lsp.buf.hover,
+          {
+            border = 'rounded',
+            silent = true,
+            winopts = {
+              conceallevel = 3,
+            },
+          },
+        },
       },
     },
   },

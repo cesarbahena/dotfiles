@@ -15,14 +15,6 @@ return {
       key { 'Next dx', fn 'utils.trouble_cycle.next' },
       key { 'Prev dx', fn 'utils.trouble_cycle.prev' },
       key { 'clean', fn 'actions.clean' },
-      key {
-        'go to definition',
-        fn {
-          -- when {},
-          fn { vim.cmd, 'Trouble lsp_definitions toggle' },
-          or_else = fn { vim.cmd, 'Trouble lsp_type_definitions toggle' },
-        },
-      },
     },
   },
 }

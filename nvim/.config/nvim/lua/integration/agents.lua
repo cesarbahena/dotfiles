@@ -2,15 +2,14 @@ return {
   {
     'coder/claudecode.nvim',
     opts = {
-      terminal = {
-        split_side = 'left',
-        provider = 'native',
-      },
       terminal_cmd = 'claude --continue',
-      focus_after_send = true,
+      -- terminal = {
+      --   provider = 'native',
+      -- },
       diff_opts = {
         open_in_new_tab = true,
       },
+      focus_after_send = true,
     },
     keys = {
       on_selection {
@@ -35,30 +34,85 @@ return {
       },
 
       key {
-        'lgtm',
-        proc {
-          fn { vim.cmd, 'wincmd l' },
-          fn { vim.cmd, 'wincmd l' },
-          fn { vim.cmd, 'wincmd l' },
+        'go',
+        fn {
+          when = { 'diff', in_this = 'window' },
           fn { vim.cmd, 'ClaudeCodeDiffAccept' },
+          or_else = fn {
+            -- when {},
+            fn { vim.cmd, 'Trouble lsp_definitions toggle' },
+            or_else = fn { vim.cmd, 'Trouble lsp_type_definitions toggle' },
+          },
         },
       },
 
       key {
         'new agent',
         proc {
-          fn { 'claudecode.setup', { terminal_cmd = 'claude' } },
+          fn {
+            'claudecode.setup',
+            {
+              terminal_cmd = 'claude',
+              terminal = {
+                split_side = 'left',
+                provider = 'native',
+              },
+              diff_opts = {
+                open_in_new_tab = true,
+              },
+              focus_after_send = true,
+            },
+          },
           fn { vim.cmd, 'ClaudeCode' },
-          fn { 'claudecode.setup', { terminal_cmd = 'claude --continue' } },
+          fn {
+            'claudecode.setup',
+            {
+              terminal_cmd = 'claude --continue',
+              terminal = {
+                split_side = 'left',
+                provider = 'native',
+              },
+              diff_opts = {
+                open_in_new_tab = true,
+              },
+              focus_after_send = true,
+            },
+          },
         },
       },
 
       auto_select {
         'select agent',
         proc {
-          fn { 'claudecode.setup', { terminal_cmd = 'claude --resume' } },
+          fn {
+            'claudecode.setup',
+            {
+              terminal_cmd = 'claude --resume',
+              terminal = {
+                split_side = 'left',
+                provider = 'native',
+              },
+              diff_opts = {
+                open_in_new_tab = true,
+              },
+              focus_after_send = true,
+            },
+          },
           fn { vim.cmd, 'ClaudeCode' },
-          fn { 'claudecode.setup', { terminal_cmd = 'claude --continue' } },
+          fn {
+            'claudecode.setup',
+            {
+              terminal_cmd = 'claude --continue',
+              terminal = {
+                split_side = 'left',
+                provider = 'native',
+              },
+              diff_opts = {
+                open_in_new_tab = true,
+              },
+              focus_after_send = true,
+            },
+          },
         },
       },
 
