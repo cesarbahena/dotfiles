@@ -14,6 +14,24 @@ M.connections = {
     ),
   },
 
+  {
+    name = 'adminte',
+    url = string.format(
+      'mysql://%s:%s@34.28.141.45:3306/promedic_laboratorio',
+      os.getenv 'ADMINTE_DB_USER' or 'username',
+      os.getenv 'ADMINTE_DB_PASS' or 'password'
+    ),
+  },
+
+  {
+    name = 'adminte-tunel',
+    url = string.format(
+      'mysql://%s:%s@34.28.141.45:3306/promedic_laboratorio',
+      os.getenv 'ADMINTE_DB_USER',
+      os.getenv 'ADMINTE_DB_PASS'
+    ),
+  },
+
   -- Authentication database (usernames, pandas table)
   {
     name = 'pandax',

@@ -3,9 +3,6 @@ return {
     'coder/claudecode.nvim',
     opts = {
       terminal_cmd = 'claude --continue',
-      -- terminal = {
-      --   provider = 'native',
-      -- },
       diff_opts = {
         open_in_new_tab = true,
       },
@@ -53,14 +50,10 @@ return {
             'claudecode.setup',
             {
               terminal_cmd = 'claude',
-              terminal = {
-                split_side = 'left',
-                provider = 'native',
-              },
+              focus_after_send = true,
               diff_opts = {
                 open_in_new_tab = true,
               },
-              focus_after_send = true,
             },
           },
           fn { vim.cmd, 'ClaudeCode' },
@@ -68,14 +61,10 @@ return {
             'claudecode.setup',
             {
               terminal_cmd = 'claude --continue',
-              terminal = {
-                split_side = 'left',
-                provider = 'native',
-              },
+              focus_after_send = true,
               diff_opts = {
                 open_in_new_tab = true,
               },
-              focus_after_send = true,
             },
           },
         },
@@ -88,14 +77,10 @@ return {
             'claudecode.setup',
             {
               terminal_cmd = 'claude --resume',
-              terminal = {
-                split_side = 'left',
-                provider = 'native',
-              },
+              focus_after_send = true,
               diff_opts = {
                 open_in_new_tab = true,
               },
-              focus_after_send = true,
             },
           },
           fn { vim.cmd, 'ClaudeCode' },
@@ -103,10 +88,6 @@ return {
             'claudecode.setup',
             {
               terminal_cmd = 'claude --continue',
-              terminal = {
-                split_side = 'left',
-                provider = 'native',
-              },
               diff_opts = {
                 open_in_new_tab = true,
               },

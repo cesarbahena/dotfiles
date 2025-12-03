@@ -1,5 +1,6 @@
 return {
   'stevearc/conform.nvim',
+  enabled = true,
   opts = {
     formatters_by_ft = {
       lua = { 'stylua' },
@@ -15,6 +16,7 @@ return {
       css = { 'prettier' },
       scss = { 'prettier' },
       vue = { 'prettier' },
+      java = { 'google-java-format' },
     },
     format_on_save = {
       timeout_ms = 500,

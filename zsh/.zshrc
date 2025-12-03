@@ -22,6 +22,7 @@ alias l='ls -CF'
 alias vi=nvim
 alias vim=nvim
 alias gs='git status'
+alias docker-compose='docker compose'
 
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
@@ -157,6 +158,13 @@ export PATH=$HOME/.npm-global/bin:$PATH
 export PATH=$HOME/.fzf/bin:$PATH
 export PATH=/usr/local/go/bin:$PATH
 
+# .NET SDK
+export DOTNET_ROOT=$HOME/.dotnet
+export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
+
+# SQL Server tools
+export PATH=$PATH:/opt/mssql-tools/bin
+
 # Cargo
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
@@ -236,3 +244,23 @@ bindkey '^p' fzf-history-widget
 # ===========================================================
 source ~/dotfiles/.env.local
 
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/home/cesar/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/cesar/anaconda3/etc/profile.d/conda.sh" ]; then
+        . "/home/cesar/anaconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/cesar/anaconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"

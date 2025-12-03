@@ -1,16 +1,18 @@
 return {
   cmd = { 'intelephense', '--stdio' },
-  filetypes = { 'php' },
+  filetypes = { 'php', 'blade' },
+  init_options = {
+    storagePath = vim.fn.stdpath('data') .. '/intelephense',
+  },
+  root_markers = { 'composer.json', '.git' },
   settings = {
     intelephense = {
       files = {
-        maxSize = 1000000,
+        maxSize = 10000000,
+        associations = { '*.php' },
       },
-      format = {
-        enable = true,
-      },
-      diagnostics = {
-        enable = true,
+      environment = {
+        includePaths = { 'vendor' },
       },
     },
   },

@@ -1,4 +1,5 @@
 local servers = {
+  'rust_analyzer',
   'lua_ls',
   'ts_ls',
   'pyright',
@@ -7,6 +8,8 @@ local servers = {
   'taplo',
   'marksman',
   'tailwindcss',
+  'jdtls',
+  'intelephense',
 }
 
 -- Global LSP configuration

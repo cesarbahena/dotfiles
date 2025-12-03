@@ -104,12 +104,16 @@ ssh_symbol = " "
 
 [java]
 symbol = " "
+format = " [$symbol$version]($style)"
+version_format = "$raw"
 
 [julia]
 symbol = " "
 
 [kotlin]
 symbol = " "
+format = " [$symbol$version]($style)"
+version_format = "$raw"
 
 [lua]
 symbol = " "
@@ -229,3 +233,5 @@ symbol = " "
 
 [gradle]
 symbol = " "
+format = " [$symbol$version]($style)"
+version_format = "$raw"

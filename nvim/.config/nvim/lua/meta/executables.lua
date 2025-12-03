@@ -8,6 +8,7 @@ return {
     'williamboman/mason-lspconfig.nvim',
     opts = {
       ensure_installed = {
+        'rust_analyzer',
         'lua_ls',
         'ts_ls',
         'pyright',
@@ -16,6 +17,7 @@ return {
         'taplo',
         'marksman',
         'tailwindcss',
+        'jdtls',
       },
     },
   },
@@ -27,6 +29,7 @@ return {
       ensure_installed = {
         'stylua',
         'prettier',
+        'google-java-format',
       },
     },
   },
