@@ -157,6 +157,7 @@ export PATH=$HOME/.local/bin:$PATH
 export PATH=$HOME/.npm-global/bin:$PATH
 export PATH=$HOME/.fzf/bin:$PATH
 export PATH=/usr/local/go/bin:$PATH
+export PATH=$HOME/.config/composer/vendor/bin:$PATH
 
 # .NET SDK
 export DOTNET_ROOT=$HOME/.dotnet
