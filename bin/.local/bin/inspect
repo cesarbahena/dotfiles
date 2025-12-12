@@ -290,7 +290,10 @@ list_files() {
         [[ $time_len -gt $max_time ]] && max_time=$time_len
     done
 
-    # Second pass: print with calculated widths
+    # Buffer to store all output lines
+    local output_buffer=()
+
+    # Second pass: collect output in buffer
     for file in "${files[@]}"; do
         [[ "$file" == "$target" ]] && continue
 
@@ -363,8 +366,9 @@ list_files() {
             size_suffix=" ${COLORS[size_large]}${size_human}${COLORS[reset]}"
         fi
 
-        # Print the line with proper spacing
-        printf "%b%b%b%*s  %b%*s  %b%b\n" \
+        # Build the line and add to buffer
+        local line
+        line=$(printf "%b%b%b%*s  %b%*s  %b%b" \
             "$owner_colored" \
             "$perm_color" \
             "$perm_subscript${COLORS[reset]}" \
@@ -372,8 +376,12 @@ list_files() {
             "$time_colored" \
             "$pad2" "" \
             "$colored_name" \
-            "$size_suffix"
+            "$size_suffix")
+        output_buffer+=("$line")
     done
+
+    # Print all buffered output at once
+    printf "%s\n" "${output_buffer[@]}"
 }
 
 # Execute listing
