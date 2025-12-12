@@ -133,19 +133,27 @@ get_git_status() {
 # Helper: Get permission color (returns just the color code)
 get_perm_color() {
     local perm="$1"
+    local file="$2"
     local color
 
-    # Check for dangerous patterns
-    if [[ "$perm" =~ 777|666 ]]; then
-        color="${COLORS[perm_danger]}"
-    elif [[ "$perm" =~ [0-9]7[0-9]|[0-9][0-9]7 ]]; then
-        color="${COLORS[perm_warning]}"
-    elif [[ "$perm" =~ 700|600|400 ]]; then
-        color="${COLORS[perm_secure]}"
-    elif [[ "$perm" =~ [1357]$ ]]; then
-        color="${COLORS[perm_exec]}"
+    # Extract the "others" permission (last digit)
+    local others="${perm: -1}"
+
+    # Exception: 755 directories (need to be traversable)
+    if [[ -d "$file" && "$perm" == "755" ]]; then
+        color="${COLORS[perm_secure]}"  # Green for standard directory
+    # Encouraged: 644 files (standard and safe)
+    elif [[ -f "$file" && "$perm" == "644" ]]; then
+        color="${COLORS[perm_secure]}"  # Green for standard file
+    # Security risk: others can write/execute (last digit > 4)
+    elif [[ $others -gt 4 ]]; then
+        color="${COLORS[perm_danger]}"  # Red for security risk (5,6,7)
+    # Docker warning: not readable by others (last digit < 4)
+    elif [[ $others -lt 4 ]]; then
+        color="${COLORS[perm_warning]}"  # Yellow for Docker-unfriendly
+    # Normal: others can read (last digit = 4)
     else
-        color="${COLORS[perm_normal]}"
+        color="${COLORS[reset]}"  # No color for normal 'r--' permissions
     fi
 
     printf "%s" "${color}"
@@ -310,7 +318,7 @@ list_files() {
         [[ -z "$git_stat" ]] && git_stat="clean"
 
         # Format components
-        local perm_color="$(get_perm_color "$perm_oct")"
+        local perm_color="$(get_perm_color "$perm_oct" "$file")"
         local owner_colored="$(colorize_owner "$owner" "$perm_oct" "$uid" "$gid")"
         local size_human="$(human_size "$size")"
         local size_colored="$(colorize_size "$size" "$size_human")"
