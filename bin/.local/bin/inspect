@@ -59,6 +59,7 @@ USAGE:
 OPTIONS:
   -h, --help       Show this help
   -a, --all        Show all files recursively
+  -s, --sizes      Show sizes for all files (default: only large files)
 
 COLOR CODING:
   Username/Owner:
@@ -98,10 +99,12 @@ EOF
 
 # Parse arguments
 RECURSE=0
+SHOW_ALL_SIZES=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help) show_help; exit 0 ;;
         -a|--all) RECURSE=1; shift ;;
+        -s|--sizes) SHOW_ALL_SIZES=1; shift ;;
         -*) echo "Unknown option: $1" >&2; exit 1 ;;
         *) TARGET="$1"; shift ;;
     esac
@@ -235,19 +238,19 @@ relative_time() {
     local diff=$((now - timestamp))
 
     if [[ $diff -lt 60 ]]; then
-        echo "just now"
+        echo "now"
     elif [[ $diff -lt 3600 ]]; then
-        echo "$((diff / 60))m ago"
+        echo "$((diff / 60))m"
     elif [[ $diff -lt 86400 ]]; then
-        echo "$((diff / 3600))h ago"
+        echo "$((diff / 3600))h"
     elif [[ $diff -lt 604800 ]]; then
-        echo "$((diff / 86400))d ago"
+        echo "$((diff / 86400))d"
     elif [[ $diff -lt 2592000 ]]; then
-        echo "$((diff / 604800))w ago"
+        echo "$((diff / 604800))w"
     elif [[ $diff -lt 31536000 ]]; then
-        echo "$((diff / 2592000))mo ago"
+        echo "$((diff / 2592000))mo"
     else
-        echo "$((diff / 31536000))y ago"
+        echo "$((diff / 31536000))y"
     fi
 }
 
@@ -266,7 +269,6 @@ list_files() {
 
     # First pass: calculate max widths
     local max_owner_perm=0
-    local max_size=0
     local max_time=0
 
     for file in "${files[@]}"; do
@@ -282,10 +284,6 @@ list_files() {
         local perm_len=3
         local owner_perm_total=$((owner_len + perm_len))
         [[ $owner_perm_total -gt $max_owner_perm ]] && max_owner_perm=$owner_perm_total
-
-        local size_human="$(human_size "$size")"
-        local size_len=${#size_human}
-        [[ $size_len -gt $max_size ]] && max_size=$size_len
 
         local time_rel="$(relative_time "$mtime")"
         local time_len=${#time_rel}
@@ -317,8 +315,9 @@ list_files() {
         local time_colored="$(colorize_time "$time_rel" "$git_stat")"
 
         # Get eza-style colored filename (strip ./ prefix including color codes)
+        # Use -d flag to treat directories as files, not list their contents
         local colored_name
-        colored_name="$(eza --color=always --oneline "$file" 2>/dev/null | tail -1 | sed -E 's|^(\x1b\[[0-9;]*m)*\./(\x1b\[[0-9;]*m)*||')"
+        colored_name="$(eza --color=always -d --oneline "$file" 2>/dev/null | tail -1 | sed -E 's|^(\x1b\[[0-9;]*m)*\./(\x1b\[[0-9;]*m)*||')"
         [[ -z "$colored_name" ]] && colored_name="$basename"
 
         # Format owner with subscript permissions using Unicode subscript digits
@@ -342,30 +341,38 @@ list_files() {
         # Calculate visible widths
         local owner_len=${#owner}
         local perm_len=3  # Subscripts are 3 chars (e.g., ₇₅₅)
-        local size_len=${#size_human}
         local time_len=${#time_rel}
 
         # Calculate padding needed (use dynamic max widths)
         local owner_perm_total=$((owner_len + perm_len))
         local pad1=$((max_owner_perm - owner_perm_total))
-        local pad2=$((max_size - size_len))
-        local pad3=$((max_time - time_len))
+        local pad2=$((max_time - time_len))
 
         [[ $pad1 -lt 0 ]] && pad1=0
         [[ $pad2 -lt 0 ]] && pad2=0
-        [[ $pad3 -lt 0 ]] && pad3=0
+
+        # Determine if we should show size
+        # Size threshold: show if > 10MB or if SHOW_ALL_SIZES flag is set
+        local size_suffix=""
+        local size_threshold=10485760  # 10MB in bytes
+
+        if [[ $SHOW_ALL_SIZES -eq 1 ]]; then
+            size_suffix=" ${size_colored}"
+        elif [[ $size -gt $size_threshold ]]; then
+            # Show large file warning in red/yellow
+            size_suffix=" ${COLORS[size_large]}${size_human}${COLORS[reset]}"
+        fi
 
         # Print the line with proper spacing
-        printf "%b%b%b%*s  %b%*s  %b%*s  %b\n" \
+        printf "%b%b%b%*s  %b%*s  %b%b\n" \
             "$owner_colored" \
             "$perm_color" \
             "$perm_subscript${COLORS[reset]}" \
             "$pad1" "" \
-            "$size_colored" \
-            "$pad2" "" \
             "$time_colored" \
-            "$pad3" "" \
-            "$colored_name"
+            "$pad2" "" \
+            "$colored_name" \
+            "$size_suffix"
     done
 }
 
