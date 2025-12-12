@@ -47,8 +47,6 @@ declare -A COLORS=(
 CURRENT_USER="$(whoami)"
 CURRENT_UID="$(id -u)"
 CURRENT_GROUPS="$(id -G)"
-TREE_LEVEL=1
-USE_TREE=1
 TARGET="."
 
 show_help() {
@@ -60,9 +58,7 @@ USAGE:
 
 OPTIONS:
   -h, --help       Show this help
-  -L, --level N    Tree depth (default: 1, 0 for list view)
-  -R, --recurse    Full recursion
-  --list           List view instead of tree
+  -a, --all        Show all files recursively
 
 COLOR CODING:
   Username/Owner:
@@ -93,21 +89,19 @@ COLOR CODING:
     White           Clean (committed)
 
 EXAMPLES:
-  inspect                  # Current dir, tree L1
-  inspect -L 3 ~/project   # Tree depth 3
-  inspect -L 0             # List view
-  inspect -R /etc/nginx    # Full recursive
+  inspect                  # Current directory
+  inspect ~/project        # Specific directory
+  inspect -a /etc/nginx    # Recursive listing
 
 EOF
 }
 
 # Parse arguments
+RECURSE=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help) show_help; exit 0 ;;
-        -L|--level) TREE_LEVEL="$2"; shift 2 ;;
-        -R|--recurse) TREE_LEVEL=999; shift ;;
-        --list) USE_TREE=0; shift ;;
+        -a|--all) RECURSE=1; shift ;;
         -*) echo "Unknown option: $1" >&2; exit 1 ;;
         *) TARGET="$1"; shift ;;
     esac
@@ -260,21 +254,45 @@ relative_time() {
 # Main listing function
 list_files() {
     local target="$1"
-    local prefix="$2"
-    local current_level="$3"
-    local max_level="$4"
-
-    # Stop if we've reached max depth
-    if [[ $USE_TREE -eq 1 && $current_level -gt $max_level ]]; then
-        return
-    fi
 
     # Get files (including hidden)
+    local find_opts="-maxdepth 1"
+    [[ $RECURSE -eq 1 ]] && find_opts=""
+
     local files=()
     while IFS= read -r -d $'\0' file; do
         files+=("$file")
-    done < <(find "$target" -maxdepth 1 -mindepth 0 -print0 2>/dev/null | sort -z)
+    done < <(find "$target" $find_opts -mindepth 1 -print0 2>/dev/null | sort -z)
 
+    # First pass: calculate max widths
+    local max_owner_perm=0
+    local max_size=0
+    local max_time=0
+
+    for file in "${files[@]}"; do
+        [[ "$file" == "$target" ]] && continue
+        local basename="$(basename "$file")"
+        [[ "$basename" == "." || "$basename" == ".." ]] && continue
+
+        local stat_output
+        stat_output="$(stat -c "%U %a %s %Y" "$file" 2>/dev/null)" || continue
+        read -r owner perm_oct size mtime <<< "$stat_output"
+
+        local owner_len=${#owner}
+        local perm_len=3
+        local owner_perm_total=$((owner_len + perm_len))
+        [[ $owner_perm_total -gt $max_owner_perm ]] && max_owner_perm=$owner_perm_total
+
+        local size_human="$(human_size "$size")"
+        local size_len=${#size_human}
+        [[ $size_len -gt $max_size ]] && max_size=$size_len
+
+        local time_rel="$(relative_time "$mtime")"
+        local time_len=${#time_rel}
+        [[ $time_len -gt $max_time ]] && max_time=$time_len
+    done
+
+    # Second pass: print with calculated widths
     for file in "${files[@]}"; do
         [[ "$file" == "$target" ]] && continue
 
@@ -298,17 +316,10 @@ list_files() {
         local time_rel="$(relative_time "$mtime")"
         local time_colored="$(colorize_time "$time_rel" "$git_stat")"
 
-        # Icon based on type
-        local icon=""
-        if [[ -d "$file" ]]; then
-            icon="📁"
-        elif [[ -x "$file" ]]; then
-            icon="⚙️ "
-        elif [[ -L "$file" ]]; then
-            icon="🔗"
-        else
-            icon="📄"
-        fi
+        # Get eza-style colored filename (strip ./ prefix including color codes)
+        local colored_name
+        colored_name="$(eza --color=always --oneline "$file" 2>/dev/null | tail -1 | sed -E 's|^(\x1b\[[0-9;]*m)*\./(\x1b\[[0-9;]*m)*||')"
+        [[ -z "$colored_name" ]] && colored_name="$basename"
 
         # Format owner with subscript permissions using Unicode subscript digits
         # Subscript mapping: 0₀ 1₁ 2₂ 3₃ 4₄ 5₅ 6₆ 7₇ 8₈ 9₉
@@ -328,23 +339,35 @@ list_files() {
             esac
         done
 
-        # Print the line: owner₇₅₅ size time icon filename
-        printf "%s%b%b%b  %b %12b  %s %s\n" \
-            "$prefix" \
+        # Calculate visible widths
+        local owner_len=${#owner}
+        local perm_len=3  # Subscripts are 3 chars (e.g., ₇₅₅)
+        local size_len=${#size_human}
+        local time_len=${#time_rel}
+
+        # Calculate padding needed (use dynamic max widths)
+        local owner_perm_total=$((owner_len + perm_len))
+        local pad1=$((max_owner_perm - owner_perm_total))
+        local pad2=$((max_size - size_len))
+        local pad3=$((max_time - time_len))
+
+        [[ $pad1 -lt 0 ]] && pad1=0
+        [[ $pad2 -lt 0 ]] && pad2=0
+        [[ $pad3 -lt 0 ]] && pad3=0
+
+        # Print the line with proper spacing
+        printf "%b%b%b%*s  %b%*s  %b%*s  %b\n" \
             "$owner_colored" \
             "$perm_color" \
             "$perm_subscript${COLORS[reset]}" \
+            "$pad1" "" \
             "$size_colored" \
+            "$pad2" "" \
             "$time_colored" \
-            "$icon" \
-            "$basename"
-
-        # Recurse into directories
-        if [[ -d "$file" && $USE_TREE -eq 1 ]]; then
-            list_files "$file" "${prefix}  " $((current_level + 1)) "$max_level"
-        fi
+            "$pad3" "" \
+            "$colored_name"
     done
 }
 
 # Execute listing
-list_files "$TARGET" "" 1 "$TREE_LEVEL"
+list_files "$TARGET"
