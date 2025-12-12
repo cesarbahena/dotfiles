@@ -133,8 +133,8 @@ get_git_status() {
     esac
 }
 
-# Helper: Colorize permission string
-colorize_perm() {
+# Helper: Get permission color (returns just the color code)
+get_perm_color() {
     local perm="$1"
     local color
 
@@ -151,7 +151,7 @@ colorize_perm() {
         color="${COLORS[perm_normal]}"
     fi
 
-    echo -e "${color}${perm}${COLORS[reset]}"
+    printf "%s" "${color}"
 }
 
 # Helper: Colorize size
@@ -170,7 +170,7 @@ colorize_size() {
         color="${COLORS[size_large]}"
     fi
 
-    echo -e "${color}${size_human}${COLORS[reset]}"
+    printf "%s" "${color}${size_human}${COLORS[reset]}"
 }
 
 # Helper: Colorize owner based on permissions
@@ -200,7 +200,7 @@ colorize_owner() {
         fi
     fi
 
-    echo -e "${color}${owner}${COLORS[reset]}"
+    printf "%s" "${color}${owner}${COLORS[reset]}"
 }
 
 # Helper: Colorize time based on git status
@@ -217,7 +217,7 @@ colorize_time() {
         *)         color="${COLORS[git_clean]}" ;;
     esac
 
-    echo -e "${color}${time_str}${COLORS[reset]}"
+    printf "%s" "${color}${time_str}${COLORS[reset]}"
 }
 
 # Helper: Human readable size
@@ -291,7 +291,7 @@ list_files() {
         [[ -z "$git_stat" ]] && git_stat="clean"
 
         # Format components
-        local perm_colored="$(colorize_perm "$perm_oct")"
+        local perm_color="$(get_perm_color "$perm_oct")"
         local owner_colored="$(colorize_owner "$owner" "$perm_oct" "$uid" "$gid")"
         local size_human="$(human_size "$size")"
         local size_colored="$(colorize_size "$size" "$size_human")"
@@ -310,12 +310,30 @@ list_files() {
             icon="📄"
         fi
 
-        # Print the line
-        printf "%s%s %-8s %s %6s %12s  %s %s\n" \
+        # Format owner with subscript permissions using Unicode subscript digits
+        # Subscript mapping: 0₀ 1₁ 2₂ 3₃ 4₄ 5₅ 6₆ 7₇ 8₈ 9₉
+        local perm_subscript=""
+        for (( i=0; i<${#perm_oct}; i++ )); do
+            case "${perm_oct:$i:1}" in
+                0) perm_subscript+="₀" ;;
+                1) perm_subscript+="₁" ;;
+                2) perm_subscript+="₂" ;;
+                3) perm_subscript+="₃" ;;
+                4) perm_subscript+="₄" ;;
+                5) perm_subscript+="₅" ;;
+                6) perm_subscript+="₆" ;;
+                7) perm_subscript+="₇" ;;
+                8) perm_subscript+="₈" ;;
+                9) perm_subscript+="₉" ;;
+            esac
+        done
+
+        # Print the line: owner₇₅₅ size time icon filename
+        printf "%s%b%b%b  %b %12b  %s %s\n" \
             "$prefix" \
-            "$perm_colored" \
             "$owner_colored" \
-            "$perm_oct" \
+            "$perm_color" \
+            "$perm_subscript${COLORS[reset]}" \
             "$size_colored" \
             "$time_colored" \
             "$icon" \
@@ -327,10 +345,6 @@ list_files() {
         fi
     done
 }
-
-# Print header
-echo -e "${COLORS[bold]}Permissions  Owner    Octal   Size      Modified      Name${COLORS[reset]}"
-echo "────────────────────────────────────────────────────────────────────────────────"
 
 # Execute listing
 list_files "$TARGET" "" 1 "$TREE_LEVEL"
