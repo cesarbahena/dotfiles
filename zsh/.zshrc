@@ -14,19 +14,22 @@ export EDITOR="nvim"
 # ============================================================
 # Aliases
 # ============================================================
-alias ls='ls --color=auto'
-alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
-
+alias ls='ls -AlFhX --group-directories-first --color=auto --hyperlink=auto'
+alias gs='git status'
 alias vi=nvim
 alias vim=nvim
-alias gs='git status'
-alias docker-compose='docker compose'
-
 alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
+
+alias docker-compose='docker compose'
+alias up='docker compose up -d'
+alias down='docker compose down'
+alias downdb='docker compose down -v'
+alias restart='docker compose down && docker compose up -d'
+alias restartdb='docker compose down -v && docker compose up -d'
+alias build='docker compose build --no-cache'
+alias logs='docker compose logs -f'
+alias in='docker compose exec'
+alias imin='docker compose exec -it'
 
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" \
 "$(history | tail -n1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
