@@ -1,0 +1,156 @@
+#!/bin/bash
+# vython - run Python inside a venv virtual environment
+# Auto-detects .venv or venv in current directory or parents
+# Usage:
+#   vython script.py [args...]  (run script)
+#   vython -c "code"            (inline code)
+#   vython [-c "code"] -i       (interactive REPL)
+#   vython --help               (show help)
+
+print_help() {
+    cat <<EOF
+vython - run Python inside a venv virtual environment
+
+Auto-detects .venv or venv folder in current or parent directories.
+
+USAGE:
+  vython <script.py> [args...]        Run a Python script
+  vython -c "code"                    Run inline Python code
+  vython [-c "code"] -i               Enter REPL after running code/script
+  vython -i                           Enter REPL directly
+  vython -h | --help                  Show this help
+
+EXAMPLES:
+  vython app/main.py
+  vython -c "import sys; print(sys.version)"
+  vython -c "print('hi')" -i
+  vython -i
+
+DETECTION:
+  Searches for .venv or venv in current directory, then parent directories.
+  Uses the first one found.
+EOF
+}
+
+# Global help
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    print_help
+    exit 0
+fi
+
+# Find venv directory (search current and parent directories)
+find_venv() {
+    local dir="$PWD"
+
+    # Search up to 5 levels up
+    for _ in {1..5}; do
+        # Check for .venv first (preferred)
+        if [[ -d "$dir/.venv" ]]; then
+            echo "$dir/.venv"
+            return 0
+        fi
+        # Then check for venv
+        if [[ -d "$dir/venv" ]]; then
+            echo "$dir/venv"
+            return 0
+        fi
+
+        # Move to parent directory
+        local parent="$(dirname "$dir")"
+        if [[ "$parent" == "$dir" ]]; then
+            # Reached root
+            break
+        fi
+        dir="$parent"
+    done
+
+    return 1
+}
+
+# Find the venv
+VENV_PATH=$(find_venv)
+
+if [[ -z "$VENV_PATH" ]]; then
+    echo "Error: No virtual environment found (.venv or venv)"
+    echo "Searched current directory and parents."
+    echo ""
+    echo "To create one: python -m venv .venv"
+    exit 1
+fi
+
+# Verify activation script exists
+ACTIVATE_SCRIPT="$VENV_PATH/bin/activate"
+if [[ ! -f "$ACTIVATE_SCRIPT" ]]; then
+    echo "Error: Virtual environment found but activation script missing:"
+    echo "  $ACTIVATE_SCRIPT"
+    exit 1
+fi
+
+# Parse arguments
+INLINE_CODE=""
+INTERACTIVE=0
+SCRIPT=""
+SCRIPT_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit 0
+            ;;
+        -c)
+            INLINE_CODE="$2"
+            shift 2
+            ;;
+        -i)
+            INTERACTIVE=1
+            shift
+            ;;
+        *)
+            SCRIPT="$1"
+            shift
+            SCRIPT_ARGS=("$@")
+            break
+            ;;
+    esac
+done
+
+# Activate venv and get Python path
+source "$ACTIVATE_SCRIPT"
+PYTHON_BIN="$VENV_PATH/bin/python"
+
+# Verify Python exists in venv
+if [[ ! -f "$PYTHON_BIN" ]]; then
+    echo "Error: Python not found in virtual environment:"
+    echo "  $PYTHON_BIN"
+    exit 1
+fi
+
+# --- Behavior modes ---
+# 1. Interactive REPL only
+if [[ -z "$INLINE_CODE" && -z "$SCRIPT" && $INTERACTIVE -eq 1 ]]; then
+    echo "Using venv: $VENV_PATH"
+    exec "$PYTHON_BIN" -i
+fi
+
+# 2. Inline code
+if [[ -n "$INLINE_CODE" ]]; then
+    if [[ $INTERACTIVE -eq 1 ]]; then
+        exec "$PYTHON_BIN" -c "$INLINE_CODE" -i
+    else
+        exec "$PYTHON_BIN" -c "$INLINE_CODE"
+    fi
+fi
+
+# 3. Script execution
+if [[ -n "$SCRIPT" ]]; then
+    if [[ $INTERACTIVE -eq 1 ]]; then
+        exec "$PYTHON_BIN" "$SCRIPT" "${SCRIPT_ARGS[@]}" -i
+    else
+        exec "$PYTHON_BIN" "$SCRIPT" "${SCRIPT_ARGS[@]}"
+    fi
+fi
+
+# 4. Default: Interactive REPL (no args)
+echo "Using venv: $VENV_PATH"
+exec "$PYTHON_BIN" -i
