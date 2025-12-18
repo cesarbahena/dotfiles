@@ -39,31 +39,24 @@ def find_venv(start_dir=None):
 
 
 def conda_env_exists(env_name):
-    """Check if a conda environment exists"""
-    # Fast path: Check if conda is installed at expected location
-    conda_bin = Path.home() / "anaconda3" / "bin" / "conda"
-    if not conda_bin.exists():
+    """Check if a conda environment exists by looking in the envs folder."""
+    # Avoid checking for names that are invalid as directory names
+    if '/' in env_name or '\\' in env_name or not env_name or env_name == '.':
         return False
 
-    try:
-        # Compatible with Python 3.6+
-        result = subprocess.run(
-            [str(conda_bin), "env", "list"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            check=True,
-            timeout=5  # Don't hang forever
-        )
-        # Parse conda env list output
-        for line in result.stdout.split('\n'):
-            if line.strip() and not line.startswith('#'):
-                parts = line.split()
-                if parts and parts[0] == env_name:
-                    return True
-        return False
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        return False
+    conda_locations = [Path.home() / "anaconda3", Path.home() / "miniconda3"]
+
+    if env_name == 'base':
+        # For 'base', just check if a conda installation directory exists.
+        return any(loc.is_dir() for loc in conda_locations)
+
+    for conda_base in conda_locations:
+        if conda_base.is_dir():
+            env_path = conda_base / "envs" / env_name
+            if env_path.is_dir():
+                return True
+    
+    return False
 
 
 def activate_venv(venv_path, python_args, show_venv=False):
@@ -82,32 +75,61 @@ def activate_venv(venv_path, python_args, show_venv=False):
 
 
 def activate_conda(env_name, python_args):
-    """Activate conda env and run python"""
-    # Get conda path
-    conda_base = Path.home() / "anaconda3"
-    conda_bin = conda_base / "bin" / "conda"
-
-    if not conda_bin.exists():
-        print("Error: conda not found at {}".format(conda_bin), file=sys.stderr)
+    """Activate conda env by directly executing its python binary."""
+    # Find conda installation
+    conda_base = None
+    conda_locations = [Path.home() / "anaconda3", Path.home() / "miniconda3"]
+    for loc in conda_locations:
+        if loc.is_dir():
+            conda_base = loc
+            break
+    
+    if not conda_base:
+        print("Error: conda installation not found (looked in ~/anaconda3, ~/miniconda3)", file=sys.stderr)
         sys.exit(1)
 
-    # Build python command with proper escaping
-    python_cmd_parts = []
-    for arg in python_args:
-        # Escape single quotes in arguments
-        escaped = arg.replace("'", "'\\''")
-        python_cmd_parts.append("'{}'".format(escaped))
+    if env_name == 'base':
+        python_bin = conda_base / "bin" / "python"
+    else:
+        python_bin = conda_base / "envs" / env_name / "bin" / "python"
 
-    python_cmd = ' '.join(python_cmd_parts)
+    if not python_bin.exists():
+        print("Error: Python not found in conda environment '{}'.".format(env_name), file=sys.stderr)
+        print("  Expected path: {}".format(python_bin), file=sys.stderr)
+        sys.exit(1)
 
-    # Create a shell script to activate conda and run python
-    shell_script = """
-eval "$({} shell.bash hook)" || exit 1
-conda activate "{}" || exit 1
-exec python {}
-""".format(conda_bin, env_name, python_cmd)
+    # Using execv is much faster than `conda activate`
+    os.execv(str(python_bin), [str(python_bin)] + python_args)
 
-    os.execv("/bin/bash", ["/bin/bash", "-c", shell_script])
+
+# Original slow activation logic, kept for reference
+# def _slow_activate_conda(env_name, python_args):
+#     """Activate conda env and run python"""
+#     # Get conda path
+#     conda_base = Path.home() / "anaconda3"
+#     conda_bin = conda_base / "bin" / "conda"
+# 
+#     if not conda_bin.exists():
+#         print("Error: conda not found at {}".format(conda_bin), file=sys.stderr)
+#         sys.exit(1)
+# 
+#     # Build python command with proper escaping
+#     python_cmd_parts = []
+#     for arg in python_args:
+#         # Escape single quotes in arguments
+#         escaped = arg.replace("'", "'\\''")
+#         python_cmd_parts.append("'{}'".format(escaped))
+# 
+#     python_cmd = ' '.join(python_cmd_parts)
+# 
+#     # Create a shell script to activate conda and run python
+#     shell_script = """
+# eval "$({} shell.bash hook)" || exit 1
+# conda activate "{}" || exit 1
+# exec python {}
+# """.format(conda_bin, env_name, python_cmd)
+# 
+#     os.execv("/bin/bash", ["/bin/bash", "-c", shell_script])
 
 
 def activate_global(python_args):
