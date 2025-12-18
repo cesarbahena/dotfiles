@@ -40,14 +40,20 @@ def find_venv(start_dir=None):
 
 def conda_env_exists(env_name):
     """Check if a conda environment exists"""
+    # Fast path: Check if conda is installed at expected location
+    conda_bin = Path.home() / "anaconda3" / "bin" / "conda"
+    if not conda_bin.exists():
+        return False
+
     try:
         # Compatible with Python 3.6+
         result = subprocess.run(
-            ["conda", "env", "list"],
+            [str(conda_bin), "env", "list"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True,
-            check=True
+            check=True,
+            timeout=5  # Don't hang forever
         )
         # Parse conda env list output
         for line in result.stdout.split('\n'):
@@ -56,7 +62,7 @@ def conda_env_exists(env_name):
                 if parts and parts[0] == env_name:
                     return True
         return False
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
         return False
 
 
@@ -104,32 +110,71 @@ exec python {}
     os.execv("/bin/bash", ["/bin/bash", "-c", shell_script])
 
 
+def activate_global(python_args):
+    """Run system Python with clean environment (escape hatch from conda/venv)"""
+    # Try to find system Python (prefer /usr/bin/python3)
+    system_python = None
+
+    for candidate in ["/usr/bin/python3", "/usr/bin/python", "/bin/python3", "/bin/python"]:
+        if os.path.exists(candidate):
+            system_python = candidate
+            break
+
+    if not system_python:
+        print("Error: Could not find system Python", file=sys.stderr)
+        print("Tried: /usr/bin/python3, /usr/bin/python, /bin/python3, /bin/python", file=sys.stderr)
+        sys.exit(1)
+
+    # Build clean environment without conda/venv pollution
+    clean_env = {
+        'HOME': os.environ.get('HOME', ''),
+        'USER': os.environ.get('USER', ''),
+        'LOGNAME': os.environ.get('LOGNAME', ''),
+        'SHELL': os.environ.get('SHELL', '/bin/bash'),
+        'TERM': os.environ.get('TERM', 'xterm'),
+        'PATH': '/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin',
+        'LANG': os.environ.get('LANG', 'en_US.UTF-8'),
+    }
+
+    # Execute with clean environment
+    os.execve(system_python, [system_python] + python_args, clean_env)
+
+
 def print_help():
     help_text = """py - unified Python environment runner
 
 USAGE:
-  py [--venv|--conda] [env] <script.py> [args...]  Run a Python script
-  py [--venv|--conda] [env] -c "code"              Run inline Python code
-  py [--venv|--conda] [env] -i                     Enter REPL
-  py [--venv|--conda] [env] -c "code" -i           Run code then REPL
-  py -h | --help                                   Show this help
+  py [--venv|--conda env] [script|module|command] [args...]
+  py ... -c "code"          Force command mode
+  py ... -m module          Force module mode
+  py ... -i                 Enter REPL
+  py -g ...                 Use system Python (escape hatch)
+  py -h | --help            Show this help
 
 MODES:
   --venv   Force virtual environment mode (searches for .venv or venv)
   --conda  Force conda environment mode (requires env name)
+  -g       Use system Python with clean environment (ignores activated conda/venv)
+  -c       Run a command string
+  -m       Run a library module
 
 AUTO-DETECTION:
-  If first argument is a directory path, uses venv mode
-  If first argument is a string (not a directory), tries conda mode
-  Warns if ambiguous but continues (prefers venv)
+  - Environment: If the first argument is a directory, a venv is assumed.
+    If it's a string that matches a conda environment, that is used.
+  - Execution: If no -c or -m flag is provided, py tries to be smart:
+    - If arg is a file/dir           -> runs as a script
+    - If arg contains '.' but not a file -> runs with -m
+    - If arg is quoted with spaces   -> runs with -c
+    - Otherwise, it's treated as a script path.
 
 EXAMPLES:
-  py -i                          # Use venv in current/parent dir
-  py ml train.py                 # Use conda env 'ml'
-  py . app/main.py               # Use venv in current dir
-  py /path/to/project script.py  # Use venv in /path/to/project
-  py --conda ml -c "print(42)"   # Force conda mode
-  py --venv -i                   # Force venv mode
+  py -i                          # Use venv in current/parent dir, start REPL
+  py ml train.py                 # Use conda env 'ml' to run train.py
+  py . app/main.py               # Use venv in current dir to run app/main.py
+  py http.server 8000            # Smart-detects and runs 'python -m http.server 8000'
+  py "import sys; print(sys.version)" # Smart-detects and runs with -c
+  py --conda ml -m my_module     # Force conda mode and module execution
+  py -g script.py                # Use system Python (even inside conda/venv)
 """
     print(help_text)
 
@@ -139,6 +184,32 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help']:
         print_help()
         sys.exit(0)
+
+    # Handle global/system Python mode early (escape hatch)
+    if len(sys.argv) > 1 and sys.argv[1] == '-g':
+        # Parse remaining Python arguments
+        python_args = []
+        args = sys.argv[2:]
+
+        if not args:
+            # No arguments - interactive mode
+            python_args = ['-i']
+        else:
+            # Parse arguments
+            while args:
+                if args[0] == '-c' and len(args) > 1:
+                    python_args.extend(['-c', args[1]])
+                    args = args[2:]
+                elif args[0] == '-i':
+                    python_args.append('-i')
+                    args = args[1:]
+                else:
+                    # Script and its arguments
+                    python_args.extend(args)
+                    break
+
+        activate_global(python_args)
+        # activate_global calls exec, so we never return here
 
     # Parse mode flags
     force_mode = None
@@ -169,7 +240,24 @@ def main():
         else:
             # Auto-detect
             is_dir = os.path.isdir(potential_env) or potential_env == '.'
-            is_conda = conda_env_exists(potential_env)
+
+            # Optimization: Skip expensive conda check in obvious cases
+            # If it looks like a path or has .py extension, it's not a conda env
+            looks_like_conda_env = (
+                not ('/' in potential_env or '\\' in potential_env) and
+                not potential_env.endswith('.py')
+            )
+
+            # Only check conda if it could plausibly be a conda env name
+            if looks_like_conda_env and not is_dir:
+                # Not a dir, might be conda env
+                is_conda = conda_env_exists(potential_env)
+            elif looks_like_conda_env and is_dir:
+                # It's a dir, but check if it's also a conda env (rare ambiguous case)
+                is_conda = conda_env_exists(potential_env)
+            else:
+                # Definitely not a conda env (has path separators or .py extension)
+                is_conda = False
 
             if is_dir and is_conda:
                 # Ambiguous case
