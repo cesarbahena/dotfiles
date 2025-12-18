@@ -1,28 +1,28 @@
 #!/bin/bash
-# usepy - run Python inside a specific conda environment
+# bython - run Python inside a specific conda environment
 # Usage:
-#   usepy <env>                      (activate only)
-#   usepy <env> script.py [args...]  (run script)
-#   usepy <env> -c "code"            (inline code)
-#   usepy <env> [-c "code"] -i       (interactive REPL)
-#   usepy --help                     (show help)
+#   bython <env>                      (activate only)
+#   bython <env> script.py [args...]  (run script)
+#   bython <env> -c "code"            (inline code)
+#   bython <env> [-c "code"] -i       (interactive REPL)
+#   bython --help                     (show help)
 
 print_help() {
     cat <<EOF
-usepy - run Python inside a Conda environment
+bython - run Python inside a Conda environment
 
 USAGE:
-  usepy <env>                        Activate environment only
-  usepy <env> <script.py> [args...]  Run a Python script
-  usepy <env> -c "code"              Run inline Python code
-  usepy <env> [-c "code"] -i         Enter REPL after running code/script
-  usepy -h | --help                  Show this help
+  bython <env>                        Activate environment only
+  bython <env> <script.py> [args...]  Run a Python script
+  bython <env> -c "code"              Run inline Python code
+  bython <env> [-c "code"] -i         Enter REPL after running code/script
+  bython -h | --help                  Show this help
 
 EXAMPLES:
-  usepy ml train.py --epochs 10
-  usepy data -c "print(42)"
-  usepy vision -c "print('hi')" -i
-  usepy ds -i
+  bython ml train.py --epochs 10
+  bython data -c "print(42)"
+  bython vision -c "print('hi')" -i
+  bython ds -i
 EOF
 }
 
@@ -37,7 +37,7 @@ shift
 
 if [ -z "$ENV_NAME" ]; then
     echo "Error: No environment name provided."
-    echo "Run 'usepy --help' for usage."
+    echo "Run 'bython --help' for usage."
     exit 1
 fi
 

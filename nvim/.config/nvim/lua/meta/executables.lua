@@ -8,10 +8,12 @@ return {
     'williamboman/mason-lspconfig.nvim',
     opts = {
       ensure_installed = {
-        'rust_analyzer',
         'lua_ls',
         'ts_ls',
+        'ruff',
         'pyright',
+        'intelephense',
+        'rust_analyzer',
         'jsonls',
         'yamlls',
         'taplo',
