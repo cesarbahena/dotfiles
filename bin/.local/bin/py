@@ -60,8 +60,9 @@ def conda_env_exists(env_name):
 
 
 def activate_venv(venv_path, python_args, show_venv=False):
-    """Activate venv and run python"""
+    """Activate venv with smart fast-path detection."""
     python_bin = venv_path / "bin" / "python"
+    activate_script = venv_path / "bin" / "activate"
 
     if not python_bin.exists():
         print("Error: Python not found in virtual environment:", file=sys.stderr)
@@ -71,65 +72,95 @@ def activate_venv(venv_path, python_args, show_venv=False):
     if show_venv:
         print("Using venv: {}".format(venv_path), file=sys.stderr)
 
-    os.execv(str(python_bin), [str(python_bin)] + python_args)
+    # FAST PATH: Already in the target venv (~1ms)
+    current_venv = os.environ.get('VIRTUAL_ENV')
+    if current_venv and Path(current_venv).resolve() == venv_path.resolve():
+        # Already in correct venv, just exec
+        env = os.environ.copy()
+        os.execve(str(python_bin), [str(python_bin)] + python_args, env)
+
+    # NORMAL PATH: Source activate script for reliability
+    if activate_script.exists():
+        # Build python command with proper escaping
+        python_cmd_parts = []
+        for arg in python_args:
+            escaped = arg.replace("'", "'\\''")
+            python_cmd_parts.append("'{}'".format(escaped))
+        python_cmd = ' '.join(python_cmd_parts)
+
+        shell_script = """
+source "{}" || exit 1
+exec python {}
+""".format(activate_script, python_cmd)
+        os.execv("/bin/bash", ["/bin/bash", "-c", shell_script])
+    else:
+        # Fallback: direct exec with env vars (activate script missing)
+        env = os.environ.copy()
+        env['VIRTUAL_ENV'] = str(venv_path)
+        env['PATH'] = str(venv_path / "bin") + ":" + env.get('PATH', '')
+        os.execve(str(python_bin), [str(python_bin)] + python_args, env)
 
 
 def activate_conda(env_name, python_args):
-    """Activate conda env by directly executing its python binary."""
-    # Find conda installation
+    """Activate conda env with smart fast-path detection."""
+    current_env = os.environ.get('CONDA_DEFAULT_ENV')
+    conda_prefix = os.environ.get('CONDA_PREFIX')
+
+    # FAST PATH: Already in the target environment (~1ms)
+    if current_env == env_name and conda_prefix:
+        python_bin = Path(conda_prefix) / "bin" / "python"
+        if python_bin.exists():
+            # Inherit all conda environment variables, just exec
+            env = os.environ.copy()
+            os.execve(str(python_bin), [str(python_bin)] + python_args, env)
+
+    # MEDIUM PATH: Conda initialized, just switch environments (~200ms)
+    if 'CONDA_EXE' in os.environ:
+        conda_exe = os.environ['CONDA_EXE']
+        # Build python command with proper escaping
+        python_cmd_parts = []
+        for arg in python_args:
+            escaped = arg.replace("'", "'\\''")
+            python_cmd_parts.append("'{}'".format(escaped))
+        python_cmd = ' '.join(python_cmd_parts)
+
+        shell_script = """
+eval "$({}) shell.bash hook)" || exit 1
+conda activate "{}" || exit 1
+exec python {}
+""".format(conda_exe, env_name, python_cmd)
+        os.execv("/bin/bash", ["/bin/bash", "-c", shell_script])
+
+    # SLOW PATH: Conda not initialized, full setup (~300ms for stateless shells)
     conda_base = None
     conda_locations = [Path.home() / "anaconda3", Path.home() / "miniconda3"]
     for loc in conda_locations:
         if loc.is_dir():
             conda_base = loc
             break
-    
+
     if not conda_base:
         print("Error: conda installation not found (looked in ~/anaconda3, ~/miniconda3)", file=sys.stderr)
         sys.exit(1)
 
-    if env_name == 'base':
-        python_bin = conda_base / "bin" / "python"
-    else:
-        python_bin = conda_base / "envs" / env_name / "bin" / "python"
-
-    if not python_bin.exists():
-        print("Error: Python not found in conda environment '{}'.".format(env_name), file=sys.stderr)
-        print("  Expected path: {}".format(python_bin), file=sys.stderr)
+    conda_bin = conda_base / "bin" / "conda"
+    if not conda_bin.exists():
+        print("Error: conda binary not found at {}".format(conda_bin), file=sys.stderr)
         sys.exit(1)
 
-    # Using execv is much faster than `conda activate`
-    os.execv(str(python_bin), [str(python_bin)] + python_args)
+    # Build python command with proper escaping
+    python_cmd_parts = []
+    for arg in python_args:
+        escaped = arg.replace("'", "'\\''")
+        python_cmd_parts.append("'{}'".format(escaped))
+    python_cmd = ' '.join(python_cmd_parts)
 
-
-# Original slow activation logic, kept for reference
-# def _slow_activate_conda(env_name, python_args):
-#     """Activate conda env and run python"""
-#     # Get conda path
-#     conda_base = Path.home() / "anaconda3"
-#     conda_bin = conda_base / "bin" / "conda"
-# 
-#     if not conda_bin.exists():
-#         print("Error: conda not found at {}".format(conda_bin), file=sys.stderr)
-#         sys.exit(1)
-# 
-#     # Build python command with proper escaping
-#     python_cmd_parts = []
-#     for arg in python_args:
-#         # Escape single quotes in arguments
-#         escaped = arg.replace("'", "'\\''")
-#         python_cmd_parts.append("'{}'".format(escaped))
-# 
-#     python_cmd = ' '.join(python_cmd_parts)
-# 
-#     # Create a shell script to activate conda and run python
-#     shell_script = """
-# eval "$({} shell.bash hook)" || exit 1
-# conda activate "{}" || exit 1
-# exec python {}
-# """.format(conda_bin, env_name, python_cmd)
-# 
-#     os.execv("/bin/bash", ["/bin/bash", "-c", shell_script])
+    shell_script = """
+eval "$({} shell.bash hook)" || exit 1
+conda activate "{}" || exit 1
+exec python {}
+""".format(conda_bin, env_name, python_cmd)
+    os.execv("/bin/bash", ["/bin/bash", "-c", shell_script])
 
 
 def activate_global(python_args):
@@ -242,8 +273,9 @@ def _parse_python_execution_args(args):
         elif ' ' in first_arg or '(' in first_arg:
             # Contains a space or parenthesis -> likely a command string
             python_args = ['-c'] + args
-        elif '.' in first_arg:
-            # Not a file, but has a dot -> likely a module
+        elif '.' in first_arg and not first_arg.startswith('.') and '/' not in first_arg:
+            # Has internal dots, not a path or hidden file -> likely a module
+            # Examples: http.server, my.module (not ./script, .config, ../)
             python_args = ['-m'] + args
         else:
             # Default: treat as a script path. Python will error if not found.
