@@ -14,7 +14,7 @@ export EDITOR="nvim"
 # ============================================================
 # Aliases
 # ============================================================
-alias ls='ls -AlFhX --group-directories-first --color=auto --hyperlink=auto'
+alias ls='eza -alnoT --no-permissions --no-filesize --smart-group --time-style=relative --git --icons --group-directories-first -L=1'
 alias gs='git status'
 alias vi=nvim
 alias vim=nvim
@@ -248,7 +248,9 @@ bindkey '^p' fzf-history-widget
 # ===========================================================
 source ~/dotfiles/.env.local
 
-
+# ============================================================
+# conda
+# ===========================================================
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/home/cesar/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
