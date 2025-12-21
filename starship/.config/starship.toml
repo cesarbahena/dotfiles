@@ -49,9 +49,6 @@ symbol = " "
 [cmake]
 symbol = " "
 
-[conda]
-symbol = " "
-
 [crystal]
 symbol = " "
 
@@ -210,6 +207,12 @@ symbol = "󰏗 "
 symbol = " "
 format = " [$symbol$version]($style)"
 version_format = "$raw"
+
+[conda]
+format = " [$symbol$environment]($style)"
+symbol = " "
+style = "green"
+truncation_length = 1
 
 [rlang]
 symbol = "󰟔 "
