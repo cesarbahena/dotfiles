@@ -205,7 +205,7 @@ symbol = "󰏗 "
 
 [python]
 symbol = " "
-format = " [$symbol$version]($style)"
+format = " [$symbol$virtualenv]($style)"
 version_format = "$raw"
 
 [conda]
