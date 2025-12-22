@@ -21,6 +21,7 @@ alias vim=nvim
 alias grep='grep --color=auto'
 
 alias get='sudo apt update && sudo apt install -y'
+alias activate='source .venv/bin/activate'
 
 alias docker-compose='docker compose'
 alias up='docker compose up -d'

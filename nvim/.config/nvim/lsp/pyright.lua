@@ -11,6 +11,7 @@ return {
         useLibraryCodeForTypes = true,
         diagnosticMode = 'openFilesOnly', -- or 'workspace' for full project analysis
         typeCheckingMode = 'basic', -- 'off', 'basic', or 'strict'
+        autoImportCompletions = true,
       },
     },
   },
