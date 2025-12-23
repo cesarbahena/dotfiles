@@ -14,7 +14,7 @@ export EDITOR="nvim"
 # ============================================================
 # Aliases
 # ============================================================
-alias ls='eza -alnoT --no-permissions --no-filesize --smart-group --time-style=relative --git --icons --group-directories-first -L=1'
+alias l='eza -alnoT --no-permissions --no-filesize --smart-group --time-style=relative --git --icons --group-directories-first -L=1'
 alias gs='git status'
 alias vi=nvim
 alias vim=nvim

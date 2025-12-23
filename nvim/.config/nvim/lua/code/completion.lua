@@ -51,15 +51,12 @@ return {
             transform_items = function(_, items)
               for _, item in ipairs(items) do
                 -- Boost Effect gen and fn completions
-                if item.label and (
-                  item.label:match("^gen%(") or 
-                  item.label:match("^fn%(")
-                ) then
+                if item.label and (item.label:match '^gen%(' or item.label:match '^fn%(') then
                   item.score_offset = (item.score_offset or 0) + 100
                 end
               end
               return items
-            end
+            end,
           },
           dadbod = {
             name = 'Dadbod',
@@ -146,7 +143,7 @@ return {
   },
   {
     'zbirenbaum/copilot.lua',
-    enabled = false,
+    enabled = true,
     cmd = 'Copilot',
     build = ':Copilot auth',
     event = 'InsertEnter',
@@ -154,7 +151,7 @@ return {
       suggestion = {
         auto_trigger = true,
         keymap = {
-          accept = '<c-y>',
+          accept = '<F4>',
         },
       },
     },
