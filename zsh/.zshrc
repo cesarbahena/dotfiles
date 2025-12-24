@@ -37,6 +37,7 @@ alias imin='docker compose exec -it'
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" \
 "$(history | tail -n1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
+alias adbw="/mnt/c/platform-tools/adb.exe"
 # Load extra aliases if file exists
 [ -f ~/.bash_aliases ] && source ~/.bash_aliases
 
@@ -174,12 +175,13 @@ export PATH=$PATH:/opt/mssql-tools/bin
 
 # Cargo
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
-
-# opencode
+export ANDROID_HOME=~/Android/Sdk
 export PATH=/home/cesar/.opencode/bin:$PATH
 
 # Microsoft CLI
 export PATH="$PATH:/mnt/c/Tools/msgraph/"
+
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
 # ============================================================
 # Prompt handled by Starship
 # ============================================================
@@ -269,11 +271,6 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-
-#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
-export SDKMAN_DIR="$HOME/.sdkman"
-[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
-
 # >>> mamba initialize >>>
 # !! Contents within this block are managed by 'mamba shell init' !!
 export MAMBA_EXE='/home/cesar/miniforge3/bin/mamba';
@@ -286,3 +283,6 @@ else
 fi
 unset __mamba_setup
 # <<< mamba initialize <<<
+
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
