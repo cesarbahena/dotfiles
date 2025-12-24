@@ -47,20 +47,8 @@ return {
           condition = { true },
         },
         {
-          text = {
-            function(args)
-              if args.relnum == 0 then
-                -- Current line: 1 space + caret (red if dx, green otherwise)
-                local diagnostics = vim.diagnostic.get(0, { lnum = args.lnum - 1 })
-                local caret_hl = #diagnostics > 0 and 'DiagnosticSignError' or 'DiagnosticSignOk'
-                return ' %#' .. caret_hl .. '#❯%*'
-              else
-                -- Non-current line: 2 spaces
-                return '  '
-              end
-            end,
-          },
-          maxwidth = 3,
+          text = { ' ' },
+          maxwidth = 1,
         },
         { sign = { namespace = { 'gitsigns' }, maxwidth = 1, colwidth = 1, fillchar = ' ' } },
       },

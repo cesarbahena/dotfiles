@@ -2,7 +2,7 @@ return {
   {
     'rebelot/heirline.nvim',
     lazy = false,
-    dependencies = { 'echasnovski/mini.icons', 'linrongbin16/lsp-progress.nvim' },
+    dependencies = { 'echasnovski/mini.icons' },
     config = function()
       fn 'mini.icons.mock_nvim_web_devicons'()
 
@@ -41,7 +41,7 @@ return {
           local windows = vim.api.nvim_tabpage_list_wins(0)
           for _, win in ipairs(windows) do
             if vim.api.nvim_win_get_config(win).relative == '' then
-              return win  -- Return the first normal window (1,1)
+              return win -- Return the first normal window (1,1)
             end
           end
           return current_win
@@ -156,7 +156,7 @@ return {
       local Align = { provider = '%=' }
 
       vim.o.showtabline = 2 -- Always show tabline
-      vim.o.laststatus = 0 -- Global statusline
+      vim.o.laststatus = 0 -- Hide statusline
 
       -- Left side components
       local LeftSide = {
@@ -174,7 +174,6 @@ return {
       fn {
         'heirline.setup',
         {
-          statusline = {},
           tabline = {
             {
               provider = function() return vim.fn.fnamemodify(vim.fn.getcwd(), ':~') end,
@@ -212,54 +211,41 @@ return {
               hl = { fg = 'GitSignsChange', bold = true },
             },
             {
+              provider = function()
+                local diagnostics = vim.diagnostic.get(0)
+                local has_errors = false
+                for _, diag in ipairs(diagnostics) do
+                  if diag.severity == vim.diagnostic.severity.ERROR then
+                    has_errors = true
+                    break
+                  end
+                end
+                return '❯'
+              end,
+              hl = function()
+                local diagnostics = vim.diagnostic.get(0)
+                local has_errors = false
+                for _, diag in ipairs(diagnostics) do
+                  if diag.severity == vim.diagnostic.severity.ERROR then
+                    has_errors = true
+                    break
+                  end
+                end
+                return { fg = has_errors and '#E82424' or '#87C563' }
+              end,
+              update = { 'DiagnosticChanged', 'BufEnter' },
+            },
+            {
               static = {
                 excluded = { 'copilot', 'efm', 'null-ls', 'conform' },
-                is_refreshing = false,
-                refresh_timer = nil,
                 -- Cache colors for zsh-style syntax highlighting using theme palette
                 colors = {
                   working = 'GitSignsAdd', -- Valid LSP server (green like valid commands)
                   error = 'ErrorMsg', -- LSP with errors (red like unknown tokens)
                   fallback = 'Type', -- nvim fallback (blue like shell functions)
                 },
-                start_refresh_cycle = function(self)
-                  if self.refresh_timer then self.refresh_timer:stop() end
-
-                  local function refresh()
-                    if self.is_refreshing then
-                      vim.cmd 'redrawtabline'
-                      self.refresh_timer = vim.defer_fn(refresh, 200) -- 200ms refresh rate
-                    end
-                  end
-
-                  refresh()
-                end,
-                stop_refresh_cycle = function(self)
-                  if self.refresh_timer then
-                    self.refresh_timer:stop()
-                    self.refresh_timer = nil
-                  end
-                  vim.cmd 'redrawtabline' -- Final redraw to show completion
-                end,
               },
               init = function(self)
-                -- Check if LSP work is happening and manage refresh cycle
-                local ok, lsp_progress = pcall(require, 'lsp-progress')
-                if ok then
-                  local progress = lsp_progress.progress()
-                  local has_progress = progress ~= ''
-
-                  if has_progress and not self.is_refreshing then
-                    -- Start refresh cycle when LSP work begins
-                    self.is_refreshing = true
-                    self:start_refresh_cycle()
-                  elseif not has_progress and self.is_refreshing then
-                    -- Stop refresh cycle when LSP work is done
-                    self.is_refreshing = false
-                    self:stop_refresh_cycle()
-                  end
-                end
-
                 -- Cache LSP status for color coding
                 local buf_clients = vim.lsp.get_clients { bufnr = 0 }
                 local active_servers = {}
@@ -322,22 +308,13 @@ return {
               provider = function(self)
                 -- If we expect an LSP but don't have one, show the expected server name
                 if self.status == 'error' and self.expected_server then
-                  local ok, lsp_progress = pcall(require, 'lsp-progress')
-                  local lsp_indicator = '  '
-                  if ok then
-                    local progress = lsp_progress.progress()
-                    lsp_indicator = progress ~= '' and (progress .. ' ') or '  '
-                  end
-                  return lsp_indicator .. self.expected_server
+                  return self.expected_server
                 else
                   -- Use the normal LSP component logic
                   return require('ui.components.lsp').server()
                 end
               end,
-              update = {
-                'User',
-                pattern = 'LspProgressStatusUpdated',
-              },
+              update = { 'LspAttach', 'LspDetach', 'BufEnter' },
               hl = function(self)
                 -- Use cached status for zsh-style color coding
                 if self.status == 'error' then
@@ -389,24 +366,9 @@ return {
       })
     end,
   },
-  {
-    'linrongbin16/lsp-progress.nvim',
-    opts = {
-      spinner = { '⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏' },
-      spin_update_time = 100,
-      decay = 700,
-      series_format = function(title, message, percentage, done) return title end,
-      client_format = function(client_name, spinner, series_messages)
-        if #series_messages == 0 then return nil end
-        return {
-          name = client_name,
-          body = spinner,
-        }
-      end,
-      format = function(client_messages)
-        if #client_messages > 0 then return client_messages[1].body end
-        return ''
-      end,
-    },
-  },
+  -- Disabled: spinner removed from statusline
+  -- {
+  --   'linrongbin16/lsp-progress.nvim',
+  --   opts = {},
+  -- },
 }
