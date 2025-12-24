@@ -22,6 +22,7 @@ alias grep='grep --color=auto'
 
 alias get='sudo apt update && sudo apt install -y'
 alias activate='source .venv/bin/activate'
+alias npmg="l $HOME/.nvm/versions/node/$(node -v)/bin"
 
 alias docker-compose='docker compose'
 alias up='docker compose up -d'
