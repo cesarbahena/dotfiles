@@ -24,20 +24,139 @@ warning() {
     echo -e "${YELLOW}WARNING: $1${NC}"
 }
 
+# Function to check if file contains "dont commit" variations
+contains_dont_commit() {
+    local file="$1"
+    grep -qiE "(don't|dont|do not) commit" "$file" 2>/dev/null
+}
+
+# Function to show next action (state machine)
+show_what() {
+    # Auto-init repo if needed
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        git init >/dev/null 2>&1
+    fi
+
+    # Check for merge conflicts
+    if git diff --name-only --diff-filter=U 2>/dev/null | grep -q .; then
+        echo "ABORT: Merge conflicts detected"
+        echo "Return to parent agent"
+        exit 1
+    fi
+
+    # Case A: Has staged files
+    STAGED=$(git diff --cached --name-only 2>/dev/null)
+    if [ -n "$STAGED" ]; then
+        LAST_COMMIT=$(git log -1 --format="%cd" --date=format:"%Y-%m-%d %H:%M" 2>/dev/null || echo "1970-01-01 00:00")
+
+        echo "Estimate a date YYYY-MM-DD and time HH:mm since $LAST_COMMIT enough to make these changes:"
+        git diff --staged
+        echo ""
+        echo "Commit with git backdate DATE TIME \"message\""
+        exit 0
+    fi
+
+    # Case B: Has untracked or unstaged
+    UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null | while read -r f; do
+        contains_dont_commit "$f" || echo "$f"
+    done)
+    UNSTAGED=$(git diff --name-only 2>/dev/null)
+
+    if [ -n "$UNTRACKED" ] || [ -n "$UNSTAGED" ]; then
+        echo "Make 1 group of related changes:"
+        echo ""
+        git backdate which
+        echo "Add with: git backdate add <files>"
+        echo "Commit with: git backdate DATE TIME \"message\""
+        exit 0
+    fi
+
+    # Case C: Clean
+    echo "JOB FINISHED: Working tree clean"
+    exit 0
+}
+
+# Function to show token-efficient report
+show_which() {
+    # Show untracked files (excluding "dont commit")
+    git ls-files --others --exclude-standard 2>/dev/null | while read -r file; do
+        if ! contains_dont_commit "$file"; then
+            echo "UNTRACKED|$file"
+            cat "$file" | sed -En '
+                s/[ \t]+/ /g;
+                s/^[ \t]+//;
+                s/[ \t]+$//;
+                /^$/d;
+                1,500p
+            '
+        fi
+    done
+
+    # Show unstaged changes
+    git diff --name-only 2>/dev/null | while read -r file; do
+        echo "UNSTAGED|$file"
+        git diff -U2 "$file" | grep -vE '^(index |diff --git |@@ |--- |\+\+\+ )' | sed -En 's/^[ \t]+$//; /^$/d; 1,500p'
+    done
+
+    exit 0
+}
+
+# Function to safely add files
+do_add() {
+    if [ $# -eq 0 ]; then
+        error_exit "No files specified. Usage: git backdate add <file1> <file2> ..."
+    fi
+
+    # Check for '.' argument
+    for arg in "$@"; do
+        if [ "$arg" = "." ]; then
+            error_exit "Cannot use '.' - specify files explicitly"
+        fi
+    done
+
+    # Check each file for "dont commit"
+    for file in "$@"; do
+        if [ -f "$file" ] && contains_dont_commit "$file"; then
+            error_exit "Cannot add '$file' - contains 'dont commit' directive"
+        fi
+    done
+
+    # All checks passed, add files
+    git add "$@"
+    exit 0
+}
+
 # Function to show help
 show_help() {
     cat << 'EOF'
 git-backdate - Create backdated commits with work hour validation
 
 SYNOPSIS:
+    git backdate what
+    git backdate which
+    git backdate add <file> [<file>...]
     git backdate [--overtime] <YYYY-MM-DD> <HH:MM> <message>
 
 DESCRIPTION:
     Git external command that creates commits with custom backdated timestamps
     while enforcing realistic work patterns. Designed for LLM agents to maintain
-    organic commit histories.
-    
+    organic commit histories through a state machine workflow.
+
     This command is discoverable via 'git help -a' under "External commands".
+
+SUBCOMMANDS:
+    what    Show next action in commit workflow (state machine)
+            Examines git state and outputs single instruction for LLM.
+            Auto-initializes repo if needed. After successful commits,
+            this is called automatically to show next step.
+
+    which   Show token-efficient report of untracked and unstaged files
+            Outputs file paths with trimmed content for LLM grouping.
+            Files containing "dont commit" are excluded.
+
+    add     Safely stage files for commit
+            Prevents staging files with "dont commit" directives.
+            Prevents using '.' - requires explicit file listing.
 
 ARGUMENTS:
     <YYYY-MM-DD>    Commit date (e.g., 2025-01-15)
@@ -68,13 +187,28 @@ OUTPUT:
     - Working tree status
 
 EXAMPLES:
-    # Regular work hour commit
+    # LLM agent workflow
+    $ git backdate what
+    Make 1 group of related changes:
+    UNTRACKED|newfile.js
+    ...
+    Add with: git backdate add <files>
+    Commit with: git backdate DATE TIME "message"
+
+    $ git backdate add newfile.js utils.js
+    $ git backdate 2025-01-15 09:23 "Add user authentication"
+    SUCCESS: Commit created successfully!
+    ...
+    ----------------------------------------
+    JOB FINISHED: Working tree clean
+
+    # Manual commit (regular work hour)
     git backdate 2025-01-15 09:23 "Add user authentication"
-    
-    # Weekend overtime work
+
+    # Manual commit (weekend overtime work)
     git backdate --overtime 2025-01-18 14:17 "Fix critical bug"
-    
-    # Late evening work
+
+    # Manual commit (late evening work)
     git backdate --overtime 2025-01-15 20:42 "Deploy hotfix"
 
 ERRORS:
@@ -87,12 +221,34 @@ ERRORS:
 
     All errors include helpful suggestions for valid alternatives.
 
+LLM WORKFLOW:
+    1. Call: git backdate what
+    2. Follow the instruction shown:
+
+       Case A - Staged files exist:
+         → Calculate development time for changes
+         → Execute: git backdate YYYY-MM-DD HH:MM "message"
+         → Script auto-shows next instruction
+
+       Case B - Untracked/unstaged changes:
+         → Review report from embedded "git backdate which" output
+         → Stage related group: git backdate add <files>
+         → Calculate time and commit: git backdate YYYY-MM-DD HH:MM "message"
+         → Script auto-shows next instruction
+
+       Case C - Working tree clean:
+         → Job finished, stop
+
+       Case D - Merge conflicts:
+         → Abort, return to parent agent
+
+    3. Repeat from step 1 (script auto-calls "what" after commits)
+
 LLM INTEGRATION NOTES:
-    - Always check the last commit date with git log -1 --format=%cd --date=format:"%Y-%m-%d %H:%M"
-    - Add realistic development time based on the complexity of changes
     - Use non-quarter hour times (vary minutes: :07, :23, :38, :52, etc.)
-    - Stage files first with git add before calling git backdate
-    - Review the output to understand what files remain uncommitted
+    - Only use git backdate add (NOT git add) - prevents "dont commit" files
+    - Add realistic development time based on complexity of changes
+    - Files containing "dont commit" are invisible to the workflow
 
 INSTALLATION:
     Place git-backdate executable in your PATH (e.g., ~/dotfiles/bin/.local/bin/).
@@ -110,7 +266,24 @@ EOF
     exit 0
 }
 
-# Parse arguments
+# Handle subcommands
+case "$1" in
+    what)
+        show_what
+        ;;
+    which)
+        show_which
+        ;;
+    add)
+        shift
+        do_add "$@"
+        ;;
+    -h|--help)
+        show_help
+        ;;
+esac
+
+# Parse arguments for regular commit
 OVERTIME=false
 DATE=""
 TIME=""
@@ -277,34 +450,12 @@ if git commit --date="$DATETIME" -m "$MESSAGE"; then
     done
     echo ""
     echo "Commit datetime: $DATETIME"
-    
-    # Check for remaining unstaged and untracked files
-    MODIFIED_FILES=$(git diff --name-only)
-    UNTRACKED_FILES=$(git ls-files --others --exclude-standard)
-    
-    if [ -n "$MODIFIED_FILES" ] || [ -n "$UNTRACKED_FILES" ]; then
-        echo ""
-        echo "Remaining changes:"
-        
-        if [ -n "$MODIFIED_FILES" ]; then
-            echo ""
-            echo "Modified (unstaged):"
-            echo "$MODIFIED_FILES" | while read -r file; do
-                echo "  - $file"
-            done
-        fi
-        
-        if [ -n "$UNTRACKED_FILES" ]; then
-            echo ""
-            echo "Untracked:"
-            echo "$UNTRACKED_FILES" | while read -r file; do
-                echo "  - $file"
-            done
-        fi
-    else
-        echo ""
-        echo "Working tree clean"
-    fi
+    echo ""
+    echo "----------------------------------------"
+    echo ""
+
+    # Auto-call "what" to show next instruction
+    show_what
 else
     error_exit "Git commit failed"
 fi
