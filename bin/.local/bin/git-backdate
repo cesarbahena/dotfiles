@@ -194,8 +194,14 @@ show_what() {
 
 # Function to show token-efficient report
 show_which() {
-    # Show untracked files (excluding "dont commit")
+    # Show untracked files (excluding "dont commit" and anachronistic files)
     git ls-files --others --exclude-standard 2>/dev/null | while read -r file; do
+        # Auto-exclude anachronistic files
+        if is_file_anachronistic "$file"; then
+            add_to_git_exclude "$file"
+            continue
+        fi
+
         if ! contains_dont_commit "$file"; then
             # Check for emojis
             check_file_for_emojis "$file"
