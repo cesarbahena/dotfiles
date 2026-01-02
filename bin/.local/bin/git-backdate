@@ -30,6 +30,122 @@ contains_dont_commit() {
     grep -qiE "(don't|dont|do not) commit" "$file" 2>/dev/null
 }
 
+# Function to check if file is a text file
+is_text_file() {
+    local file="$1"
+    local mime_type=$(file --mime-type -b "$file" 2>/dev/null)
+    [[ "$mime_type" == text/* ]]
+}
+
+# Function to detect emojis in a file
+has_emojis() {
+    local file="$1"
+    # Check for common emoji Unicode ranges using Perl regex
+    # 1F300-1F9FF: Miscellaneous Symbols and Pictographs, Emoticons, etc.
+    # 2600-27BF: Miscellaneous Symbols
+    # 1F600-1F64F: Emoticons
+    # 1F900-1F9FF: Supplemental Symbols
+    if grep -qP '[\x{1F300}-\x{1F9FF}]|[\x{1F600}-\x{1F64F}]|[\x{2600}-\x{27BF}]|[\x{1F900}-\x{1F9FF}]' "$file" 2>/dev/null; then
+        return 0  # has emojis
+    fi
+    return 1  # no emojis
+}
+
+# Function to check file for emojis and error if found (unless --allow-emojis)
+check_file_for_emojis() {
+    local file="$1"
+
+    # Skip if --allow-emojis flag is set
+    if [ "$ALLOW_EMOJIS" = true ]; then
+        return 0
+    fi
+
+    # Only check text files
+    if ! is_text_file "$file"; then
+        return 0
+    fi
+
+    # Check for emojis
+    if has_emojis "$file"; then
+        error_exit "File '$file' contains emojis. Remove emojis or use --allow-emojis flag.
+
+Emojis are not allowed in code to maintain clean, portable text files."
+    fi
+}
+
+# Function to get mainstream adoption date for anachronistic patterns
+get_adoption_date() {
+    local file="$1"
+    local file_lower=$(echo "$file" | tr '[:upper:]' '[:lower:]')
+
+    # Check patterns (case-insensitive, anywhere in path)
+    if [[ "$file_lower" =~ claude ]]; then
+        echo "2025-02-01"
+    elif [[ "$file_lower" =~ gemini ]]; then
+        echo "2023-12-06"
+    elif [[ "$file_lower" =~ cursor ]]; then
+        echo "2023-06-01"
+    elif [[ "$file_lower" =~ agent ]]; then
+        echo "2024-01-01"
+    elif [[ "$file_lower" =~ aider ]]; then
+        echo "2024-01-01"
+    elif [[ "$file_lower" =~ cline ]]; then
+        echo "2024-06-01"
+    elif [[ "$file_lower" =~ windsurf ]]; then
+        echo "2024-09-01"
+    elif [[ "$file_lower" =~ copilot ]]; then
+        echo "2021-10-01"
+    else
+        echo ""  # Not an anachronistic pattern
+    fi
+}
+
+# Function to check if file is anachronistic based on repo timeline
+is_file_anachronistic() {
+    local file="$1"
+
+    # Get adoption date for this file pattern
+    local adoption_date=$(get_adoption_date "$file")
+
+    # If no adoption date, file is not anachronistic
+    if [ -z "$adoption_date" ]; then
+        return 1  # false
+    fi
+
+    # Get last commit date (repo timeline)
+    local last_commit_date=$(git log -1 --format="%cd" --date=format:"%Y-%m-%d" 2>/dev/null)
+
+    # If no commits, all modern tools are anachronistic
+    if [ -z "$last_commit_date" ]; then
+        return 0  # true
+    fi
+
+    # Convert dates to timestamps for comparison
+    local adoption_timestamp=$(date -d "$adoption_date" +%s 2>/dev/null)
+    local commit_timestamp=$(date -d "$last_commit_date" +%s 2>/dev/null)
+
+    # File is anachronistic if last commit is before adoption date
+    if [ "$commit_timestamp" -lt "$adoption_timestamp" ]; then
+        return 0  # true
+    fi
+
+    return 1  # false
+}
+
+# Function to add file to .git/info/exclude
+add_to_git_exclude() {
+    local file="$1"
+    local exclude_file=".git/info/exclude"
+
+    # Create .git/info directory if it doesn't exist
+    mkdir -p ".git/info"
+
+    # Check if file is already in exclude
+    if ! grep -qF "$file" "$exclude_file" 2>/dev/null; then
+        echo "$file" >> "$exclude_file"
+    fi
+}
+
 # Function to show next action (state machine)
 show_what() {
     # Auto-init repo if needed
@@ -81,6 +197,9 @@ show_which() {
     # Show untracked files (excluding "dont commit")
     git ls-files --others --exclude-standard 2>/dev/null | while read -r file; do
         if ! contains_dont_commit "$file"; then
+            # Check for emojis
+            check_file_for_emojis "$file"
+
             echo "UNTRACKED|$file"
             cat "$file" | sed -En '
                 s/[ \t]+/ /g;
@@ -94,6 +213,9 @@ show_which() {
 
     # Show unstaged changes
     git diff --name-only 2>/dev/null | while read -r file; do
+        # Check for emojis
+        check_file_for_emojis "$file"
+
         echo "UNSTAGED|$file"
         git diff -U2 "$file" | grep -vE '^(index |diff --git |@@ |--- |\+\+\+ )' | sed -En 's/^[ \t]+$//; /^$/d; 1,500p'
     done
@@ -114,10 +236,15 @@ do_add() {
         fi
     done
 
-    # Check each file for "dont commit"
+    # Check each file for "dont commit" and emojis
     for file in "$@"; do
-        if [ -f "$file" ] && contains_dont_commit "$file"; then
-            error_exit "Cannot add '$file' - contains 'dont commit' directive"
+        if [ -f "$file" ]; then
+            if contains_dont_commit "$file"; then
+                error_exit "Cannot add '$file' - contains 'dont commit' directive"
+            fi
+
+            # Check for emojis
+            check_file_for_emojis "$file"
         fi
     done
 
@@ -135,12 +262,13 @@ SYNOPSIS:
     git backdate what
     git backdate which
     git backdate add <file> [<file>...]
-    git backdate [--overtime] <YYYY-MM-DD> <HH:MM> <message>
+    git backdate [--overtime] [--detailed] [--unconventional] <YYYY-MM-DD> <HH:MM> <message>
 
 DESCRIPTION:
     Git external command that creates commits with custom backdated timestamps
-    while enforcing realistic work patterns. Designed for LLM agents to maintain
-    organic commit histories through a state machine workflow.
+    while enforcing realistic work patterns and conventional commit format.
+    Designed for LLM agents to maintain organic commit histories through a
+    state machine workflow.
 
     This command is discoverable via 'git help -a' under "External commands".
 
@@ -161,11 +289,31 @@ SUBCOMMANDS:
 ARGUMENTS:
     <YYYY-MM-DD>    Commit date (e.g., 2025-01-15)
     <HH:MM>         Commit time (e.g., 09:23)
-    <message>       Commit message
+    <message>       Commit message (conventional format, single-line, ASCII only)
 
 OPTIONS:
-    --overtime      Allow commits outside regular work hours or on weekends
-    -h, --help      Show this help message
+    --overtime          Allow commits outside regular work hours or on weekends
+    --detailed          Allow multiline commit messages
+    --unconventional    Allow non-conventional commit message format
+    -h, --help          Show this help message
+
+    Note: For multiline unconventional commits, use both --detailed and --unconventional
+
+COMMIT MESSAGE RULES:
+    1. ASCII only - Non-ASCII characters are rejected
+
+    2. Single-line by default - Use --detailed for multiline messages
+
+    3. Conventional format required (unless --unconventional):
+       - Format: type(scope): message  OR  type: message
+       - Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+       - Scope: lowercase alphanumeric with hyphens/slashes (optional)
+       - Examples:
+         ✓ feat(auth): add login functionality
+         ✓ fix: resolve parsing bug
+         ✓ docs(api): update endpoint documentation
+         ✗ Added new feature (missing type)
+         ✗ FEAT: something (uppercase type)
 
 VALIDATION RULES:
     1. Time Sequence: Commits must be at least 1 minute after the last commit
@@ -266,6 +414,26 @@ EOF
     exit 0
 }
 
+# Parse global flags first (before subcommand routing)
+ALLOW_EMOJIS=false
+ARGS=()
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --allow-emojis)
+            ALLOW_EMOJIS=true
+            shift
+            ;;
+        *)
+            ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Restore arguments without --allow-emojis
+set -- "${ARGS[@]}"
+
 # Handle subcommands
 case "$1" in
     what)
@@ -285,6 +453,8 @@ esac
 
 # Parse arguments for regular commit
 OVERTIME=false
+DETAILED=false
+UNCONVENTIONAL=false
 DATE=""
 TIME=""
 MESSAGE=""
@@ -298,6 +468,14 @@ while [[ $# -gt 0 ]]; do
             OVERTIME=true
             shift
             ;;
+        --detailed)
+            DETAILED=true
+            shift
+            ;;
+        --unconventional)
+            UNCONVENTIONAL=true
+            shift
+            ;;
         *)
             if [ -z "$DATE" ]; then
                 DATE="$1"
@@ -306,7 +484,7 @@ while [[ $# -gt 0 ]]; do
             elif [ -z "$MESSAGE" ]; then
                 MESSAGE="$1"
             else
-                error_exit "Too many arguments. Usage: git backdate [--overtime] <date> <time> <message>"
+                error_exit "Too many arguments. Usage: git backdate [--overtime] [--detailed] [--unconventional] <date> <time> <message>"
             fi
             shift
             ;;
@@ -315,7 +493,37 @@ done
 
 # Validate required arguments
 if [ -z "$DATE" ] || [ -z "$TIME" ] || [ -z "$MESSAGE" ]; then
-    error_exit "Usage: git backdate [--overtime] <YYYY-MM-DD> <HH:MM> <message>"
+    error_exit "Usage: git backdate [--overtime] [--detailed] [--unconventional] <YYYY-MM-DD> <HH:MM> <message>"
+fi
+
+# Validate commit message for non-ASCII characters
+if LC_ALL=C grep -q '[^[:print:][:space:]]' <<< "$MESSAGE" 2>/dev/null || \
+   printf '%s' "$MESSAGE" | LC_ALL=C grep -qP '[^\x00-\x7F]' 2>/dev/null; then
+    error_exit "Commit message contains non-ASCII characters. Please use only ASCII characters."
+fi
+
+# Validate commit message for newlines (unless --detailed)
+if [ "$DETAILED" = false ] && [[ "$MESSAGE" == *$'\n'* ]]; then
+    error_exit "Commit message contains newlines. Use single-line commits or add --detailed flag for multiline messages."
+fi
+
+# Validate conventional commit format (unless --unconventional)
+if [ "$UNCONVENTIONAL" = false ]; then
+    # Extract first line for multiline messages
+    FIRST_LINE=$(echo "$MESSAGE" | head -1)
+
+    # Conventional commit pattern: type(scope): message OR type: message
+    # Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+    CONVENTIONAL_PATTERN='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9/_-]+\))?: .+'
+
+    if ! [[ "$FIRST_LINE" =~ $CONVENTIONAL_PATTERN ]]; then
+        error_exit "Commit message must follow conventional format: 'type(scope): message' or 'type: message'
+
+Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+Example: 'feat(auth): add login functionality' or 'fix: resolve parsing bug'
+
+Use --unconventional flag to bypass this validation."
+    fi
 fi
 
 # Validate date format
@@ -434,6 +642,13 @@ STAGED_FILES=$(git diff --cached --name-only)
 if [ -z "$STAGED_FILES" ]; then
     error_exit "No files staged for commit. Use 'git add' first."
 fi
+
+# Check all staged files for emojis
+echo "$STAGED_FILES" | while read -r file; do
+    if [ -f "$file" ]; then
+        check_file_for_emojis "$file"
+    fi
+done
 
 # Construct the git commit command with environment variable
 export GIT_COMMITTER_DATE="$DATETIME"
