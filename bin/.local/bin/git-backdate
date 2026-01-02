@@ -1,0 +1,310 @@
+#!/bin/bash
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to print error and exit
+error_exit() {
+    echo -e "${RED}ERROR: $1${NC}" >&2
+    exit 1
+}
+
+# Function to print success
+success() {
+    echo -e "${GREEN}SUCCESS: $1${NC}"
+}
+
+# Function to print warning
+warning() {
+    echo -e "${YELLOW}WARNING: $1${NC}"
+}
+
+# Function to show help
+show_help() {
+    cat << 'EOF'
+git-backdate - Create backdated commits with work hour validation
+
+SYNOPSIS:
+    git backdate [--overtime] <YYYY-MM-DD> <HH:MM> <message>
+
+DESCRIPTION:
+    Git external command that creates commits with custom backdated timestamps
+    while enforcing realistic work patterns. Designed for LLM agents to maintain
+    organic commit histories.
+    
+    This command is discoverable via 'git help -a' under "External commands".
+
+ARGUMENTS:
+    <YYYY-MM-DD>    Commit date (e.g., 2025-01-15)
+    <HH:MM>         Commit time (e.g., 09:23)
+    <message>       Commit message
+
+OPTIONS:
+    --overtime      Allow commits outside regular work hours or on weekends
+    -h, --help      Show this help message
+
+VALIDATION RULES:
+    1. Time Sequence: Commits must be at least 1 minute after the last commit
+    
+    2. Work Hours: Regular commits allowed 08:00-19:00 (Mon-Fri only)
+       - Use --overtime flag for commits outside these hours or on weekends
+    
+    3. Organic Timing: Minutes cannot be :00, :15, :30, or :45
+       - Valid examples: :07, :23, :38, :52
+       - Seconds are automatically randomized (1-59)
+    
+    4. Staged Files: Files must be staged with git add before committing
+
+OUTPUT:
+    After successful commit, displays:
+    - List of committed files
+    - Commit datetime with random seconds
+    - Remaining unstaged/untracked files (if any)
+    - Working tree status
+
+EXAMPLES:
+    # Regular work hour commit
+    git backdate 2025-01-15 09:23 "Add user authentication"
+    
+    # Weekend overtime work
+    git backdate --overtime 2025-01-18 14:17 "Fix critical bug"
+    
+    # Late evening work
+    git backdate --overtime 2025-01-15 20:42 "Deploy hotfix"
+
+ERRORS:
+    The tool will reject commits that:
+    - Are before or within 1 minute of the last commit
+    - Use quarter-hour times (:00, :15, :30, :45)
+    - Are on weekends without --overtime flag
+    - Are outside 08:00-19:00 without --overtime flag
+    - Have no staged files
+
+    All errors include helpful suggestions for valid alternatives.
+
+LLM INTEGRATION NOTES:
+    - Always check the last commit date with git log -1 --format=%cd --date=format:"%Y-%m-%d %H:%M"
+    - Add realistic development time based on the complexity of changes
+    - Use non-quarter hour times (vary minutes: :07, :23, :38, :52, etc.)
+    - Stage files first with git add before calling git backdate
+    - Review the output to understand what files remain uncommitted
+
+INSTALLATION:
+    Place git-backdate executable in your PATH (e.g., ~/dotfiles/bin/.local/bin/).
+    Git will automatically discover it as an external command.
+    
+    Verify installation:
+        git help -a | grep backdate
+
+SEE ALSO:
+    git-add(1), git-commit(1), git-log(1)
+    
+    Git external commands documentation:
+        git help -a
+EOF
+    exit 0
+}
+
+# Parse arguments
+OVERTIME=false
+DATE=""
+TIME=""
+MESSAGE=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_help
+            ;;
+        --overtime)
+            OVERTIME=true
+            shift
+            ;;
+        *)
+            if [ -z "$DATE" ]; then
+                DATE="$1"
+            elif [ -z "$TIME" ]; then
+                TIME="$1"
+            elif [ -z "$MESSAGE" ]; then
+                MESSAGE="$1"
+            else
+                error_exit "Too many arguments. Usage: git backdate [--overtime] <date> <time> <message>"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate required arguments
+if [ -z "$DATE" ] || [ -z "$TIME" ] || [ -z "$MESSAGE" ]; then
+    error_exit "Usage: git backdate [--overtime] <YYYY-MM-DD> <HH:MM> <message>"
+fi
+
+# Validate date format
+if ! [[ "$DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    error_exit "Invalid date format. Use YYYY-MM-DD"
+fi
+
+# Validate time format
+if ! [[ "$TIME" =~ ^[0-9]{2}:[0-9]{2}$ ]]; then
+    error_exit "Invalid time format. Use HH:MM"
+fi
+
+# Extract hour and minute
+HOUR=$(echo "$TIME" | cut -d: -f1)
+MINUTE=$(echo "$TIME" | cut -d: -f2)
+
+# Check if minutes are on quarters (00, 15, 30, 45)
+if [ "$MINUTE" = "00" ] || [ "$MINUTE" = "15" ] || [ "$MINUTE" = "30" ] || [ "$MINUTE" = "45" ]; then
+    error_exit "Cannot use quarter hours ($MINUTE minutes). Use more organic times like :07, :23, :38, etc."
+fi
+
+# Generate random seconds (1-59, avoiding 00)
+SECONDS=$((RANDOM % 59 + 1))
+SECONDS=$(printf "%02d" $SECONDS)
+
+# Construct full datetime
+DATETIME="$DATE $TIME:$SECONDS"
+
+# Convert to timestamp for comparisons
+COMMIT_TIMESTAMP=$(date -d "$DATETIME" +%s 2>/dev/null) || error_exit "Invalid date/time: $DATETIME"
+
+# Get last commit date
+LAST_COMMIT_DATE=$(git log -1 --format=%ai 2>/dev/null || echo "")
+
+if [ -n "$LAST_COMMIT_DATE" ]; then
+    LAST_COMMIT_TIMESTAMP=$(date -d "$LAST_COMMIT_DATE" +%s)
+    
+    # Check if new commit is at least 1 minute after last commit
+    TIME_DIFF=$((COMMIT_TIMESTAMP - LAST_COMMIT_TIMESTAMP))
+    
+    if [ $TIME_DIFF -lt 60 ]; then
+        LAST_COMMIT_FORMATTED=$(date -d "$LAST_COMMIT_DATE" "+%Y-%m-%d %H:%M:%S")
+        error_exit "Cannot commit before or within 1 minute of last commit.
+Last commit: $LAST_COMMIT_FORMATTED
+
+Please evaluate the development time needed for the changes you've made.
+Consider the complexity and add appropriate time to: $LAST_COMMIT_FORMATTED
+
+Suggestion: Add at least 5-30 minutes of development time to the last commit date."
+    fi
+fi
+
+# Check if date is weekend
+DAY_OF_WEEK=$(date -d "$DATE" +%u) # 1=Monday, 7=Sunday
+
+if [ "$OVERTIME" = false ]; then
+    # Regular work hours check
+    if [ "$DAY_OF_WEEK" -eq 6 ] || [ "$DAY_OF_WEEK" -eq 7 ]; then
+        # Find next Monday
+        NEXT_MONDAY=$(date -d "$DATE + $((8 - DAY_OF_WEEK)) days" +%Y-%m-%d)
+        error_exit "Cannot commit on weekends (Saturday/Sunday) during regular hours.
+
+Suggestion: Use next workday: $NEXT_MONDAY
+Alternative: Use --overtime flag if this was weekend work"
+    fi
+    
+    # Check work hours (8 AM to 7 PM = 08:00 to 19:00)
+    HOUR_INT=$((10#$HOUR))
+    if [ $HOUR_INT -lt 8 ] || [ $HOUR_INT -ge 19 ]; then
+        # Calculate next valid time
+        if [ $HOUR_INT -ge 19 ]; then
+            # After 7 PM, suggest next day 8 AM
+            NEXT_DATE=$(date -d "$DATE + 1 day" +%Y-%m-%d)
+            NEXT_DAY_OF_WEEK=$(date -d "$NEXT_DATE" +%u)
+            
+            # Skip to Monday if next day is weekend
+            if [ "$NEXT_DAY_OF_WEEK" -eq 6 ]; then
+                NEXT_DATE=$(date -d "$NEXT_DATE + 2 days" +%Y-%m-%d)
+            elif [ "$NEXT_DAY_OF_WEEK" -eq 7 ]; then
+                NEXT_DATE=$(date -d "$NEXT_DATE + 1 day" +%Y-%m-%d)
+            fi
+            
+            SUGGESTED_TIME="08:07"
+        else
+            # Before 8 AM, suggest same day 8 AM
+            SUGGESTED_TIME="08:07"
+        fi
+        
+        error_exit "Cannot commit outside work hours (8:00-19:00).
+Current time: $TIME
+
+Suggestion: Use work hours: $SUGGESTED_TIME
+Alternative: Use --overtime flag if this was overtime work"
+    fi
+else
+    # Overtime check (opposite of work hours)
+    if [ "$DAY_OF_WEEK" -ge 1 ] && [ "$DAY_OF_WEEK" -le 5 ]; then
+        # Weekday - check if during work hours
+        HOUR_INT=$((10#$HOUR))
+        if [ $HOUR_INT -ge 8 ] && [ $HOUR_INT -lt 19 ]; then
+            # During work hours but overtime flag set
+            SUGGESTED_TIME="19:42"
+            error_exit "Overtime flag is set but time is during regular work hours (8:00-19:00).
+
+Suggestion: Remove --overtime flag for work hour commits
+Alternative: Use overtime hours: $SUGGESTED_TIME"
+        fi
+    fi
+    
+    # If overtime on weekday before/after hours, that's fine
+    # If overtime on weekend, that's also fine
+fi
+
+# Get staged files before commit
+STAGED_FILES=$(git diff --cached --name-only)
+if [ -z "$STAGED_FILES" ]; then
+    error_exit "No files staged for commit. Use 'git add' first."
+fi
+
+# Construct the git commit command with environment variable
+export GIT_COMMITTER_DATE="$DATETIME"
+export GIT_AUTHOR_DATE="$DATETIME"
+
+# Perform the commit
+if git commit --date="$DATETIME" -m "$MESSAGE"; then
+    echo ""
+    success "Commit created successfully!"
+    echo ""
+    echo "Committed files:"
+    echo "$STAGED_FILES" | while read -r file; do
+        echo "  - $file"
+    done
+    echo ""
+    echo "Commit datetime: $DATETIME"
+    
+    # Check for remaining unstaged and untracked files
+    MODIFIED_FILES=$(git diff --name-only)
+    UNTRACKED_FILES=$(git ls-files --others --exclude-standard)
+    
+    if [ -n "$MODIFIED_FILES" ] || [ -n "$UNTRACKED_FILES" ]; then
+        echo ""
+        echo "Remaining changes:"
+        
+        if [ -n "$MODIFIED_FILES" ]; then
+            echo ""
+            echo "Modified (unstaged):"
+            echo "$MODIFIED_FILES" | while read -r file; do
+                echo "  - $file"
+            done
+        fi
+        
+        if [ -n "$UNTRACKED_FILES" ]; then
+            echo ""
+            echo "Untracked:"
+            echo "$UNTRACKED_FILES" | while read -r file; do
+                echo "  - $file"
+            done
+        fi
+    else
+        echo ""
+        echo "Working tree clean"
+    fi
+else
+    error_exit "Git commit failed"
+fi

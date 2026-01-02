@@ -1,0 +1,141 @@
+.TH GIT-BACKDATE 1 "2025-01-06" "Git External Commands" "User Commands"
+.SH NAME
+git-backdate \- Create backdated commits with work hour validation
+.SH SYNOPSIS
+.B git backdate
+[\fB--overtime\fR]
+.I <YYYY-MM-DD>
+.I <HH:MM>
+.I <message>
+.SH DESCRIPTION
+.B git-backdate
+is a Git external command that creates commits with custom backdated timestamps
+while enforcing realistic work patterns. Designed for LLM agents to maintain
+organic commit histories.
+.PP
+This command is discoverable via
+.B git help -a
+under "External commands".
+.SH ARGUMENTS
+.TP
+.I <YYYY-MM-DD>
+Commit date (e.g., 2025-01-15)
+.TP
+.I <HH:MM>
+Commit time (e.g., 09:23)
+.TP
+.I <message>
+Commit message
+.SH OPTIONS
+.TP
+.B --overtime
+Allow commits outside regular work hours or on weekends
+.TP
+.B -h, --help
+Show help message
+.SH VALIDATION RULES
+.TP
+.B 1. Time Sequence
+Commits must be at least 1 minute after the last commit
+.TP
+.B 2. Work Hours
+Regular commits allowed 08:00-19:00 (Mon-Fri only). Use
+.B --overtime
+flag for commits outside these hours or on weekends.
+.TP
+.B 3. Organic Timing
+Minutes cannot be :00, :15, :30, or :45. Valid examples: :07, :23, :38, :52.
+Seconds are automatically randomized (1-59).
+.TP
+.B 4. Staged Files
+Files must be staged with
+.B git add
+before committing
+.SH OUTPUT
+After successful commit, displays:
+.RS
+.IP \(bu 2
+List of committed files
+.IP \(bu 2
+Commit datetime with random seconds
+.IP \(bu 2
+Remaining unstaged/untracked files (if any)
+.IP \(bu 2
+Working tree status
+.RE
+.SH EXAMPLES
+.PP
+Regular work hour commit:
+.RS
+.nf
+git backdate 2025-01-15 09:23 "Add user authentication"
+.fi
+.RE
+.PP
+Weekend overtime work:
+.RS
+.nf
+git backdate --overtime 2025-01-18 14:17 "Fix critical bug"
+.fi
+.RE
+.PP
+Late evening work:
+.RS
+.nf
+git backdate --overtime 2025-01-15 20:42 "Deploy hotfix"
+.fi
+.RE
+.SH ERRORS
+The tool will reject commits that:
+.RS
+.IP \(bu 2
+Are before or within 1 minute of the last commit
+.IP \(bu 2
+Use quarter-hour times (:00, :15, :30, :45)
+.IP \(bu 2
+Are on weekends without --overtime flag
+.IP \(bu 2
+Are outside 08:00-19:00 without --overtime flag
+.IP \(bu 2
+Have no staged files
+.RE
+.PP
+All errors include helpful suggestions for valid alternatives.
+.SH LLM INTEGRATION NOTES
+.RS
+.IP \(bu 2
+Always check the last commit date with
+.B git log -1 --format=%cd --date=format:"%Y-%m-%d %H:%M"
+.IP \(bu 2
+Add realistic development time based on the complexity of changes
+.IP \(bu 2
+Use non-quarter hour times (vary minutes: :07, :23, :38, :52, etc.)
+.IP \(bu 2
+Stage files first with
+.B git add
+before calling
+.B git backdate
+.IP \(bu 2
+Review the output to understand what files remain uncommitted
+.RE
+.SH INSTALLATION
+Place
+.B git-backdate
+executable in your PATH (e.g., ~/dotfiles/bin/.local/bin/).
+Git will automatically discover it as an external command.
+.PP
+Verify installation:
+.RS
+.nf
+git help -a | grep backdate
+.fi
+.RE
+.SH SEE ALSO
+.BR git-add (1),
+.BR git-commit (1),
+.BR git-log (1)
+.PP
+Git external commands documentation:
+.B git help -a
+.SH AUTHOR
+Created for maintaining organic commit histories with LLM agents.
