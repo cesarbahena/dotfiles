@@ -15,16 +15,15 @@ load_env() {
   eval "$2"
 }
 
-load_env "$NVM_DIR/nvm.sh" && alias npmg="l $HOME/.nvm/versions/node/$(node -v)/bin"
+load_env "$$HOME/.nvm/nvm.sh" && alias npmg="l $HOME/.nvm/versions/node/$(node -v)/bin"
 load_env "$HOME/.cargo/env"
 load_env "$HOME/.sdkman/bin/sdkman-init.sh"
 load_env "$HOME/dotfiles/.env.local"
-
-load_env \
-  "'$HOME/miniforge3/bin/conda' shell.zsh hook" \
-  "$HOME/miniforge3/etc/profile.d/conda.sh"
 
 export MAMBA_ROOT_PREFIX="$HOME/miniforge3"
 load_env \
   "'$HOME/miniforge3/bin/mamba' shell hook --shell zsh --root-prefix '$MAMBA_ROOT_PREFIX'" \
   "alias mamba='$HOME/miniforge3/bin/mamba'"
+load_env \
+  "'$HOME/miniforge3/bin/conda' shell.zsh hook" \
+  "$HOME/miniforge3/etc/profile.d/conda.sh"
