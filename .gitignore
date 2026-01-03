@@ -1,4 +1,4 @@
-tmux/.config/tmux/plugins/
+terminal/.config/tmux/plugins/
 
 # Environment files with secrets
 .env.local

@@ -1,5 +1,0 @@
-blocks = []
-[[blocks]]
-type = "text"
-template = "TEST PROMPT → "
-style = "bold red"
