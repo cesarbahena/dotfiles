@@ -1,15 +1,18 @@
 # ============================================================
+# Interactive shell configuration
+# ============================================================
+echo ".zshrc loaded for interactive shell"
+
+# ============================================================
 # History settings
 # ============================================================
 HISTFILE=~/.zsh_history
 HISTSIZE=1000
 SAVEHIST=2000
-setopt HIST_IGNORE_DUPS      # don’t record duplicates
-setopt HIST_IGNORE_SPACE     # don’t record lines starting with space
+setopt HIST_IGNORE_DUPS      # don't record duplicates
+setopt HIST_IGNORE_SPACE     # don't record lines starting with space
 setopt APPEND_HISTORY        # append instead of overwrite
 setopt SHARE_HISTORY         # share history across sessions
-
-export EDITOR="nvim"
 
 # ============================================================
 # Aliases
@@ -22,7 +25,6 @@ alias grep='grep --color=auto'
 
 alias get='sudo apt update && sudo apt install -y'
 alias activate='source .venv/bin/activate'
-alias npmg="l $HOME/.nvm/versions/node/$(node -v)/bin"
 
 alias docker-compose='docker compose'
 alias up='docker compose up -d'
@@ -39,6 +41,8 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 "$(history | tail -n1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
 alias adbw="/mnt/c/platform-tools/adb.exe"
+alias c="opencode -c"
+
 # Load extra aliases if file exists
 [ -f ~/.bash_aliases ] && source ~/.bash_aliases
 
@@ -148,42 +152,6 @@ autoload -U select-word-style
 select-word-style bash
 
 # ============================================================
-# Environment paths
-# ============================================================
-export COMPOSE_BAKE=true
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-export PNPM_HOME="$HOME/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-
-export PATH=$HOME/.local/bin:$PATH
-export PATH=$HOME/.npm-global/bin:$PATH
-export PATH=$HOME/.fzf/bin:$PATH
-export PATH=/usr/local/go/bin:$PATH
-export PATH=$HOME/.config/composer/vendor/bin:$PATH
-
-# .NET SDK
-export DOTNET_ROOT=$HOME/.dotnet
-export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
-
-# SQL Server tools
-export PATH=$PATH:/opt/mssql-tools/bin
-
-# Cargo
-[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
-export ANDROID_HOME=~/Android/Sdk
-export PATH=/home/cesar/.opencode/bin:$PATH
-
-# Microsoft CLI
-export PATH="$PATH:/mnt/c/Tools/msgraph/"
-
-export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-# ============================================================
 # Prompt handled by Starship
 # ============================================================
 eval "$(starship init zsh)"
@@ -230,19 +198,9 @@ precmd() {
 }
 
 # ============================================================
-# tmux auto attach
-# ============================================================
-if command -v tmux &> /dev/null && [ -z "$TMUX" ]; then
-  tmux attach -t default || tmux new -s default
-fi
-
-# ============================================================
 # zoxide + fzf
 # ============================================================
 eval "$(zoxide init zsh)"
-
-export _ZO_FZF_ENABLE_PREVIEW=1
-export _ZO_FZF_OPTS="--layout=reverse --info=inline"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
@@ -250,40 +208,8 @@ export _ZO_FZF_OPTS="--layout=reverse --info=inline"
 bindkey '^p' fzf-history-widget
 
 # ============================================================
-# secrets
-# ===========================================================
-source ~/dotfiles/.env.local
-
+# tmux auto attach
 # ============================================================
-# conda
-# ===========================================================
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/cesar/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/home/cesar/miniforge3/etc/profile.d/conda.sh" ]; then
-        . "/home/cesar/miniforge3/etc/profile.d/conda.sh"
-    else
-        export PATH="/home/cesar/miniforge3/bin:$PATH"
-    fi
+if command -v tmux &> /dev/null && [ -z "$TMUX" ]; then
+  tmux attach -t default 2>/dev/null || tmux new -s default
 fi
-unset __conda_setup
-# <<< conda initialize <<<
-
-# >>> mamba initialize >>>
-# !! Contents within this block are managed by 'mamba shell init' !!
-export MAMBA_EXE='/home/cesar/miniforge3/bin/mamba';
-export MAMBA_ROOT_PREFIX='/home/cesar/miniforge3';
-__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__mamba_setup"
-else
-    alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
-fi
-unset __mamba_setup
-# <<< mamba initialize <<<
-
-export SDKMAN_DIR="$HOME/.sdkman"
-[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
