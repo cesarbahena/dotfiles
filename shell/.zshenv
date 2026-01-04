@@ -6,28 +6,28 @@ export SDKMAN_DIR="$HOME/.sdkman"
 prepend_path() {
   if [ $# -ge 2 ]; then # Export runtime variable
     export "$1=$2"
-    local path="${3:+$2/$3}"
-    [ -z "$3" ] && local path="$2"
+    local dir="${3:+$2/$3}"
+    [ -z "$3" ] && local dir="$2"
   else # Just add to path
-    local path="$1"
+    local dir="$1"
   fi
   case ":$PATH:" in
-    *":$path:"*) ;;
-    *) [ -d "$path" ] && export PATH="$path:$PATH" ;;
+    *":$dir:"*) ;;
+    *) [ -d "$dir" ] && export PATH="$dir:$PATH" ;;
   esac
 }
 
 append_path() {
   if [ $# -ge 2 ]; then # Export runtime variable
     export "$1=$2"
-    local path="${3:+$2/$3}"
-    [ -z "$3" ] && local path="$2"
+    local dir="${3:+$2/$3}"
+    [ -z "$3" ] && local dir="$2"
   else # Just add to path
-    local path="$1"
+    local dir="$1"
   fi
   case ":$PATH:" in
-    *":$path:"*) ;;
-    *) [ -d "$path" ] && export PATH="$PATH:$path" ;;
+    *":$dir:"*) ;;
+    *) [ -d "$dir" ] && export PATH="$PATH:$dir" ;;
   esac
 }
 

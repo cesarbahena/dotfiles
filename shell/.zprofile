@@ -19,7 +19,9 @@ load_env "$$HOME/.nvm/nvm.sh" && alias npmg="l $HOME/.nvm/versions/node/$(node -
 load_env "$HOME/.cargo/env"
 load_env "$HOME/.sdkman/bin/sdkman-init.sh"
 load_env "$HOME/dotfiles/.env.local"
+load_env "$HOME/.fzf.zsh"
 
+load_env "zoxide init zsh" "echo zoxide not found"
 export MAMBA_ROOT_PREFIX="$HOME/miniforge3"
 load_env \
   "'$HOME/miniforge3/bin/mamba' shell hook --shell zsh --root-prefix '$MAMBA_ROOT_PREFIX'" \

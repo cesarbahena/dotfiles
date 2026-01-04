@@ -1,27 +1,18 @@
-# ============================================================
-# History settings
-# ============================================================
 HISTFILE=~/.zsh_history
 HISTSIZE=1000
 SAVEHIST=2000
-setopt HIST_IGNORE_DUPS      # don't record duplicates
-setopt HIST_IGNORE_SPACE     # don't record lines starting with space
-setopt APPEND_HISTORY        # append instead of overwrite
-setopt SHARE_HISTORY         # share history across sessions
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
 
-# ============================================================
-# Aliases
-# ============================================================
 alias l='eza -alnoT --no-permissions --smart-group --time-style=relative --git --icons --group-directories-first -L=1'
 alias gs='git status'
 alias vi=nvim
-alias vim=nvim
-alias grep='grep --color=auto'
-
+alias c="opencode -c"
 alias get='sudo apt update && sudo apt install -y'
 alias activate='source .venv/bin/activate'
 
-alias docker-compose='docker compose'
 alias up='docker compose up -d'
 alias down='docker compose down'
 alias downdb='docker compose down -v'
@@ -32,14 +23,12 @@ alias logs='docker compose logs -f'
 alias in='docker compose exec'
 alias imin='docker compose exec -it'
 
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" \
-"$(history | tail -n1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+a() {
+  # Use the last command saved by precmd hook
+  notify-send "${_LAST_CMD:-Done}"
+}
 
 alias adbw="/mnt/c/platform-tools/adb.exe"
-alias c="opencode -c"
-
-# Load extra aliases if file exists
-[ -f ~/.bash_aliases ] && source ~/.bash_aliases
 
 # ============================================================
 # Completions
@@ -152,6 +141,9 @@ select-word-style bash
 eval "$(starship init zsh)"
 
 precmd() {
+    # Save the last command for the 'a' function
+    _LAST_CMD=$(fc -ln -1 -1 | sed 's/^\s*//')
+    
     local input="$(starship prompt --right 2>/dev/null)"
     local output=""
     local in_escape=0
@@ -193,13 +185,10 @@ precmd() {
 }
 
 # ============================================================
-# zoxide + fzf
+# FZF custom keybindings
 # ============================================================
-eval "$(zoxide init zsh)"
-
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-# FZF custom keybindings (after fzf is loaded)
+# Note: fzf and zoxide are initialized in .zprofile (runs before .zshrc in login shells)
+# Tmux creates login shells by default, so functions are already loaded
 bindkey '^p' fzf-history-widget
 
 # ============================================================
