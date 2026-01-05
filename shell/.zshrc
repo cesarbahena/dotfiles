@@ -7,28 +7,34 @@ ZINIT_HOME="$XDG_DATA_HOME/zinit/zinit.git"
 [ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 . "${ZINIT_HOME}/zinit.zsh"
 
-# Load annexes for lbin/sbin ice modifiers
-zi light zdharma-continuum/zinit-annex-bin-gem-node
-zi light zdharma-continuum/zinit-annex-binary-symlink
-
-zi light-mode for \
+zi id-as lucid light-mode for \
+  zdharma-continuum/zinit-annex-binary-symlink \
   zsh-users/zsh-syntax-highlighting \
   zsh-users/zsh-autosuggestions \
-  zsh-users/zsh-completions
+  zsh-users/zsh-completions\
+  from'gh-r' lbin'!' \
+  atclone'./starship init zsh > init.zsh; ./starship completions zsh > _starship' \
+  atpull'%atclone' src'init.zsh' lbin'!' starship/starship
 
-zi light-mode for \
-  as"command" \
-  from"gh-r" \
-  atclone"./starship init zsh > init.zsh; ./starship completions zsh > _starship" \
-  atpull"%atclone" \
-  src"init.zsh" \
-  starship/starship
+zi from'gh-r' lbin'!' id-as lucid light-mode wait for \
+  lbin'!rg' BurntSushi/ripgrep \
+  @sharkdp/fd \
+  @sharkdp/bat \
+  eza-community/eza \
+  lbin'!jq* -> jq' jqlang/jq \
+  lbin'!yq* -> yq' mikefarah/yq \
+  lbin'!**/uv' @astral-sh/uv \
+  lbin'!pnpm* -> pnpm' pnpm/pnpm \
+  bootandy/dust \
+  dalance/procs \
+  dandavison/delta \
+  pemistahl/grex \
+  lbin'!**/gh' id-as'gh' cli/cli \
+  lbin'!kubectx' lbin'!kubens' bpick'kubectx;kubens' ahmetb/kubectx \
+  atclone'fzf --zsh > fzf.zsh' atpull'%atclone' src'fzf.zsh' junegunn/fzf \
+  atclone'fnm completions --shell zsh > _fnm' atpull'%atclone' atload'eval $(fnm env --shell zsh)' Schniz/fnm 
 
-# Portable CLI tools (single binaries from GitHub releases)
-zi from'gh-r' id-as null for \
-    lbin'!' @sharkdp/bat \
-    lbin'!' @sharkdp/fd \
-    lbin'!rg' @BurntSushi/ripgrep
+zi make id-as lucid light-mode wait for dylanaraps/neofetch
 
 ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
 ZSH_HIGHLIGHT_STYLES[command]='fg=green'
@@ -139,11 +145,7 @@ setopt EXTENDED_GLOB        # extended globbing
 autoload -U select-word-style
 select-word-style bash
 
-# ============================================================
 # Prompt customization
-# ============================================================
-# Note: Starship is loaded by zinit (lines 15-21)
-
 precmd() {
     # Save the last command for the 'a' function
     _LAST_CMD=$(fc -ln -1 -1 | sed 's/^\s*//')
@@ -203,6 +205,7 @@ a() {
 alias l='eza \
   -alnoT \
   --no-permissions \
+  --no-filesize \
   --smart-group \
   --time-style=relative \
   --git \
@@ -227,4 +230,5 @@ alias build='docker compose build --no-cache'
 alias logs='docker compose logs -f'
 alias in='docker compose exec'
 alias imin='docker compose exec -it'
+alias du='dust 2>/dev/null'
 alias adbw="/mnt/c/platform-tools/adb.exe"
