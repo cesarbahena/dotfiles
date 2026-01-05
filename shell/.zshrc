@@ -7,10 +7,28 @@ ZINIT_HOME="$XDG_DATA_HOME/zinit/zinit.git"
 [ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 . "${ZINIT_HOME}/zinit.zsh"
 
+# Load annexes for lbin/sbin ice modifiers
+zi light zdharma-continuum/zinit-annex-bin-gem-node
+zi light zdharma-continuum/zinit-annex-binary-symlink
+
 zi light-mode for \
   zsh-users/zsh-syntax-highlighting \
   zsh-users/zsh-autosuggestions \
   zsh-users/zsh-completions
+
+zi light-mode for \
+  as"command" \
+  from"gh-r" \
+  atclone"./starship init zsh > init.zsh; ./starship completions zsh > _starship" \
+  atpull"%atclone" \
+  src"init.zsh" \
+  starship/starship
+
+# Portable CLI tools (single binaries from GitHub releases)
+zi from'gh-r' id-as null for \
+    lbin'!' @sharkdp/bat \
+    lbin'!' @sharkdp/fd \
+    lbin'!rg' @BurntSushi/ripgrep
 
 ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
 ZSH_HIGHLIGHT_STYLES[command]='fg=green'
@@ -113,7 +131,6 @@ zle -N zle-line-init
 
 
 # Additional useful features
-setopt CORRECT              # command correction
 setopt GLOB_COMPLETE        # complete globs
 setopt NO_BEEP              # disable beep
 setopt EXTENDED_GLOB        # extended globbing
@@ -123,9 +140,9 @@ autoload -U select-word-style
 select-word-style bash
 
 # ============================================================
-# Prompt handled by Starship
+# Prompt customization
 # ============================================================
-eval "$(starship init zsh)"
+# Note: Starship is loaded by zinit (lines 15-21)
 
 precmd() {
     # Save the last command for the 'a' function
