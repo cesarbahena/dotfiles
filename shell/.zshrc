@@ -1,34 +1,36 @@
-HISTFILE=~/.zsh_history
+if command -v tmux &> /dev/null && [ -z "$TMUX" ]; then
+  tmux attach -t default 2>/dev/null || tmux new -s default
+fi
+
+ZINIT_HOME="$XDG_DATA_HOME/zinit/zinit.git"
+[ ! -d $ZINIT_HOME ] && mkdir -p "$(dirname $ZINIT_HOME)"
+[ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+. "${ZINIT_HOME}/zinit.zsh"
+
+zi light-mode for \
+  zsh-users/zsh-syntax-highlighting \
+  zsh-users/zsh-autosuggestions \
+  zsh-users/zsh-completions
+
+ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
+ZSH_HIGHLIGHT_STYLES[command]='fg=green'
+ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=red,bold'
+ZSH_HIGHLIGHT_STYLES[alias]='fg=cyan'
+ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow'
+ZSH_HIGHLIGHT_STYLES[function]='fg=blue'
+
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=240'
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+bindkey '^y' autosuggest-accept
+
+HISTFILE="$XDG_STATE_HOME/zsh/history"
+[ -d $HISTFILE ] && mkdir -p "$(dirname $HISTFILE)"
 HISTSIZE=1000
-SAVEHIST=2000
+SAVEHIST=$HISTSIZE
 setopt HIST_IGNORE_DUPS
 setopt HIST_IGNORE_SPACE
 setopt APPEND_HISTORY
 setopt SHARE_HISTORY
-
-alias l='eza -alnoT --no-permissions --smart-group --time-style=relative --git --icons --group-directories-first -L=1'
-alias gs='git status'
-alias vi=nvim
-alias c="opencode -c"
-alias get='sudo apt update && sudo apt install -y'
-alias activate='source .venv/bin/activate'
-
-alias up='docker compose up -d'
-alias down='docker compose down'
-alias downdb='docker compose down -v'
-alias restart='docker compose down && docker compose up -d'
-alias restartdb='docker compose down -v && docker compose up -d'
-alias build='docker compose build --no-cache'
-alias logs='docker compose logs -f'
-alias in='docker compose exec'
-alias imin='docker compose exec -it'
-
-a() {
-  # Use the last command saved by precmd hook
-  notify-send "${_LAST_CMD:-Done}"
-}
-
-alias adbw="/mnt/c/platform-tools/adb.exe"
 
 # ============================================================
 # Completions
@@ -47,16 +49,7 @@ zstyle ':completion:*' completer _complete _match _approximate
 zstyle ':completion:*:match:*' original only
 zstyle ':completion:*:approximate:*' max-errors 1 numeric
 
-# Command existence highlighting (requires zsh-syntax-highlighting)
-if [ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
-    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-    ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
-    ZSH_HIGHLIGHT_STYLES[command]='fg=green'
-    ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=red,bold'
-    ZSH_HIGHLIGHT_STYLES[alias]='fg=cyan'
-    ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow'
-    ZSH_HIGHLIGHT_STYLES[function]='fg=blue'
-fi
+
 
 # ============================================================
 # Vim keymaps
@@ -117,13 +110,7 @@ function zle-line-init() {
 }
 zle -N zle-line-init
 
-# Autosuggestions
-if [ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
-    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=240'
-    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-    bindkey '^y' autosuggest-accept  # Right arrow to accept
-fi
+
 
 # Additional useful features
 setopt CORRECT              # command correction
@@ -191,9 +178,36 @@ precmd() {
 # Tmux creates login shells by default, so functions are already loaded
 bindkey '^p' fzf-history-widget
 
-# ============================================================
-# tmux auto attach
-# ============================================================
-if command -v tmux &> /dev/null && [ -z "$TMUX" ]; then
-  tmux attach -t default 2>/dev/null || tmux new -s default
-fi
+
+a() {
+  # Use the last command saved by precmd hook
+  notify-send "${_LAST_CMD:-Done}"
+}
+alias l='eza \
+  -alnoT \
+  --no-permissions \
+  --smart-group \
+  --time-style=relative \
+  --git \
+  --icons \
+  --group-directories-first \
+  -L=1'
+alias g='git status -s'
+alias m='git add . && git commit -m'
+alias v=nvim
+alias c="opencode -c"
+alias get='sudo apt update \
+  && sudo apt install -y'
+alias activate='source .venv/bin/activate'
+alias up='docker compose up -d'
+alias down='docker compose down'
+alias downdb='docker compose down -v'
+alias restart='docker compose down \
+  && docker compose up -d'
+alias restartdb='docker compose down -v \
+  && docker compose up -d'
+alias build='docker compose build --no-cache'
+alias logs='docker compose logs -f'
+alias in='docker compose exec'
+alias imin='docker compose exec -it'
+alias adbw="/mnt/c/platform-tools/adb.exe"

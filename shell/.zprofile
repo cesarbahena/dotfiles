@@ -15,17 +15,17 @@ load_env() {
   eval "$2"
 }
 
-load_env "$$HOME/.nvm/nvm.sh" && alias npmg="l $HOME/.nvm/versions/node/$(node -v)/bin"
+load_env "$XDG_DATA_HOME/nvm/nvm.sh" && alias npmg="l $XDG_DATA_HOME/nvm/versions/node/$(node -v)/bin"
 load_env "$HOME/.cargo/env"
-load_env "$HOME/.sdkman/bin/sdkman-init.sh"
+load_env "$XDG_DATA_HOME/sdkman/bin/sdkman-init.sh"
 load_env "$HOME/dotfiles/.env.local"
-load_env "$HOME/.fzf.zsh"
+load_env "$XDG_CONFIG_HOME/fzf/fzf.zsh"
 
 load_env "zoxide init zsh" "echo zoxide not found"
-export MAMBA_ROOT_PREFIX="$HOME/miniforge3"
+export MAMBA_ROOT_PREFIX="$XDG_DATA_HOME/miniforge3"
 load_env \
-  "'$HOME/miniforge3/bin/mamba' shell hook --shell zsh --root-prefix '$MAMBA_ROOT_PREFIX'" \
-  "alias mamba='$HOME/miniforge3/bin/mamba'"
+  "'$MAMBA_ROOT_PREFIX/bin/mamba' shell hook --shell zsh --root-prefix '$MAMBA_ROOT_PREFIX'" \
+  "alias mamba='$MAMBA_ROOT_PREFIX/bin/mamba'"
 load_env \
-  "'$HOME/miniforge3/bin/conda' shell.zsh hook" \
-  "$HOME/miniforge3/etc/profile.d/conda.sh"
+  "'$MAMBA_ROOT_PREFIX/bin/conda' shell.zsh hook" \
+  "$MAMBA_ROOT_PREFIX/etc/profile.d/conda.sh"
