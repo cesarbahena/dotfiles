@@ -1,20 +1,44 @@
+. "$ZDOTDIR/helpers.zsh"
+
 if command -v tmux &> /dev/null && [ -z "$TMUX" ]; then
   tmux attach -t default 2>/dev/null || tmux new -s default
 fi
+
+load_env "$XDG_DATA_HOME/bob/env/env.sh"
+load_env "zoxide init zsh" "echo zoxide not found"
 
 ZINIT_HOME="$XDG_DATA_HOME/zinit/zinit.git"
 [ ! -d $ZINIT_HOME ] && mkdir -p "$(dirname $ZINIT_HOME)"
 [ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 . "${ZINIT_HOME}/zinit.zsh"
 
+export ZSH="$XDG_DATA_HOME/oh-my-zsh-dummy"
+[ ! -d "$ZSH/.git" ] && mkdir -p "$ZSH" && \
+  git -C "$ZSH" init && git -C "$ZSH" commit --allow-empty -m \
+  "Dummy OMZ repo for OMZP plugin compatibility" >/dev/null 2>&1
+
 zi id-as lucid light-mode for \
   zdharma-continuum/zinit-annex-binary-symlink \
   zsh-users/zsh-syntax-highlighting \
   zsh-users/zsh-autosuggestions \
   zsh-users/zsh-completions\
+  Aloxaf/fzf-tab \
+  OMZP::git \
+  OMZP::git-commit \
+  OMZP::pip \
+  OMZP::docker \
+  OMZP::aws \
+  OMZP::kubectl \
+  OMZP::kubectx \
+  OMZP::helm \
+  OMZP::sudo \
+  OMZP::ssh-agent \
+  OMZP::command-not-found \
   from'gh-r' lbin'!' \
   atclone'./starship init zsh > init.zsh; ./starship completions zsh > _starship' \
   atpull'%atclone' src'init.zsh' lbin'!' starship/starship
+autoload -Uz compinit && compinit
+zi cdreplay -q
 
 zi from'gh-r' lbin'!' id-as lucid light-mode wait for \
   lbin'!rg' BurntSushi/ripgrep \
@@ -48,24 +72,26 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 bindkey '^y' autosuggest-accept
 
 HISTFILE="$XDG_STATE_HOME/zsh/history"
-[ -d $HISTFILE ] && mkdir -p "$(dirname $HISTFILE)"
+[ ! -f "$HISTFILE" ] && mkdir -p "$(dirname "$HISTFILE")"
 HISTSIZE=1000
 SAVEHIST=$HISTSIZE
-setopt HIST_IGNORE_DUPS
-setopt HIST_IGNORE_SPACE
-setopt APPEND_HISTORY
-setopt SHARE_HISTORY
+HISTDUP=erase
+setopt append_history
+setopt share_history
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_ignore_dups
+setopt hist_save_no_dups
+setopt hist_find_no_dups
 
-# ============================================================
-# Completions
-# ============================================================
-autoload -Uz compinit
-compinit
+setopt glob_complete
+setopt no_beep
+setopt extended_glob
 
 # Enhanced completion settings
-zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' menu no
 zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
 zstyle ':completion:*:warnings' format '%F{red}-- no matches found --%f'
 zstyle ':completion:*' group-name ''
@@ -73,20 +99,6 @@ zstyle ':completion:*' completer _complete _match _approximate
 zstyle ':completion:*:match:*' original only
 zstyle ':completion:*:approximate:*' max-errors 1 numeric
 
-
-
-# ============================================================
-# Vim keymaps
-# ============================================================
-bindkey -v  # Enable vim mode
-
-# Custom vim keymaps
-bindkey '^u' vi-cmd-mode               # Ctrl+E to enter normal mode (escape to normal mode)
-bindkey '^k' delete-char
-
-# Colemak movement in vi mode
-bindkey -M vicmd 'n' down-line-or-history      # n = down (next line)
-# Custom function for 'e' key - up line or tmux copy if at top
 function up-line-or-tmux-copy() {
     if zle up-line; then
         # Successfully moved up a line
@@ -99,26 +111,12 @@ function up-line-or-tmux-copy() {
     fi
 }
 zle -N up-line-or-tmux-copy
-bindkey -M vicmd 'e' up-line-or-tmux-copy      # e = up line or tmux copy if at top  
-bindkey -M vicmd 'k' backward-char              # k = left
-bindkey -M vicmd 'o' forward-char               # o = right
-bindkey -M vicmd 'K' beginning-of-line          # K = beginning of line
-bindkey -M vicmd 'O' end-of-line                # O = end of line
-bindkey -M vicmd 'l' vi-open-line-below         # l = open line below
-bindkey -M vicmd 'L' vi-open-line-above         # L = open line above
-bindkey -M vicmd ',' vi-forward-word            # h = next page/word
-bindkey -M vicmd 'z' vi-backward-word           # z = prev page/word
-
-# Custom function for 'm' key - enter tmux copy mode and half page up
 function tmux-copy-halfpage-up() {
     if [[ -n "$TMUX" ]]; then
         tmux copy-mode \; send -X halfpage-up
     fi
 }
 zle -N tmux-copy-halfpage-up
-bindkey -M vicmd 'm' tmux-copy-halfpage-up      # m = tmux copy mode + half page up
-
-# Vi mode visual indicators
 function zle-keymap-select {
     if [[ ${KEYMAP} == vicmd ]] || [[ $1 = 'block' ]]; then
         echo -ne '\e[2 q'  # Block cursor for normal mode
@@ -127,25 +125,30 @@ function zle-keymap-select {
     fi
 }
 zle -N zle-keymap-select
-
-# Initialize cursor
 function zle-line-init() {
     echo -ne '\e[6 q'  # Beam cursor
 }
 zle -N zle-line-init
 
+bindkey -v  # Enable vi mode
+bindkey '^u' vi-cmd-mode # Activate it
+bindkey -M vicmd 'n' down-line-or-history
+bindkey -M vicmd 'e' up-line-or-tmux-copy
+bindkey -M vicmd 'k' backward-char
+bindkey -M vicmd 'o' forward-char
+bindkey -M vicmd 'K' beginning-of-line
+bindkey -M vicmd 'O' end-of-line
+bindkey -M vicmd 'l' vi-open-line-below
+bindkey -M vicmd 'L' vi-open-line-above
+bindkey -M vicmd ',' vi-forward-word
+bindkey -M vicmd 'z' vi-backward-word
+bindkey -M vicmd 'm' tmux-copy-halfpage-up      # m = tmux copy mode + half page up
+bindkey '^k' delete-char
+bindkey '^p' fzf-history-widget
 
-
-# Additional useful features
-setopt GLOB_COMPLETE        # complete globs
-setopt NO_BEEP              # disable beep
-setopt EXTENDED_GLOB        # extended globbing
-
-# Better word selection
 autoload -U select-word-style
 select-word-style bash
 
-# Prompt customization
 precmd() {
     # Save the last command for the 'a' function
     _LAST_CMD=$(fc -ln -1 -1 | sed 's/^\s*//')
@@ -190,18 +193,11 @@ precmd() {
     RPROMPT="$output"
 }
 
-# ============================================================
-# FZF custom keybindings
-# ============================================================
-# Note: fzf and zoxide are initialized in .zprofile (runs before .zshrc in login shells)
-# Tmux creates login shells by default, so functions are already loaded
-bindkey '^p' fzf-history-widget
-
-
 a() {
   # Use the last command saved by precmd hook
   notify-send "${_LAST_CMD:-Done}"
 }
+
 alias l='eza \
   -alnoT \
   --no-permissions \
