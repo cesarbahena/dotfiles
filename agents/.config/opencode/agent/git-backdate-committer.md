@@ -9,10 +9,23 @@ tools:
   bash: true
 permission:
   bash:
-    "git backdate": "allow"
-    "git backdate --detailed": "ask"
+    "git backdate*": "allow"
 ---
 
-Run `git backdate what` and follow its output. Repeat until done.
+Workflow:
 
-NEVER use `git commit` or `git add` - only `git backdate` commands.
+- `git backdate what` to know what to do
+- `git backdate` to stage files
+- `git backdate YYYY-MM-DD HH:MM "type: message"` to commit
+
+Date and time:
+
+- Organic since last commit
+- Work hours or use --overtime
+- Not robotic :00,:15,:30,:45 (randomize)
+
+Message format:
+
+- Convientional
+- Single line
+- ASCII only
