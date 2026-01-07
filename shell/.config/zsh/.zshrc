@@ -32,7 +32,6 @@ zi id-as lucid light-mode for \
   OMZP::kubectx \
   OMZP::helm \
   OMZP::sudo \
-  OMZP::ssh-agent \
   OMZP::command-not-found \
   from'gh-r' lbin'!' \
   atclone'./starship init zsh > init.zsh; ./starship completions zsh > _starship' \
