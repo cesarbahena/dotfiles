@@ -165,10 +165,11 @@ show_what() {
     if [ -n "$STAGED" ]; then
         LAST_COMMIT=$(git log -1 --format="%cd" --date=format:"%Y-%m-%d %H:%M" 2>/dev/null || echo "1970-01-01 00:00")
 
-        echo "Calculate dev time needed since $LAST_COMMIT to make:"
+        echo "Calculate time since $LAST_COMMIT that a human dev needs to make these staged changes:"
+        echo "---"
         git diff --staged
-        echo ""
-        echo "Commit with: git backdate DATE TIME \"message\""
+        echo "---"
+        echo "The files are staged, commit them with: git backdate DATE TIME \"message\""
         exit 0
     fi
 
@@ -182,7 +183,8 @@ show_what() {
         echo "Group related files. One commit per group."
         echo ""
         git backdate which
-        echo "Add with: git backdate add <files>"
+        echo "Stage with: git backdate add <files>"
+        echo "Calculate time since $LAST_COMMIT that a human dev needs to make the changes"
         echo "Commit with: git backdate DATE TIME \"message\""
         exit 0
     fi
@@ -352,8 +354,7 @@ EXAMPLES:
     $ git backdate add newfile.js utils.js
     $ git backdate 2025-01-15 09:23 "Add user authentication"
     SUCCESS: Commit created successfully!
-    ...
-    ----------------------------------------
+    ---
     JOB FINISHED: Working tree clean
 
     # Manual commit (regular work hour)
@@ -672,7 +673,7 @@ if git commit --date="$DATETIME" -m "$MESSAGE"; then
     echo ""
     echo "Commit datetime: $DATETIME"
     echo ""
-    echo "----------------------------------------"
+    echo "---"
     echo ""
 
     # Auto-call "what" to show next instruction

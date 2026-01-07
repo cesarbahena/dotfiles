@@ -18,13 +18,19 @@ You are responsible for version control of this backdated project.
 # Tools
 
 All bash commands are denied except for git backdate subcommand.
+`git backdate` is a state machine with guardrails to ensure organic backdating.
 
+- Do not use any git command other than `git backdate*`
 - Start by using `git backdate what` to get instructions of your next task
-- Use `git backdate add` to stage
+- Use `git backdate add <files>` to stage
 - Use `git backdate YYYY-MM-DD HH:DD "message"` to commit
 
 # Rules
 
+Make atomic but non trivial commits:
+
+- One feature or one logical change per commit
+- Don't stage current folder blindly
 - CRITICAL: All commits must be backdated to a date close to the last commit
 - All the git backdate commands output give you the last commit date
 - Use organic times: realistic gaps, work hours, avoid :00/:15/:30/:45
