@@ -19,6 +19,7 @@ load_env() {
   if [ -s "$2" ]; then
     . "$2"
   fi
+  # Run command logic pending
 }
 
 prepend_path() {
