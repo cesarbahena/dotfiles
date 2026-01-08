@@ -36,7 +36,8 @@ zi id-as lucid light-mode for \
   from'gh-r' lbin'!' \
   atclone'./starship init zsh > init.zsh; ./starship completions zsh > _starship' \
   atpull'%atclone' src'init.zsh' lbin'!' starship/starship
-autoload -Uz compinit && compinit
+export ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/.zcompdump"
+autoload -Uz compinit && compinit -d "$ZSH_COMPDUMP"
 zi cdreplay -q
 
 zi from'gh-r' lbin'!' id-as lucid light-mode wait for \

@@ -1,12 +1,11 @@
 . "$ZDOTDIR/helpers.zsh"
 
 load_env "$XDG_DATA_HOME/nvm/nvm.sh" && alias npmg="l $XDG_DATA_HOME/nvm/versions/node/$(node -v)/bin"
-load_env "$HOME/.cargo/env"
+prepend_path "$CARGO_HOME/bin"
 load_env "$XDG_DATA_HOME/sdkman/bin/sdkman-init.sh"
 load_env "$HOME/dotfiles/.env.local"
 load_env "$XDG_CONFIG_HOME/fzf/fzf.zsh"
 load_env "$XDG_DATA_HOME/bob/env/env.sh"
-export MAMBA_ROOT_PREFIX="$HOME/miniforge3"
 load_env \
   "'$MAMBA_ROOT_PREFIX/bin/mamba' shell hook --shell zsh --root-prefix '$MAMBA_ROOT_PREFIX'" \
   "alias mamba='$MAMBA_ROOT_PREFIX/bin/mamba'"
