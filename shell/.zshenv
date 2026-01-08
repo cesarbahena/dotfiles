@@ -18,10 +18,14 @@ export BUN_INSTALL="$XDG_DATA_HOME/bun"
 # Less
 export LESSHISTFILE="$XDG_STATE_HOME/less/history"
 
-# Conda
+# Conda/Mamba
 export CONDARC="$XDG_CONFIG_HOME/conda/condarc"
 export CONDA_ROOT="$XDG_DATA_HOME/conda"
-export MAMBA_ROOT_PREFIX="$XDG_DATA_HOME/mamba"
+export MAMBA_ROOT_PREFIX="$XDG_DATA_HOME/miniforge3"
+export MAMBA_EXE="$MAMBA_ROOT_PREFIX/bin/mamba"
 
 # MongoDB
 export MONGOSH_CONFIG_DIR="$XDG_DATA_HOME/mongodb"
+
+# Claude
+export CLAUDE_CONFIG_DIR="$XDG_DATA_HOME/claude"

@@ -1,0 +1,160 @@
+#!/bin/bash
+# Fix Helium PWA desktop files: correct Exec paths and move to XDG location
+# Usage: fix-helium-pwa [OPTIONS] [APP_NAME...]
+#   --keep-desktop    Copy instead of move desktop files
+#   --overwrite       Overwrite existing files in applications directory
+#   APP_NAME...       Specific app(s) to fix (e.g., "WhatsApp"), or all if none specified
+
+set -e
+
+DESKTOP_DIR="$HOME/Desktop"
+XDG_APPS_DIR="$HOME/.local/share/applications"
+HELIUM_DATA="$HOME/.var/app/com.imputnet.Helium/config/net.imput.helium/Default/Web Applications/Manifest Resources"
+
+# Parse flags
+KEEP_DESKTOP=false
+OVERWRITE=false
+APP_NAMES=()
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --keep-desktop)
+            KEEP_DESKTOP=true
+            shift
+            ;;
+        --overwrite)
+            OVERWRITE=true
+            shift
+            ;;
+        *)
+            APP_NAMES+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Size mapping for icons
+declare -A size_map=(
+    [16]=16x16
+    [32]=32x32
+    [48]=48x48
+    [60]=64x64
+    [64]=64x64
+    [90]=96x96
+    [96]=96x96
+    [128]=128x128
+    [192]=192x192
+    [256]=256x256
+    [512]=512x512
+)
+
+# Find all PWA desktop files on Desktop
+processed=0
+skipped=0
+
+for desktop_file in "$DESKTOP_DIR"/chrome-*.desktop; do
+    [ -f "$desktop_file" ] || continue
+    
+    filename=$(basename "$desktop_file")
+    
+    # If specific apps requested, check if this file matches
+    if [ ${#APP_NAMES[@]} -gt 0 ]; then
+        app_name=$(grep "^Name=" "$desktop_file" 2>/dev/null | sed 's/^Name=//')
+        match=false
+        for requested in "${APP_NAMES[@]}"; do
+            if [[ "$app_name" == *"$requested"* ]]; then
+                match=true
+                break
+            fi
+        done
+        if ! $match; then
+            continue
+        fi
+    fi
+    
+    echo "Processing: $filename"
+    
+    # Extract app-id from Exec line (fixed regex for alphanumeric)
+    app_id=$(grep "^Exec=" "$desktop_file" | sed -n 's/.*--app-id=\([a-z0-9]\+\).*/\1/p')
+    
+    if [ -z "$app_id" ]; then
+        echo "  Info: Could not extract app-id, skipping"
+        ((skipped++))
+        continue
+    fi
+    
+    # Extract icon name from desktop file
+    icon_name=$(grep "^Icon=" "$desktop_file" | sed 's/^Icon=//')
+    
+    if [ -z "$icon_name" ]; then
+        echo "  Info: Could not extract icon name, skipping"
+        ((skipped++))
+        continue
+    fi
+    
+    # Check if target already exists
+    target_file="$XDG_APPS_DIR/$filename"
+    if [ -f "$target_file" ] && ! $OVERWRITE; then
+        echo "  Info: $filename already exists in $XDG_APPS_DIR (use --overwrite to replace)"
+        ((skipped++))
+        continue
+    fi
+    
+    # Fix Exec path: /app/lib/helium/helium.real -> flatpak run com.imputnet.Helium
+    sed -i "s|/app/lib/helium/helium.real|flatpak run com.imputnet.Helium|g" "$desktop_file"
+    
+    # Copy or move to XDG applications directory
+    if $KEEP_DESKTOP; then
+        cp "$desktop_file" "$XDG_APPS_DIR/"
+        echo "  Copied to: $XDG_APPS_DIR/$filename"
+    else
+        mv "$desktop_file" "$XDG_APPS_DIR/"
+        echo "  Moved to: $XDG_APPS_DIR/$filename"
+    fi
+    
+    # Copy icons if they exist
+    icon_dir="$HELIUM_DATA/$app_id/Icons"
+    if [ -d "$icon_dir" ]; then
+        icon_count=0
+        for icon in "$icon_dir"/*.png; do
+            [ -f "$icon" ] || continue
+            
+            # Get size from filename (e.g., 128.png -> 128)
+            size=$(basename "$icon" .png)
+            target_size=${size_map[$size]}
+            
+            if [ -n "$target_size" ]; then
+                target_dir="$HOME/.local/share/icons/hicolor/${target_size}/apps"
+                mkdir -p "$target_dir"
+                cp "$icon" "$target_dir/${icon_name}.png"
+                ((icon_count++))
+            fi
+        done
+        echo "  Copied $icon_count icons"
+    else
+        echo "  Info: No icons found at $icon_dir"
+    fi
+    
+    ((processed++))
+    echo "  ✓ Fixed: $filename"
+done
+
+# Update desktop database
+if [ $processed -gt 0 ]; then
+    update-desktop-database "$XDG_APPS_DIR" 2>/dev/null || true
+    gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+fi
+
+echo ""
+echo "Summary: Processed $processed PWA(s), skipped $skipped"
+
+if [ $processed -gt 0 ]; then
+    echo ""
+    echo "✓ PWAs should now appear in GNOME Activities"
+    echo "  Test by searching for the app name and launching it"
+fi
+
+if [ $skipped -gt 0 ] && ! $OVERWRITE; then
+    echo ""
+    echo "Note: Use --overwrite flag to replace existing files"
+fi

@@ -8,17 +8,16 @@ load_env() {
     return
   fi
 
+  # Two arguments: try primary command, fallback to secondary
   local generated_code
   if generated_code="$(eval "$1" 2>/dev/null)"; then
     eval "$generated_code"
     return
   fi
 
-  # Fallback
+  # Fallback: source file or run command
   if [ -s "$2" ]; then
     . "$2"
-  else
-    eval "$2"
   fi
 }
 

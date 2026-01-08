@@ -228,3 +228,19 @@ alias in='docker compose exec'
 alias imin='docker compose exec -it'
 alias du='dust 2>/dev/null'
 alias adbw="/mnt/c/platform-tools/adb.exe"
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/home/cesar/.local/share/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/cesar/.local/share/miniforge3/etc/profile.d/conda.sh" ]; then
+        . "/home/cesar/.local/share/miniforge3/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/cesar/.local/share/miniforge3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
