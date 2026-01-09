@@ -198,6 +198,11 @@ a() {
   notify-send "${_LAST_CMD:-Done}"
 }
 
+hash -d data="$XDG_DATA_HOME"
+hash -d config="$XDG_CONFIG_HOME"
+hash -d cache="$XDG_CACHE_HOME"
+hash -d state="$XDG_STATE_HOME"
+hash -d bin="$HOME/.local/bin"
 alias l='eza \
   -alnoT \
   --no-permissions \
