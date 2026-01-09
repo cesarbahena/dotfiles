@@ -15,8 +15,7 @@ load_env \
   "$MAMBA_ROOT_PREFIX/etc/profile.d/conda.sh"
 
 prepend_path "$CARGO_HOME/bin"
-prepend_path "$HOME/bin"
-append_path "$HOME/.local/bin"
+prepend_path "$HOME/.local/bin"
 append_path "/usr/local/go/bin"
 append_path "$XDG_CONFIG_HOME/composer/vendor/bin"
 append_path DOTNET_ROOT "$XDG_DATA_HOME/dotnet"

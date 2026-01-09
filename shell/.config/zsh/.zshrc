@@ -200,7 +200,7 @@ a() {
 
 hash -d d="$XDG_DATA_HOME"
 hash -d c="$XDG_CONFIG_HOME"
-hash -d b="$HOME/.local/bin"
+hash -d b="$XDG_BIN_HOME"
 alias l='eza \
   -alnoT \
   --no-permissions \
