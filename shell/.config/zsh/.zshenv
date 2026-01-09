@@ -17,6 +17,8 @@ export MAMBA_ROOT_PREFIX="$XDG_DATA_HOME/miniforge3"
 export MAMBA_EXE="$MAMBA_ROOT_PREFIX/bin/mamba"
 export MONGOSH_CONFIG_DIR="$XDG_DATA_HOME/mongodb"
 export CLAUDE_CONFIG_DIR="$XDG_DATA_HOME/claude"
+export OPENCODE_CONFIG_DIR="$XDG_CONFIG_HOME/opencode"
+export OPENCODE_INSTALL_DIR="$XDG_DATA_HOME/opencode/bin"
 
 # gnupg: Move to XDG data
 export GNUPGHOME="$XDG_DATA_HOME/gnupg"
