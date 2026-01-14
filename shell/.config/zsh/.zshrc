@@ -221,13 +221,15 @@ alias activate='source .venv/bin/activate'
 alias up='docker compose up -d'
 alias down='docker compose down'
 alias downdb='docker compose down -v'
-alias restart='docker compose down \
+alias rs='docker compose down \
   && docker compose up -d'
-alias restartdb='docker compose down -v \
+alias rsdb='docker compose down -v \
   && docker compose up -d'
 alias build='docker compose build --no-cache'
 alias logs='docker compose logs -f'
-alias in='docker compose exec'
+in() {
+  docker compose exec "$@" || docker exec "$@"
+}
 alias imin='docker compose exec -it'
 alias du='dust 2>/dev/null'
 alias adbw="/mnt/c/platform-tools/adb.exe"
