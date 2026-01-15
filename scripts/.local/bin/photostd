@@ -1,0 +1,362 @@
+#!/usr/bin/env python3
+"""
+Gold Standard Photo Filename Standardizer
+==========================================
+
+Converts all photo filenames to standard format: yyyymmdd_hhmmss.ext
+
+Supported Input Formats:
+- Android: IMG_yyyymmdd_hhmmss[_N].jpg
+- Windows Phone: WP_yyyymmdd_NNN.jpg (assigns fake sequential times)
+- Instagram 6tag: 6tag_ddmmyy-hhmmss.jpg
+- Facebook: FB_IMG_timestamp.jpg
+- iPhone: IMG_NNNN.HEIC/JPG (via EXIF)
+- Generic: Any file with EXIF DateTimeOriginal
+
+Features:
+- EXIF extraction (rejects dates >= 2022 as fake/download dates)
+- Collision handling with Android-style _1, _2 suffixes
+- Windows Phone: randomized wake-hour times (6am-11pm, family-time weighted)
+- Safe rename: uses os.link + os.unlink (cannot overwrite)
+- Supports: .jpg, .jpeg, .png, .heic, .HEIC, .JPG, .JPEG, .PNG
+
+Requirements:
+- exiftool must be installed for EXIF extraction
+"""
+
+import os
+import re
+import sys
+import subprocess
+from pathlib import Path
+from datetime import datetime, timedelta
+from collections import defaultdict
+
+
+def get_exif_datetime(filepath):
+    """
+    Extract datetime from EXIF data using exiftool.
+    Returns datetime string in yyyymmdd_hhmmss format or None.
+    ONLY accepts dates before 2022 (after that is fake/wrong).
+    """
+    try:
+        result = subprocess.run(
+            ['exiftool', '-DateTimeOriginal', '-CreateDate', '-d', '%Y%m%d_%H%M%S', '-S', filepath],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        # Parse output: "DateTimeOriginal: 20131005_105442"
+        for line in result.stdout.strip().split('\n'):
+            if ':' in line:
+                parts = line.split(':', 1)
+                if len(parts) == 2:
+                    datetime_str = parts[1].strip()
+
+                    # Validate: must be before 2022
+                    if datetime_str and len(datetime_str) >= 4:
+                        year = int(datetime_str[:4])
+                        if year >= 2022:
+                            return None  # Reject fake/downloaded dates
+
+                    return datetime_str
+
+        return None
+    except Exception:
+        return None
+
+
+def extract_datetime_from_filename(filename):
+    """
+    Extract datetime in yyyymmdd_hhmmss format from various filename patterns.
+    Returns (datetime_str, source_type) or (None, None) if not found.
+    """
+    name, ext = os.path.splitext(filename)
+
+    # Pattern 1: Already in correct format (yyyymmdd_hhmmss)
+    match = re.match(r'^(\d{8}_\d{6})$', name)
+    if match:
+        return match.group(1), 'standard'
+
+    # Pattern 2: IMG_yyyymmdd_hhmmss (Android camera)
+    match = re.search(r'IMG_(\d{8}_\d{6})', name)
+    if match:
+        return match.group(1), 'android'
+
+    # Pattern 3: WP_yyyymmdd_NNN (Windows Phone - NO time, will need special handling)
+    match = re.match(r'^WP_(\d{8})_(\d{3})$', name)
+    if match:
+        return (match.group(1), match.group(2)), 'windows_phone'
+
+    # Pattern 4: 6tag_ddmmyy-hhmmss (Instagram app - date is reversed!)
+    match = re.match(r'^6tag_(\d{2})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$', name)
+    if match:
+        dd, mm, yy, hh, mi, ss = match.groups()
+        # Convert ddmmyy to yyyymmdd
+        year = f"20{yy}"
+        datetime_str = f"{year}{mm}{dd}_{hh}{mi}{ss}"
+        return datetime_str, '6tag'
+
+    # Pattern 5: FB_IMG_timestamp (Facebook - unix timestamp in milliseconds)
+    match = re.match(r'^FB_IMG_(\d+)$', name)
+    if match:
+        timestamp_ms = int(match.group(1))
+        timestamp_s = timestamp_ms / 1000
+        dt = datetime.fromtimestamp(timestamp_s)
+        return dt.strftime('%Y%m%d_%H%M%S'), 'facebook'
+
+    # Pattern 6: Various special WP formats
+    # WP_20131124_13_02_29_SmartShoot -> 20131124_130229
+    match = re.match(r'^WP_(\d{8})_(\d{2})_(\d{2})_(\d{2})_', name)
+    if match:
+        date, hh, mm, ss = match.groups()
+        return f"{date}_{hh}{mm}{ss}", 'wp_special'
+
+    return None, None
+
+
+def assign_wp_times(directory_path):
+    """
+    Pre-scan Windows Phone files and assign fake wake-hour times based on sequence.
+    Times are randomized but sequential, weighted towards family hours.
+    Returns dict: {filename: assigned_time}
+    """
+    import random
+
+    path = Path(directory_path)
+    wp_files_by_date = defaultdict(list)
+
+    # Group WP files by date
+    for file_path in path.iterdir():
+        if file_path.is_file() and not file_path.name.startswith('.'):
+            filename = file_path.name
+            name, ext = os.path.splitext(filename)
+
+            match = re.match(r'^WP_(\d{8})_(\d{3})$', name)
+            if match:
+                date_str = match.group(1)
+                seq_num = int(match.group(2))
+                wp_files_by_date[date_str].append((seq_num, filename))
+
+    # Assign times for each date
+    assignments = {}
+    wake_start = 6   # 6:00 AM
+    wake_end = 23    # 11:00 PM
+
+    # Family time hours (weighted higher probability)
+    family_hours = list(range(17, 22))  # 5pm-9pm
+
+    for date_str, files in wp_files_by_date.items():
+        files.sort()  # Sort by actual sequence number
+
+        # Get actual min/max sequence numbers for this date
+        min_seq = files[0][0]
+        max_seq = files[-1][0]
+        num_files = len(files)
+
+        if num_files == 1:
+            # Single file: random time in evening
+            hour = random.choice(family_hours)
+            minute = random.randint(0, 59)
+            second = random.randint(0, 59)
+            time_str = f"{hour:02d}{minute:02d}{second:02d}"
+            datetime_str = f"{date_str}_{time_str}"
+            assignments[files[0][1]] = datetime_str
+        else:
+            # Generate random times weighted towards family hours
+            total_wake_minutes = (wake_end - wake_start) * 60
+            times = []
+
+            for i in range(num_files):
+                # Weight towards family hours
+                if random.random() < 0.6:  # 60% chance of family time
+                    hour = random.choice(family_hours)
+                else:
+                    hour = random.randint(wake_start, wake_end - 1)
+
+                minute = random.randint(0, 59)
+                second = random.randint(0, 59)
+
+                # Convert to total seconds for sorting
+                total_seconds = hour * 3600 + minute * 60 + second
+                times.append(total_seconds)
+
+            # Sort times to keep sequential
+            times.sort()
+
+            # Assign to files based on their sequence
+            for (seq_num, filename), time_seconds in zip(files, times):
+                hours = time_seconds // 3600
+                minutes = (time_seconds % 3600) // 60
+                seconds = time_seconds % 60
+
+                time_str = f"{hours:02d}{minutes:02d}{seconds:02d}"
+                datetime_str = f"{date_str}_{time_str}"
+                assignments[filename] = datetime_str
+
+    return assignments
+
+
+def standardize_filename(filepath, wp_assignments, planned_names, dry_run=False):
+    """
+    Standardize a single filename. Returns (status_message, new_filename_or_None).
+    planned_names: set of filenames already planned in this run to avoid conflicts
+    """
+    directory = os.path.dirname(filepath)
+    filename = os.path.basename(filepath)
+    name, ext = os.path.splitext(filename)
+
+    datetime_str = None
+    source = None
+
+    # Try to extract from filename first
+    result, source = extract_datetime_from_filename(filename)
+
+    if source == 'windows_phone':
+        # Use pre-assigned time
+        if filename in wp_assignments:
+            datetime_str = wp_assignments[filename]
+            source = 'wp_assigned'
+        else:
+            return f"⚠️  ERROR: No time assigned for WP file '{filename}'", None
+    elif result:
+        datetime_str = result
+    else:
+        # Try EXIF as fallback
+        datetime_str = get_exif_datetime(filepath)
+        if datetime_str:
+            source = 'exif'
+
+    if not datetime_str:
+        return f"⚠️  WARNING: Cannot extract datetime from '{filename}' - incompatible format", None
+
+    # Check if already standardized
+    if filename == f"{datetime_str}{ext}":
+        return f"✓  '{filename}' already standardized", None
+
+    # Construct new filename with collision handling (Android-style _1, _2 suffixes)
+    new_filename = f"{datetime_str}{ext}"
+    new_filepath = os.path.join(directory, new_filename)
+
+    # Handle collision by adding _1, _2, etc. suffix (Android standard)
+    # Check BOTH disk AND planned renames in this run
+    collision_counter = 1
+    while os.path.exists(new_filepath) or new_filename in planned_names:
+        new_filename = f"{datetime_str}_{collision_counter}{ext}"
+        new_filepath = os.path.join(directory, new_filename)
+        collision_counter += 1
+
+        # Safety limit to prevent infinite loops
+        if collision_counter > 100:
+            return f"⚠️  ERROR: Too many collisions (>100) for '{filename}'", None
+
+    # Perform rename (with final safety check)
+    if not dry_run:
+        # Double-check right before rename to prevent race conditions
+        if os.path.exists(new_filepath):
+            return f"⚠️  ERROR: Race condition detected - '{new_filename}' appeared, skipping", None
+
+        # Use os.link + os.unlink for safer rename (won't overwrite)
+        try:
+            os.link(filepath, new_filepath)  # Create hard link (fails if destination exists)
+            os.unlink(filepath)  # Remove original
+
+            collision_msg = f" (collision → _{collision_counter-1})" if collision_counter > 1 else ""
+            return f"✓  Renamed: '{filename}' → '{new_filename}' [{source}]{collision_msg}", new_filename
+        except FileExistsError:
+            return f"⚠️  ERROR: '{new_filename}' already exists, skipping", None
+        except Exception as e:
+            return f"⚠️  ERROR: Failed to rename '{filename}': {e}", None
+    else:
+        collision_msg = f" (collision → _{collision_counter-1})" if collision_counter > 1 else ""
+        return f"[DRY RUN] Would rename: '{filename}' → '{new_filename}' [{source}]{collision_msg}", new_filename
+
+
+def process_directory(directory_path, dry_run=False):
+    """
+    Process all files in a directory.
+    """
+    path = Path(directory_path)
+
+    if not path.exists():
+        print(f"ERROR: Directory '{directory_path}' does not exist")
+        return
+
+    if not path.is_dir():
+        print(f"ERROR: '{directory_path}' is not a directory")
+        return
+
+    print(f"\n{'='*60}")
+    print(f"Processing directory: {directory_path}")
+    print(f"{'='*60}\n")
+
+    # Pre-scan for Windows Phone files
+    print("Pre-scanning Windows Phone files to assign times...")
+    wp_assignments = assign_wp_times(directory_path)
+    if wp_assignments:
+        print(f"Assigned times to {len(wp_assignments)} Windows Phone files\n")
+
+    # Get all files (excluding hidden files)
+    files = [f for f in path.iterdir() if f.is_file() and not f.name.startswith('.')]
+
+    if not files:
+        print("No files found in directory")
+        return
+
+    # Sort files for consistent processing
+    files.sort()
+
+    # Track filenames planned in this run to avoid conflicts
+    planned_names = set()
+
+    stats = {
+        'renamed': 0,
+        'already_ok': 0,
+        'collisions': 0,
+        'incompatible': 0,
+        'errors': 0
+    }
+
+    for file_path in files:
+        result, new_filename = standardize_filename(str(file_path), wp_assignments, planned_names, dry_run)
+        print(result)
+
+        # Add new filename to planned names to prevent conflicts in this run
+        if new_filename:
+            planned_names.add(new_filename)
+
+        if 'Renamed:' in result or 'Would rename:' in result:
+            stats['renamed'] += 1
+        elif 'already standardized' in result:
+            stats['already_ok'] += 1
+        elif 'COLLISION' in result:
+            stats['collisions'] += 1
+        elif 'incompatible' in result:
+            stats['incompatible'] += 1
+        elif 'ERROR' in result:
+            stats['errors'] += 1
+
+    print(f"\n{'='*60}")
+    print(f"Summary:")
+    print(f"  Files renamed: {stats['renamed']}")
+    print(f"  Already standardized: {stats['already_ok']}")
+    print(f"  Collisions (skipped): {stats['collisions']}")
+    print(f"  Incompatible names: {stats['incompatible']}")
+    print(f"  Errors: {stats['errors']}")
+    print(f"{'='*60}\n")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python3 standardize_filenames.py <directory_path> [--dry-run]")
+        print("Example: python3 standardize_filenames.py '20 carreras' --dry-run")
+        sys.exit(1)
+
+    directory = sys.argv[1]
+    dry_run = '--dry-run' in sys.argv
+
+    if dry_run:
+        print("\n*** DRY RUN MODE - No files will be modified ***\n")
+
+    process_directory(directory, dry_run)
