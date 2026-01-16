@@ -134,35 +134,43 @@ alias get='sudo apt update && sudo apt install -y'
 alias activate='source .venv/bin/activate'
 
 alias g='git status -sb'
+alias gs='git status'
 alias ga='git add -v'
 alias gaa='git add -v --all'
 alias gah='git add -p' # add hunk
 alias gat='git add -uv' # add tracked
 alias gb='git branch -av'
+alias gbnm='git branch -av --no-merged' # whats up with this
+alias gsw='git switch'
+alias gswc='git switch --create'
 alias gc='git commit -v'
 alias gca='git commit -av'
 alias gcf='git config --list'
-alias gfk='git commit -v --amend --no-edit' # surgically amend
-alias gfck='git commit -av --amend --no-edit' # didnt staged the files
-alias gfuck='git commit -v --amend' # need to be precise with the message
-alias gfixup='git commit --fixup'
+alias gfck='git reflog' # find commit killed
+alias gfk='git commit -v --amend --no-edit' # quick amend
+alias gfuck='git commit -v --amend' # need to be precise with the msg
+alias gfu='git commit --fixup'
+# Should we even use --date=now and --signoff in amend aliases?
+# What about gpg-sign for normal commits?
 alias ge='git mergetool --no-prompt'
 alias gvim='git mergetool --no-prompt --tool=vimdiff'
 alias gp='git push -v'
-alias gpoat='git push origin --all && git push origin --tags'
-alias gor='git remote -v' # TODO: convert into a fucnition: no args: shows all remotes, args: execute golang cli
-alias goa='git remote add origin'
-alias gos='git remote set-url origin'
-alias gomv='git remote rename origin'
-alias gorm='git remote remove origin'
+alias gcpr='git reset --soft' # copy index --reset head
 alias grm='git rm'
-alias gfu='git rm --cached' # file unstage
-alias gR='git reflog'
-alias gwmv='git worktree move'
-alias gwrm='git worktree remove'
-# Should we even use --date=now and --signoff in amend aliases?
-# What about gpg-sign for normal commits?
-
+alias grmf='git rm --cached' # file unstage
+alias grmr='git reset' # rm index --reset head
+alias grmri='git reset --keep' # rm index --reset head --intelligent keep wt 
+alias grmrf='git reset --hard' # rm index --reset head --force rm wt
+alias grmu='git remote remove origin'
+alias gmvu='git remote rename origin'
+alias grmw='git worktree remove'
+alias gmvw='git worktree move'
+alias gr='git restore'
+alias grs='git restore --source'
+alias grt='git restore --staged'
+alias gcat='git show --pretty=short --show-signature'
+alias gpop='git stash pop'
+alias gsi='git update-index --no-assume-unchanged' # source .gitignore
 
 # Make the ultimate git log function out of these:
 alias glg='git log --stat'
@@ -178,64 +186,12 @@ alias gloga='git log --oneline --decorate --graph --all'
 alias glol='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ar) %C(bold blue)<%an>%Creset"'
 alias glola='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ar) %C(bold blue)<%an>%Creset" --all'
 alias glols='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ar) %C(bold blue)<%an>%Creset" --stat'
+alias gwch='git log --patch --abbrev-commit --pretty=medium --raw'
 
-# Still no sure about these:
-alias gbnm='git branch -av --no-merged'
-alias gbl='git blame -w'
-alias gbs='git bisect'
-alias gbsb='git bisect bad'
-alias gbsg='git bisect good'
-alias gbsn='git bisect new'
-alias gbso='git bisect old'
-alias gbsr='git bisect reset'
-alias gbss='git bisect start'
-alias gcl='git clone --recurse-submodules'
-alias gclf='git clone --recursive --shallow-submodules --filter=blob:none --also-filter-submodules'
-alias gclean='git clean --interactive -d'
-alias gcp='git cherry-pick'
-alias gcpa='git cherry-pick --abort'
-alias gcpc='git cherry-pick --continue'
-alias gd='git diff'
-alias gdca='git diff --cached'
-alias gdcw='git diff --cached --word-diff'
-alias gds='git diff --staged'
-alias gdt='git diff-tree --no-commit-id --name-only -r'
-alias gdw='git diff --word-diff'
-alias gpristine='git reset --hard && git clean --force -dfx'
-alias grev='git revert'
-alias greva='git revert --abort'
-alias grevc='git revert --continue'
-alias grh='git reset'
-alias grhh='git reset --hard'
-alias grhk='git reset --keep'
-alias grhs='git reset --soft'
-alias grs='git restore'
-alias grss='git restore --source'
-alias grst='git restore --staged'
-alias gru='git reset --'
-alias grup='git remote update'
-alias grv='git remote --verbose'
-alias gsi='git submodule init'
-alias gsps='git show --pretty=short --show-signature'
-alias gss='git status --short'
-alias gst='git status'
-alias gsta='git stash push'
-alias gstaa='git stash apply'
-alias gstall='git stash --all'
-alias gstc='git stash clear'
-alias gstd='git stash drop'
-alias gstl='git stash list'
-alias gstp='git stash pop'
-alias gsts='git stash show --patch'
-alias gstu='git stash push --include-untracked'
-alias gsu='git submodule update'
-alias gsw='git switch'
-alias gswc='git switch --create'
+ # whats up with tags
 alias gta='git tag --annotate'
 alias gts='git tag --sign'
-alias gunignore='git update-index --no-assume-unchanged'
-alias gwch='git log --patch --abbrev-commit --pretty=medium --raw'
-alias gwipe='git reset --hard && git clean --force -df'
+alias gpoat='git push origin --all && git push origin --tags'
 
 # Docker
 alias up='docker compose up -d'
@@ -374,7 +330,6 @@ gfd() {
   git diff --color "$upstream"..HEAD
 }
 
-
 gm() {
   if [ -f .git/MERGE_HEAD ] && [ $# -eq 0 ]; then
     echo "Continuing merge..."
@@ -501,12 +456,143 @@ gfo() {
     return
   fi
 
-  echo "Nothing to abort: no merge or rebase in progress."
+  if [ -f .git/CHERRY_PICK_HEAD ]; then
+    echo "Aborting cherry-pick..."
+    git cherry-pick --abort
+    return
+  fi
+
+  echo "Nothing to abort: no merge, rebase, or cherry-pick in progress."
+}
+
+gcp() {
+  if [ -f .git/CHERRY_PICK_HEAD ] && [ $# -eq 0 ]; then
+    echo "Continuing cherry-pick..."
+    git cherry-pick --continue
+    return
+  fi
+
+  if [ $# -eq 0 ]; then
+    echo "No commits specified to cherry-pick."
+    return 1
+  fi
+
+  git cherry-pick "$@"
 }
 
 gw() {
   [ $# -eq 0 ] && git worktree list && return
   git worktree add "$@"
+}
+
+gbare() {
+  git clone --bare "$1" .git
+}
+
+gg() {
+  git_dir=$(git rev-parse --git-dir 2>/dev/null) || return 1
+  bisect_file="$git_dir/BISECT_LOG"
+
+  if [ -f "$bisect_file" ]; then # reset
+    git bisect reset
+    echo "Bisect session reset."
+    return
+  fi
+
+  # else start
+  bad_commit="HEAD"
+  good_commit="$1"
+
+  if [ -z "$good_commit" ]; then
+    good_commit=$(git rev-parse HEAD)  # default to current commit
+  fi
+
+  git bisect start
+  git bisect bad "$bad_commit"
+  git bisect good "$good_commit"
+  echo "Bisect started: bad=$bad_commit, good=$good_commit"
+}
+
+gy() {
+  git bisect good
+  echo "Marked current commit as GOOD. Next commit:"
+  git log -1 --oneline
+}
+
+gn() {
+  git bisect bad
+  echo "Marked current commit as BAD. Next commit:"
+  git log -1 --oneline
+}
+
+gmvu() {
+  if [ $# -eq 0 ]; then # show
+    git remote -v
+    return
+  fi
+
+  ssh_host="${REMOTE_REPO_HOST:-}"
+  github_user=$(git config user.name)
+  remote_name="origin"
+  repo_name=""
+  
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -h|--host)
+        shift
+        ssh_host="$1"
+        ;;
+      -u|--user)
+        shift
+        github_user="$1"
+        ;;
+      -r|--remote)
+        shift
+        remote_name="$1"
+        ;;
+      *) # First non-flag is repo name or DSN
+        [ -z "$repo_name" ] && repo_name="$1"
+        ;;
+    esac
+    shift
+  done
+
+  if [ -z "$repo_name" ]; then
+    echo "Repository not specified. Pass it as the first argument."
+    return 1
+  fi
+
+  if [[ "$repo_name" == *:* ]]; then # is DSN
+    ssh_url="$repo_name"
+  else
+    if [ -z "$ssh_host" ]; then
+      echo "REMOTE_REPO_HOST not set. Use -h flag or set REMOTE_REPO_HOST."
+      return 1
+    fi
+
+    if [ -z "$github_user" ] || [[ "$github_user" =~ [[:space:]] ]]; then
+      echo "Your git user.name ('$github_user') is not DSN string compatible. Use -u to pass a username that is or pass the full DSN string."
+      return 1
+    fi
+
+    ssh_url="${ssh_host}:${github_user}/${repo_name}"
+  fi
+
+  existing_remote=$(git remote | grep -E "^${remote_name}$")
+
+  if [ -n "$existing_remote" ]; then # update
+    git remote set-url "$remote_name" "$ssh_url"
+    echo "Updated remote '$remote_name' to $ssh_url"
+  else
+    detected_remote=$(git remote | head -n1)
+    if [ -n "$detected_remote" ]; then
+      git remote set-url "$detected_remote" "$ssh_url"
+      echo "Updated remote '$detected_remote' to $ssh_url"
+    else # add origin
+      git remote add "$remote_name" "$ssh_url"
+      echo "Added remote '$remote_name' pointing to $ssh_url"
+    fi
+  fi
 }
 
 # We need a rebase workflow as good as the merge one
@@ -516,3 +602,21 @@ alias grbc='git rebase --continue'
 alias grbi='git rebase --interactive'
 alias grbo='git rebase --onto'
 alias grbs='git rebase --skip'
+
+# Also an overloaded stash function
+alias gsta='git stash push'
+alias gstaa='git stash apply'
+alias gstall='git stash --all'
+alias gstc='git stash clear'
+alias gstd='git stash drop'
+alias gstl='git stash list'
+alias gsts='git stash show --patch'
+alias gstu='git stash push --include-untracked'
+
+# And a diff one too
+alias gd='git diff'
+alias gdca='git diff --cached'
+alias gdcw='git diff --cached --word-diff'
+alias gds='git diff --staged'
+alias gdt='git diff-tree --no-commit-id --name-only -r'
+alias gdw='git diff --word-diff'
