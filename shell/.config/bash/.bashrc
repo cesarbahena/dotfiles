@@ -150,14 +150,14 @@ alias ge='git mergetool --no-prompt'
 alias gvim='git mergetool --no-prompt --tool=vimdiff'
 alias gp='git push -v'
 alias gpoat='git push origin --all && git push origin --tags'
-alias go='git remote -v' # TODO: convert into a fucnition: no args: shows all remotes, args: execute golang cli
+alias gor='git remote -v' # TODO: convert into a fucnition: no args: shows all remotes, args: execute golang cli
 alias goa='git remote add origin'
+alias gos='git remote set-url origin'
 alias gomv='git remote rename origin'
 alias gorm='git remote remove origin'
 alias grm='git rm'
 alias gfu='git rm --cached' # file unstage
 alias gR='git reflog'
-alias gw='git worktree' # TODO: make a function: no args: list worktrees, args: pass to git worktree add
 alias gwmv='git worktree move'
 alias gwrm='git worktree remove'
 # Should we even use --date=now and --signoff in amend aliases?
@@ -210,7 +210,6 @@ alias grhh='git reset --hard'
 alias grhk='git reset --keep'
 alias grhs='git reset --soft'
 alias grs='git restore'
-alias grset='git remote set-url'
 alias grss='git restore --source'
 alias grst='git restore --staged'
 alias gru='git reset --'
@@ -299,7 +298,7 @@ in() {
 }
 
 imin() {
-  # TODO: execute bash in sssh using my rc file
+  cat ~/.config/bash/.bashrc | ssh "$@" 'bash --rcfile /dev/stdin'
 }
 
 gf() {
@@ -503,6 +502,11 @@ gfo() {
   fi
 
   echo "Nothing to abort: no merge or rebase in progress."
+}
+
+gw() {
+  [ $# -eq 0 ] && git worktree list && return
+  git worktree add "$@"
 }
 
 # We need a rebase workflow as good as the merge one
