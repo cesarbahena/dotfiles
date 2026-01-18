@@ -54,7 +54,27 @@ __prompt_command() {
   fi
   local RESET='\[\e[0m\]'
 
+  # Lightning-fast bashrc corruption check (bash built-in, no external process)
+  local MAPFILE
+  mapfile -tn 2 MAPFILE < ~/.bashrc
+  if [ "${#MAPFILE[@]}" -gt 1 ]; then
+    prompt='þ'  # mnemonic: bash profile corrupted
+    local color="$RED"
+    local cwd="${PWD/#$HOME/\~}"
+    local dir="${cwd%/*}"
+    local base="${cwd##*/}"
+    [ "$cwd" = "$base" ] && dir=""  # Handle root or no slash case
+    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} " || PS1="${base} ${color}${prompt}${RESET} "
+    return
+  fi
+
   [ "$EUID" -eq 0 ] && prompt='#'
+
+  # Split path: dim directory, bright basename
+  local cwd="${PWD/#$HOME/\~}"
+  local dir="${cwd%/*}"
+  local base="${cwd##*/}"
+  [ "$cwd" = "$base" ] && dir=""  # Handle root or no slash case
 
   if [ "$exit" -ne 0 ]; then
     local color="$RED"
@@ -107,9 +127,9 @@ __prompt_command() {
       *)   prompt="($exit)" ;;
     esac
 
-    PS1="${GRAY}\w${RESET} ${color}${prompt}${RESET} "
+    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} " || PS1="${base} ${color}${prompt}${RESET} "
   else
-    PS1="${GRAY}\w${RESET} ${GREEN}${prompt}${RESET} "
+    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${GREEN}${prompt}${RESET} " || PS1="${base} ${GREEN}${prompt}${RESET} "
   fi
 }
 
@@ -137,7 +157,7 @@ alias get='sudo apt update && sudo apt install -y'
 alias venv='source .venv/bin/activate'
 
 imin() {
-  cat ~/.config/bash/.bashrc | ssh "$@" 'bash --rcfile /dev/stdin'
+  cat ~/.config/bash/bashrc | ssh "$@" 'bash --rcfile /dev/stdin'
 }
 
 dl() {
