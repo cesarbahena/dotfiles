@@ -127,9 +127,9 @@ path() {
 }
 
 alias l='ls -nohaX --group-directories-first --color'
-alias ls='ls -a --color'
+alias ls='ls -A --color'
 alias rm='rm -r'
-alias e=$EDITOR
+alias v='nvim -c "$NVIM_CONFIG"'
 alias c='claude -c'
 alias oc='opencode -c'
 alias du='dust 2>/dev/null' # silence permission errors
@@ -141,35 +141,125 @@ imin() {
 }
 
 dl() {
-  {
-    docker ps -a --format "{{.State}}\t{{.Names}}\t{{.Image}}\t{{.Status}}" | awk -F'\t' '
-      BEGIN {
-        symbols["running"] = "•"
-        symbols["exited"] = "¤"
-        symbols["paused"] = "…"
-        symbols["restarting"] = "«"
-        print "XXXSTATE\tNAME\tIMAGE\tSTATUS"
-      }
-      {
-        state = $1
-        symbol = symbols[state]
-        name = $2
-        image = $3
-        status = $4
-        printf "%s\t%s\t%s\t%s\n", symbol, name, image, status
-      }'
-  } | column -t -s $'\t' | sed 's/XXXSTATE/STATE/' | awk '
+  local has_compose=false
+  if [ -f docker-compose.yml ] || [ -f compose.yml ]; then
+    has_compose=true
+  fi
+
+  docker ps -a --format "{{.State}}\t{{.Names}}\t{{.Image}}\t{{.Status}}" | awk -F'\t' -v has_compose="$has_compose" '
     BEGIN {
-      running_sym = "•"
-    }
-    NR == 1 { print; next }
-    {
-      if (substr($1, 1, 1) == running_sym) {
-        print
-      } else {
-        printf "\033[2m%s\033[0m\n", $0
+      symbols["running"] = "|>"
+      symbols["exited"] = "[]"
+      symbols["paused"] = "||"
+      symbols["restarting"] = "|<"
+
+      # Load service map from docker compose
+      if (has_compose == "true") {
+        cmd = "docker compose ps -a --format \"{{.Name}}\t{{.Service}}\" 2>/dev/null"
+        while ((cmd | getline) > 0) {
+          service_map[$1] = $2
+        }
+        close(cmd)
       }
-    }'
+    }
+    {
+      state = $1
+      symbol = symbols[state]
+      name = $2
+      image = $3
+      status = $4
+
+      # Store raw data with flattened keys
+      symbols_arr[NR] = symbol
+      names_arr[NR] = name
+      images_arr[NR] = image
+      status_arr[NR] = status
+      states_arr[NR] = state
+
+      # Calculate visual widths
+      if (length(name) > max_name) max_name = length(name)
+      if (length(image) > max_image) max_image = length(image)
+      if (length(status) > max_status) max_status = length(status)
+
+      row_count = NR
+    }
+    END {
+      # Sort by state priority
+      state_priority["running"] = 1
+      state_priority["paused"] = 2
+      state_priority["restarting"] = 3
+      state_priority["exited"] = 4
+
+      # Build sorted index array
+      for (i = 1; i <= row_count; i++) {
+        sorted_idx[i] = i
+      }
+
+      # Bubble sort by state priority
+      for (i = 1; i <= row_count; i++) {
+        for (j = i + 1; j <= row_count; j++) {
+          state_i = states_arr[sorted_idx[i]]
+          state_j = states_arr[sorted_idx[j]]
+          if (state_priority[state_i] > state_priority[state_j]) {
+            tmp = sorted_idx[i]
+            sorted_idx[i] = sorted_idx[j]
+            sorted_idx[j] = tmp
+          }
+        }
+      }
+
+      # Print header
+      printf "    %-*s  %-*s  %s\n", max_name, "NAME", max_image, "IMAGE", "STATUS"
+
+      # Print rows in sorted order
+      for (i = 1; i <= row_count; i++) {
+        idx = sorted_idx[i]
+        symbol = symbols_arr[idx]
+        name = names_arr[idx]
+        image = images_arr[idx]
+        status = status_arr[idx]
+        state = states_arr[idx]
+
+        # Format name with service highlighting
+        formatted_name = ""
+        if (has_compose == "true" && (name in service_map)) {
+          service = service_map[name]
+          pos = index(name, service)
+
+          if (pos > 0) {
+            # Service is substring of container name - split and highlight
+            before = substr(name, 1, pos - 1)
+            after = substr(name, pos + length(service))
+
+            if (before != "") formatted_name = "\033[37m" before "\033[0m"
+            formatted_name = formatted_name "\033[34m" service "\033[0m"
+            if (after != "") formatted_name = formatted_name "\033[37m" after "\033[0m"
+          } else {
+            # Service name not in container name - show as service:container
+            formatted_name = "\033[34m" service "\033[0m\033[37m:\033[0m\033[37m" name "\033[0m"
+            # Adjust visual width for service, colon, and name
+            name = service ":" name
+          }
+        } else {
+          # No service mapping - make entire name blue
+          formatted_name = "\033[34m" name "\033[0m"
+        }
+
+        # Padding for alignment
+        padding = max_name - length(name)
+        spaces = ""
+        for (j = 0; j < padding; j++) spaces = spaces " "
+
+        # Build line with selective dimming
+        if (state == "running") {
+          printf "%s  %s%s  %-*s  %s\n", symbol, formatted_name, spaces, max_image, image, status
+        } else {
+          # Dim everything except the formatted name (which has its own colors)
+          printf "\033[2m%s\033[0m  %s%s  \033[2m%-*s  %s\033[0m\n", symbol, formatted_name, spaces, max_image, image, status
+        }
+      }
+    }
+  '
 }
 
 din() {
@@ -944,15 +1034,12 @@ alias grc='git restore --source'
 alias grs='git restore --staged'
 alias gsi='git update-index --no-assume-unchanged' # source .gitignore
 alias gpop='git stash pop'
-alias ge='git mergetool --no-prompt'
-alias gv='git mergetool --no-prompt --tool=nvimdiff'
+alias gv='git mergetool --no-prompt'
+alias gvim='git mergetool --no-prompt --tool=nvimdiff'
 
 alias dk='docker stop $(docker ps -q)'
-alias dr='docker compose down && docker compose up -d'
-alias drd='docker container restart'
-alias rsd='docker compose down -v && docker compose up -d'
 alias di='docker inspect'
-alias dii='docker image inspect'
+alias dim='docker image inspect'
 alias dinet='docker network inspect'
 alias div='docker volume inspect'
 alias dtop='docker top'
@@ -964,8 +1051,7 @@ alias drmr='docker rmi'
 alias drmrf='docker image prune -a'
 alias drmn='docker network rm'
 alias drmv='docker volume prune'
-alias drun='docker run'
-alias dbl='docker compose build --no-cache'
+alias dbl='docker compose build --no-cache' # Need overload with docker build
 alias dbl='docker build'
 alias dpull='docker pull'
 alias dpush='docker image push'
