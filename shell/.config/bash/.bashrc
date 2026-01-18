@@ -60,7 +60,7 @@ __prompt_command() {
     local color="$RED"
 
     case "$exit" in
-      2|64|65|66|67|68|69|75|78|127)
+      2|64|65|66|67|68|69|75|78|125|127)
         color="$YELLOW"
         ;;
       129|130|131|141|142|148)
@@ -84,8 +84,9 @@ __prompt_command() {
       74)  prompt='|'  ;; # IO error
       75)  prompt='…'  ;; # Temporary failure (retry)
       76)  prompt='¶'  ;; # Protocol error
-      77)  prompt='Ð'  ;; # Permission denied
+      77)  prompt='©'  ;; # Permission denied
       78)  prompt='ç'  ;; # Configuration error
+      125) prompt='Ð'  ;; # Permission denied
       126) prompt='×'  ;; # Command not executable
       127) prompt='?'  ;; # Command not found
       129) prompt='¥'  ;; # SIGHUP (terminal/session closed)
@@ -126,135 +127,387 @@ path() {
 }
 
 alias l='ls -nohaX --group-directories-first --color'
+alias ls='ls -a --color'
+alias rm='rm -r'
 alias e=$EDITOR
 alias c='claude -c'
 alias oc='opencode -c'
 alias du='dust 2>/dev/null' # silence permission errors
 alias get='sudo apt update && sudo apt install -y'
-alias activate='source .venv/bin/activate'
-
-alias g='git status -sb'
-alias gs='git status'
-alias ga='git add -v'
-alias gaa='git add -v --all'
-alias gah='git add -p' # add hunk
-alias gat='git add -uv' # add tracked
-alias gb='git branch -av'
-alias gbnm='git branch -av --no-merged' # whats up with this
-alias gsw='git switch'
-alias gswc='git switch --create'
-alias gc='git commit -v'
-alias gca='git commit -av'
-alias gcf='git config --list'
-alias gfck='git reflog' # find commit killed
-alias gfk='git commit -v --amend --no-edit' # quick amend
-alias gfuck='git commit -v --amend' # need to be precise with the msg
-alias gfu='git commit --fixup'
-# Should we even use --date=now and --signoff in amend aliases?
-# What about gpg-sign for normal commits?
-alias ge='git mergetool --no-prompt'
-alias gvim='git mergetool --no-prompt --tool=vimdiff'
-alias gp='git push -v'
-alias gcpr='git reset --soft' # copy index --reset head
-alias grm='git rm'
-alias grmf='git rm --cached' # file unstage
-alias grmr='git reset' # rm index --reset head
-alias grmri='git reset --keep' # rm index --reset head --intelligent keep wt 
-alias grmrf='git reset --hard' # rm index --reset head --force rm wt
-alias grmu='git remote remove origin'
-alias gmvu='git remote rename origin'
-alias grmw='git worktree remove'
-alias gmvw='git worktree move'
-alias gr='git restore'
-alias grs='git restore --source'
-alias grt='git restore --staged'
-alias gcat='git show --pretty=short --show-signature'
-alias gpop='git stash pop'
-alias gsi='git update-index --no-assume-unchanged' # source .gitignore
-
-# Make the ultimate git log function out of these:
-alias glg='git log --stat'
-alias glgg='git log --graph'
-alias glgga='git log --graph --decorate --all'
-alias glgm='git log --graph --max-count=10'
-alias glgp='git log --stat --patch'
-alias glo='git log --oneline --decorate'
-alias glod='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset"'
-alias glods='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
-alias glog='git log --oneline --decorate --graph'
-alias gloga='git log --oneline --decorate --graph --all'
-alias glol='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ar) %C(bold blue)<%an>%Creset"'
-alias glola='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ar) %C(bold blue)<%an>%Creset" --all'
-alias glols='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ar) %C(bold blue)<%an>%Creset" --stat'
-alias gwch='git log --patch --abbrev-commit --pretty=medium --raw'
-
- # whats up with tags
-alias gta='git tag --annotate'
-alias gts='git tag --sign'
-alias gpoat='git push origin --all && git push origin --tags'
-
-# Docker
-alias up='docker compose up -d'
-alias down='docker compose down'
-alias downdb='docker compose down -v'
-alias rs='docker compose down && docker compose up -d'
-alias rsdb='docker compose down -v && docker compose up -d'
-alias build='docker compose build --no-cache'
-alias logs='docker compose logs -f'
-alias imin='docker compose exec -it'
-alias dbl='docker build'
-alias dcin='docker container inspect'
-alias dcls='docker container ls'
-alias dclsa='docker container ls -a'
-alias dib='docker image build'
-alias dii='docker image inspect'
-alias dils='docker image ls'
-alias dipru='docker image prune -a'
-alias dipu='docker image push'
-alias dirm='docker image rm'
-alias dit='docker image tag'
-alias dlo='docker container logs'
-alias dnc='docker network create'
-alias dncn='docker network connect'
-alias dndcn='docker network disconnect'
-alias dni='docker network inspect'
-alias dnls='docker network ls'
-alias dnrm='docker network rm'
-alias dpo='docker container port'
-alias dps='docker ps'
-alias dpsa='docker ps -a'
-alias dpu='docker pull'
-alias dr='docker container run'
-alias drit='docker container run -it'
-alias drm='docker container rm'
-alias drm!='docker container rm -f'
-alias drs='docker container restart'
-alias dst='docker container start'
-alias dsta='docker stop $(docker ps -q)'
-alias dstp='docker container stop'
-alias dsts='docker stats'
-alias dtop='docker top'
-alias dvi='docker volume inspect'
-alias dvls='docker volume ls'
-alias dvprune='docker volume prune'
-alias dxc='docker container exec'
-alias dxcit='docker container exec -it'
-
-# Python/pip
-alias pipi='pip install'
-alias pipir='pip install -r requirements.txt'
-alias piplo='pip list -o'
-alias pipreq='pip freeze > requirements.txt'
-alias pipu='pip install --upgrade'
-alias pipun='pip uninstall'
-
-# Functions
-in() {
-  docker compose exec "$@" || docker exec "$@"
-}
+alias venv='source .venv/bin/activate'
 
 imin() {
   cat ~/.config/bash/.bashrc | ssh "$@" 'bash --rcfile /dev/stdin'
+}
+
+dl() {
+  {
+    docker ps -a --format "{{.State}}\t{{.Names}}\t{{.Image}}\t{{.Status}}" | awk -F'\t' '
+      BEGIN {
+        symbols["running"] = "•"
+        symbols["exited"] = "¤"
+        symbols["paused"] = "…"
+        symbols["restarting"] = "«"
+        print "XXXSTATE\tNAME\tIMAGE\tSTATUS"
+      }
+      {
+        state = $1
+        symbol = symbols[state]
+        name = $2
+        image = $3
+        status = $4
+        printf "%s\t%s\t%s\t%s\n", symbol, name, image, status
+      }'
+  } | column -t -s $'\t' | sed 's/XXXSTATE/STATE/' | awk '
+    BEGIN {
+      running_sym = "•"
+    }
+    NR == 1 { print; next }
+    {
+      if (substr($1, 1, 1) == running_sym) {
+        print
+      } else {
+        printf "\033[2m%s\033[0m\n", $0
+      }
+    }'
+}
+
+din() {
+  local force_global=false
+  local use_follow=true
+  local from_file=""
+  local args=()
+  local is_exec=false
+
+  for arg in "$@"; do
+    if [ "$arg" = "-g" ] || [ "$arg" = "--global" ]; then
+      force_global=true
+    elif [ "$arg" = "-d" ] || [ "$arg" = "--detached" ]; then
+      use_follow=false
+    elif [ "$arg" = "-f" ] || [ "$arg" = "--file" ]; then
+      from_file="next"
+    elif [ "$from_file" = "next" ]; then
+      from_file="$arg"
+      args+=("$arg")
+    else
+      args+=("$arg")
+    fi
+  done
+
+  if [ ${#args[@]} -ge 2 ]; then
+    is_exec=true
+  fi
+
+  if [ "$is_exec" = true ]; then
+    if [ "$force_global" = false ]; then
+      local has_compose_file=false
+      [ -n "$from_file" ] && [ "$from_file" != "next" ] && has_compose_file=true
+
+      if [ -f docker-compose.yml ] || [ -f compose.yml ] || [ "$has_compose_file" = true ]; then
+        docker compose exec "${args[@]}"
+        return
+      fi
+    fi
+    docker exec "${args[@]}"
+  else
+    local log_flags=()
+    [ "$use_follow" = true ] && log_flags+=("-f")
+
+    if [ "$force_global" = false ]; then
+      local has_compose_file=false
+      [ -n "$from_file" ] && [ "$from_file" != "next" ] && has_compose_file=true
+
+      if [ -f docker-compose.yml ] || [ -f compose.yml ] || [ "$has_compose_file" = true ]; then
+        [ -n "$from_file" ] && [ "$from_file" != "next" ] && log_flags+=("-f" "$from_file")
+        docker compose logs "${log_flags[@]}" "${args[@]}"
+        return
+      fi
+    fi
+    docker logs "${log_flags[@]}" "${args[@]}"
+  fi
+}
+
+dbg() {
+  if [ $# -eq 0 ]; then
+    echo "Error: No arguments provided. Usage: dbg [din-args...] pattern"
+    return 1
+  fi
+
+  local pattern="${!#}"
+  local din_args=("${@:1:$#-1}")
+
+  if command -v rg >/dev/null 2>&1; then
+    din -d "${din_args[@]}" | rg "$pattern"
+  else
+    din -d "${din_args[@]}" | grep --color=always -E -n "$pattern"
+  fi
+}
+
+up() {
+  if [ $# -eq 0 ]; then
+    docker compose up -d
+    return
+  fi
+
+  local force_global=false
+  local from_arg=""
+  local non_flags=()
+  local other_args=()
+  local i=1
+
+  while [ $i -le $# ]; do
+    arg="${!i}"
+
+    case "$arg" in
+      -g|--global)
+        force_global=true
+        ;;
+      -f|--from)
+        ((i++))
+        from_arg="${!i}"
+        ;;
+      -e|-v|-p|--env|--volume|--publish|--name|-w|--workdir|-u|--user|--network|--label|--entrypoint|--restart|-m|--memory|--cpus|-h|--hostname)
+        other_args+=("$arg")
+        ((i++))
+        [ $i -le $# ] && other_args+=("${!i}")
+        ;;
+      --*=*|-*=*)
+        other_args+=("$arg")
+        ;;
+      -*)
+        other_args+=("$arg")
+        ;;
+      *)
+        non_flags+=("$arg")
+        other_args+=("$arg")
+        ;;
+    esac
+    ((i++))
+  done
+
+  if [ -n "$from_arg" ]; then
+    if [[ "$from_arg" == *.yml ]] || [[ "$from_arg" == *.yaml ]]; then
+      docker compose -f "$from_arg" up -d "${other_args[@]}"
+      return
+    fi
+
+    local dockerfile_path=""
+    local build_context=""
+
+    if [ -d "$from_arg" ]; then
+      if [ -f "$from_arg/Dockerfile" ]; then
+        build_context="$from_arg"
+      fi
+    elif [ -f "$from_arg" ]; then
+      dockerfile_path="$from_arg"
+      build_context="$(dirname "$from_arg")"
+    fi
+
+    if [ -n "$build_context" ]; then
+      local tag_name
+      if git rev-parse --show-toplevel >/dev/null 2>&1; then
+        tag_name="$(basename "$(git rev-parse --show-toplevel)"):latest"
+      else
+        tag_name="$(basename "$PWD"):latest"
+      fi
+
+      if [ -n "$dockerfile_path" ]; then
+        docker build -t "$tag_name" -f "$dockerfile_path" "$build_context" || return 1
+      else
+        docker build -t "$tag_name" "$build_context" || return 1
+      fi
+
+      docker run -d "${other_args[@]}" "$tag_name"
+      return
+    fi
+
+    if [ ${#non_flags[@]} -eq 0 ]; then
+      docker run -d "${other_args[@]}" "$from_arg"
+    elif [ ${#non_flags[@]} -eq 1 ]; then
+      docker run -d --name "${non_flags[0]}" "${other_args[@]}" "$from_arg"
+    else
+      echo "Error: docker run only supports single container."
+      echo "Found: ${non_flags[*]}"
+      return 1
+    fi
+    return
+  fi
+
+  if [ "$force_global" = false ] && { [ -f docker-compose.yml ] || [ -f compose.yml ]; }; then
+    docker compose up -d "${other_args[@]}"
+    return
+  fi
+
+  if [ ${#non_flags[@]} -eq 0 ]; then
+    echo "Error: No container/image specified for docker mode."
+    return 1
+  fi
+
+  local first_target="${non_flags[0]}"
+
+  if docker ps -a --format '{{.Names}}' | grep -q "^${first_target}$"; then
+    docker start "${other_args[@]}"
+  else
+    if [ ${#non_flags[@]} -gt 1 ]; then
+      echo "Error: docker run only supports single container."
+      echo "Found: ${non_flags[*]}"
+      return 1
+    fi
+    docker run -d "${other_args[@]}"
+  fi
+}
+
+down() {
+  if [ $# -eq 0 ]; then
+    if [ -f docker-compose.yml ] || [ -f compose.yml ]; then
+      docker compose down
+    else
+      echo "Error: No compose file and no containers specified."
+      return 1
+    fi
+    return
+  fi
+
+  local force_global=false
+  local remove_volumes=false
+  local containers=()
+  local compose_args=()
+  local has_compose_file=false
+
+  for arg in "$@"; do
+    if [ "$arg" = "-g" ] || [ "$arg" = "--global" ]; then
+      force_global=true
+    elif [ "$arg" = "-v" ] || [ "$arg" = "--volumes" ]; then
+      remove_volumes=true
+      compose_args+=("$arg")
+    elif [ "$arg" = "-f" ] || [ "$arg" = "--file" ]; then
+      has_compose_file=true
+      compose_args+=("$arg")
+    elif [[ "$arg" == -* ]]; then
+      compose_args+=("$arg")
+    else
+      containers+=("$arg")
+      compose_args+=("$arg")
+    fi
+  done
+
+  if [ "$force_global" = false ] && { [ -f docker-compose.yml ] || [ -f compose.yml ] || [ "$has_compose_file" = true ]; }; then
+    docker compose down "${compose_args[@]}"
+  else
+    if [ ${#containers[@]} -eq 0 ]; then
+      echo "Error: No containers specified."
+      return 1
+    fi
+
+    docker stop "${containers[@]}" || return 1
+
+    if [ "$remove_volumes" = true ]; then
+      docker rm -v "${containers[@]}"
+    fi
+  fi
+}
+
+rs() {
+  if [ $# -eq 0 ]; then
+    if [ -f docker-compose.yml ] || [ -f compose.yml ]; then
+      docker compose down && docker compose up -d
+    else
+      echo "Error: No compose file and no containers specified."
+      return 1
+    fi
+    return
+  fi
+
+  local force_global=false
+  local has_compose_file=false
+  local temp_args=()
+
+  # First pass: extract mode flags
+  for arg in "$@"; do
+    if [ "$arg" = "-g" ] || [ "$arg" = "--global" ]; then
+      force_global=true
+    else
+      temp_args+=("$arg")
+      [ "$arg" = "-f" ] || [ "$arg" = "--file" ] && has_compose_file=true
+    fi
+  done
+
+  if [ "$force_global" = false ] && { [ -f docker-compose.yml ] || [ -f compose.yml ] || [ "$has_compose_file" = true ]; }; then
+    local down_flags=()
+    local up_flags=()
+    local services=()
+    local i=0
+
+    while [ $i -lt ${#temp_args[@]} ]; do
+      arg="${temp_args[$i]}"
+
+      case "$arg" in
+        -v|--volumes|--remove-orphans)
+          down_flags+=("$arg")
+          ;;
+        -t|--timeout|--rmi)
+          down_flags+=("$arg")
+          ((i++))
+          [ $i -lt ${#temp_args[@]} ] && down_flags+=("${temp_args[$i]}")
+          ;;
+        -f|--file)
+          down_flags+=("$arg")
+          up_flags+=("$arg")
+          ((i++))
+          if [ $i -lt ${#temp_args[@]} ]; then
+            down_flags+=("${temp_args[$i]}")
+            up_flags+=("${temp_args[$i]}")
+          fi
+          ;;
+        --timeout=*|--rmi=*)
+          down_flags+=("$arg")
+          ;;
+        --file=*|-f=*)
+          down_flags+=("$arg")
+          up_flags+=("$arg")
+          ;;
+        -e|-p|--env|--publish|--scale|--build-arg)
+          up_flags+=("$arg")
+          ((i++))
+          [ $i -lt ${#temp_args[@]} ] && up_flags+=("${temp_args[$i]}")
+          ;;
+        --*=*)
+          up_flags+=("$arg")
+          ;;
+        --build|--force-recreate|--no-deps|--no-build|--pull|--quiet-pull|--wait)
+          up_flags+=("$arg")
+          ;;
+        -*)
+          up_flags+=("$arg")
+          ;;
+        *)
+          services+=("$arg")
+          ;;
+      esac
+      ((i++))
+    done
+
+    docker compose down "${down_flags[@]}" "${services[@]}" && \
+      docker compose up -d "${up_flags[@]}" "${services[@]}"
+  else
+    local has_volume_flag=false
+    local containers=()
+
+    for arg in "${temp_args[@]}"; do
+      if [ "$arg" = "-v" ] || [ "$arg" = "--volumes" ]; then
+        has_volume_flag=true
+      elif [[ "$arg" != -* ]]; then
+        containers+=("$arg")
+      fi
+    done
+
+    if [ "$has_volume_flag" = true ]; then
+      echo "Warning: -v flag not supported for restart in docker mode (ignoring). Container must be recreated to reset volumes."
+      echo "Use: down -v ${containers[*]} then recreate with 'up -f <image>'"
+    fi
+
+    docker restart "${containers[@]}"
+  fi
 }
 
 gf() {
@@ -443,6 +696,27 @@ gsq() {
   fi
 }
 
+grb() {
+  if [ -d .git/rebase-apply ] || [ -d .git/rebase-merge ]; then
+    if [ $# -eq 0 ]; then
+      echo "Continuing rebase..."
+      git rebase --continue
+      return
+    fi
+  fi
+
+  if [ $# -eq 0 ]; then
+    upstream=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
+    if [ -z "$upstream" ]; then
+      echo "No upstream set for current branch."
+      return 1
+    fi
+    git rebase "$upstream"
+  else
+    git rebase "$@"
+  fi
+}
+
 gfo() {
   if [ -f .git/MERGE_HEAD ]; then
     echo "Aborting merge..."
@@ -483,6 +757,28 @@ gcp() {
 gw() {
   [ $# -eq 0 ] && git worktree list && return
   git worktree add "$@"
+}
+
+gst() {
+  [ $# -eq 0 ] && git stash list && return
+  git stash push "$@"
+}
+
+gcats() {
+  local s=stash@{0}
+  git stash list | sed -n '1p'
+  git stash show \
+    --patch --stat \
+    --no-prefix --minimal \
+    --diff-algorithm=histogram \
+    --ignore-space-change
+  echo '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+  git stash list | sed '1d'
+}
+
+gb() {
+  [ $# -eq 0 ] && git branch -av && return
+  git switch "$@"
 }
 
 gbare() {
@@ -595,28 +891,86 @@ gmvu() {
   fi
 }
 
-# We need a rebase workflow as good as the merge one
-alias grb='git rebase'
-alias grba='git rebase --abort'
-alias grbc='git rebase --continue'
-alias grbi='git rebase --interactive'
-alias grbo='git rebase --onto'
-alias grbs='git rebase --skip'
+alias gls='git log --stat \
+--pretty="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%n\
+%C(magenta)%h%Creset\
+%C(auto)%d%Creset \
+%C(blue)%as%Creset \
+%C(242)%an%Creset \
+%n%C(bold)%s%Creset\
+%n%b"'
 
-# Also an overloaded stash function
-alias gsta='git stash push'
-alias gstaa='git stash apply'
-alias gstall='git stash --all'
-alias gstc='git stash clear'
-alias gstd='git stash drop'
-alias gstl='git stash list'
-alias gsts='git stash show --patch'
-alias gstu='git stash push --include-untracked'
+alias gld='git log --abbrev-commit --compact-summary \
+--patch --minimal --diff-algorithm=histogram \
+--no-prefix --color-moved=dimmed-zebra \
+--pretty="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%n\
+%C(magenta)%h%Creset\
+%C(auto)%d%Creset \
+%C(blue)%as%Creset \
+%C(242)%an%Creset \
+%n%C(bold)%s%Creset\
+%n%b"'
 
-# And a diff one too
+alias g='git status -sb'
+alias gs='git status'
 alias gd='git diff'
-alias gdca='git diff --cached'
-alias gdcw='git diff --cached --word-diff'
 alias gds='git diff --staged'
-alias gdt='git diff-tree --no-commit-id --name-only -r'
-alias gdw='git diff --word-diff'
+alias gbm='git branch -avv --no-merged'
+alias gl='git log --graph --pretty="%C(magenta)%h%Creset %C(242)%p%Creset %C(blue)%as%Creset%C(auto)%d%Creset %s %Creset%C(242)%an%Creset"'
+alias gla='git log --graph --pretty="%C(magenta)%h%Creset %C(242)%p%Creset %C(blue)%as%Creset%C(auto)%d%Creset %s %Creset%C(242)%an%Creset" -a'
+alias gcat='git show --pretty=short --show-signature'
+alias ga='git add -v'
+alias gaa='git add -v --all'
+alias gah='git add -p' # add hunk
+alias gat='git add -uv' # add tracked
+alias gc='git commit -v'
+alias gca='git commit -av'
+alias gcf='git config --list'
+alias gfck='git reflog' # find commit killed
+alias gfk='git commit -v --amend --no-edit' # quick amend
+alias gfuck='git commit -v --amend' # need to be precise with the msg
+alias gp='git push -v'
+alias gcpr='git reset --soft' # copy index --reset head
+alias grm='git rm'
+alias grmf='git rm --cached' # file unstage
+alias grmr='git reset' # rm index --reset head
+alias grmri='git reset --keep' # rm index --reset head --intelligent keep wt
+alias grmrf='git reset --hard' # rm index --reset head --force rm wt
+alias grmu='git remote remove origin'
+alias grmw='git worktree remove'
+alias gmvw='git worktree move'
+alias gr='git restore'
+alias grc='git restore --source'
+alias grs='git restore --staged'
+alias gsi='git update-index --no-assume-unchanged' # source .gitignore
+alias gpop='git stash pop'
+alias ge='git mergetool --no-prompt'
+alias gv='git mergetool --no-prompt --tool=nvimdiff'
+
+alias dk='docker stop $(docker ps -q)'
+alias dr='docker compose down && docker compose up -d'
+alias drd='docker container restart'
+alias rsd='docker compose down -v && docker compose up -d'
+alias di='docker inspect'
+alias dii='docker image inspect'
+alias dinet='docker network inspect'
+alias div='docker volume inspect'
+alias dtop='docker top'
+alias dli='docker image ls'
+alias dlv='docker volume ls'
+alias dln='docker network ls'
+alias drm='docker rm'
+alias drmr='docker rmi'
+alias drmrf='docker image prune -a'
+alias drmn='docker network rm'
+alias drmv='docker volume prune'
+alias drun='docker run'
+alias dbl='docker compose build --no-cache'
+alias dbl='docker build'
+alias dpull='docker pull'
+alias dpush='docker image push'
+alias dt='docker image tag'
+alias dn='docker network create'
+alias dnc='docker network connect'
+alias dnd='docker network disconnect'
+alias dp='docker container port'
