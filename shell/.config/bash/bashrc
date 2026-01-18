@@ -135,15 +135,35 @@ __prompt_command() {
 
 PROMPT_COMMAND=__prompt_command
 
+__path_init() {
+  local combined=""
+  for dir in "$@"; do
+    combined="$dir:$combined"
+  done
+  combined="$combined$PATH"
+
+  export PATH=$(echo "$combined" | tr : '\n' | awk '!seen[$0]++' | tr '\n' : | sed 's/:$//')
+}
+
 path() {
   [ $# -eq 0 ] && echo "$PATH" | tr : '\n' && return
 
-  local combined="$PATH"
+  local bashrc="${XDG_CONFIG_HOME:-$HOME/.config}/bash/bashrc"
+  [ ! -f "$bashrc" ] && echo "Error: $bashrc not found" && return 1
+
+  # Add backslash continuation to last line (if not already there)
+  sed -i '$ s/\([^\\]\)$/\1 \\/' "$bashrc"
+
+  # Append new paths
   for dir in "$@"; do
-    combined="$combined:$dir"
+    printf '  "%s" \\\n' "$dir" >> "$bashrc"
   done
 
-  export PATH=$(echo "$combined" | tr : '\n' | awk '!seen[$0]++' | tr '\n' : | sed 's/:$//')
+  # Remove trailing backslash from last line
+  sed -i '$ s/ \\$//' "$bashrc"
+
+  . ~/.bashrc
+  echo "Added to $bashrc and reloaded"
 }
 
 alias l='ls -nohaX --group-directories-first --color'
@@ -1080,3 +1100,19 @@ alias dn='docker network create'
 alias dnc='docker network connect'
 alias dnd='docker network disconnect'
 alias dp='docker container port'
+
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
+
+__path_init \
+  /mnt/c/Tools/msgraph \
+  "$XDG_DATA_HOME/opencode/bin" \
+  "$XDG_DATA_HOME/android/cmdline-tools/latest/bin" \
+  "$XDG_DATA_HOME/android/platform-tools" \
+  "$XDG_DATA_HOME/pnpm" \
+  "$XDG_DATA_HOME/dotnet/tools" \
+  "$XDG_DATA_HOME/dotnet" \
+  "$XDG_CONFIG_HOME/composer/vendor/bin" \
+  /usr/local/go/bin \
+  "$CARGO_HOME/bin" \
+  "$HOME/.local/bin" \
+  "/home"
