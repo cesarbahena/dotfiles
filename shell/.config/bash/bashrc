@@ -255,10 +255,10 @@ dl() {
             formatted_name = formatted_name "\033[34m" service "\033[0m"
             if (after != "") formatted_name = formatted_name "\033[37m" after "\033[0m"
           } else {
-            # Service name not in container name - show as service:container
-            formatted_name = "\033[34m" service "\033[0m\033[37m:\033[0m\033[37m" name "\033[0m"
-            # Adjust visual width for service, colon, and name
-            name = service ":" name
+            # Service name not in container name - show as name:service
+            formatted_name = "\033[37m" name "\033[0m\033[37m:\033[0m\033[34m" service "\033[0m"
+            # Adjust visual width for name, colon, and service
+            name = name ":" service
           }
         } else {
           # No service mapping - make entire name blue
