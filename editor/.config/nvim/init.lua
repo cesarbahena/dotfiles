@@ -137,6 +137,9 @@ map("n", "Q", function()
   end
 end, { silent = true })
 
+-- LSP
+vim.lsp.enable("lua_ls")
+
 -- Plugin management
 vim.pack.add({
   "https://github.com/ellisonleao/gruvbox.nvim",

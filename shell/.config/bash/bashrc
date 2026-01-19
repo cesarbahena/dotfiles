@@ -54,7 +54,6 @@ __prompt_command() {
   fi
   local RESET='\[\e[0m\]'
 
-  # Lightning-fast bashrc corruption check (bash built-in, no external process)
   local MAPFILE
   mapfile -tn 2 MAPFILE < ~/.bashrc
   if [ "${#MAPFILE[@]}" -gt 1 ]; then
@@ -80,7 +79,7 @@ __prompt_command() {
     local color="$RED"
 
     case "$exit" in
-      2|64|65|66|67|68|69|75|78|125|127)
+      2|64|65|66|67|68|69|75|78|125|127|128)
         color="$YELLOW"
         ;;
       129|130|131|141|142|148)
@@ -89,8 +88,8 @@ __prompt_command() {
     esac
 
     case "$exit" in
-      1)   prompt='!'  ;; # general failure
-      2)   prompt='€'  ;; # misuse of shell builtins
+      1)   prompt='!'  ;; # General failure
+      2)   prompt='€'  ;; # Misuse of shell builtins
       64)  prompt='¿'  ;; # Usage
       65)  prompt='%'  ;; # Format
       66)  prompt='«'  ;; # No input
@@ -109,11 +108,12 @@ __prompt_command() {
       125) prompt='Ð'  ;; # Permission denied
       126) prompt='×'  ;; # Command not executable
       127) prompt='?'  ;; # Command not found
+      128) prompt='§'  ;; # Fatal application error
       129) prompt='¥'  ;; # SIGHUP (terminal/session closed)
       130) prompt='¢'  ;; # SIGINT (^C)
       131) prompt='\\' ;; # SIGQUIT (^\)
       132) prompt='¡'  ;; # SIGILL (illegal instruction)
-      133) prompt='§'  ;; # SIGTRAP (trace/breakpoint)
+      133) prompt='»'  ;; # SIGTRAP (redirected signal)
       134) prompt='‡'  ;; # SIGABRT (abort)
       135) prompt='ß'  ;; # SIGBUS (bus error)
       136) prompt='÷'  ;; # SIGFPE (arithmetic error)
@@ -178,6 +178,157 @@ alias venv='source .venv/bin/activate'
 
 imin() {
   cat ~/.config/bash/bashrc | ssh "$@" 'bash --rcfile /dev/stdin'
+}
+
+x() {
+  local update=false
+  local bin_path=""
+  local input_file=""
+  local search_dir="$HOME/Downloads"
+  local name=""
+
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      -u|--update) update=true; shift ;;
+      -b|--bin)
+        shift
+        bin_path=$1
+        shift
+        ;;
+      -i|--input)
+        shift
+        input_file=$1
+        shift
+        ;;
+      -d|--dir)
+        shift
+        search_dir=$1
+        shift
+        ;;
+      *)
+        name=$1
+        shift
+        ;;
+    esac
+  done
+
+  if [ -z "$name" ]; then
+    echo "Usage: x [-u] [-b path] [-i file] [-d dir] <name>"
+    echo "  -u, --update    Update existing directory"
+    echo "  -b, --bin       Relative path to binary (default: bin/<name>)"
+    echo "  -i, --input     Use specific file instead of searching"
+    echo "  -d, --dir       Search directory (default: ~/Downloads)"
+    echo "  <name>          Directory name, search pattern, and binary name"
+    echo ""
+    echo "Examples:"
+    echo "  x lua-language-server                    # Auto-symlink if bin/lua-language-server exists"
+    echo "  x -b custom/path/binary my-tool          # Symlink from custom path"
+    echo "  curl -L <url> | x lua-ls                 # Pipe from curl"
+    return 1
+  fi
+
+  local file=""
+  if [ -n "$input_file" ]; then
+    file="$input_file"
+  elif [ -t 0 ]; then
+    # stdin is terminal, search for file
+    file=$(find "$search_dir" -name "*${name}*" -type f | head -1)
+    if [ -z "$file" ]; then
+      echo "No file matching '$name' found in $search_dir"
+      return 1
+    fi
+  else
+    # stdin has data, save to temp file
+    local tmp=$(mktemp)
+    cat > "$tmp"
+    file="$tmp"
+  fi
+
+  local target="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+  # Get first two entries to detect structure
+  local entries=""
+  case "$file" in
+    *.tar.gz|*.tgz)
+      entries=$(tar -tzf "$file" | head -2)
+      ;;
+    *.tar.bz2|*.tbz2)
+      entries=$(tar -tjf "$file" | head -2)
+      ;;
+    *.tar.xz|*.txz)
+      entries=$(tar -tJf "$file" | head -2)
+      ;;
+    *.zip)
+      entries=$(unzip -l "$file" | awk 'NR>=4 && NR<=5 {print $4}')
+      ;;
+    *)
+      echo "Unsupported format: $file"
+      return 1
+      ;;
+  esac
+
+  local first=$(echo "$entries" | sed -n '1p' | cut -d/ -f1)
+  local second=$(echo "$entries" | sed -n '2p' | cut -d/ -f1)
+
+  local needs_wrapper=false
+  if [ "$first" != "$second" ]; then
+    needs_wrapper=true
+  fi
+
+  local dest="$target/$name"
+
+  if [ -d "$dest" ]; then
+    if [ "$update" = false ]; then
+      echo "Error: $dest already exists. Use -u to update."
+      return 1
+    fi
+    rm -rf "$dest"
+  fi
+
+  if [ "$needs_wrapper" = true ]; then
+    mkdir -p "$dest"
+    case "$file" in
+      *.tar.gz|*.tgz) tar -xzf "$file" -C "$dest" ;;
+      *.tar.bz2|*.tbz2) tar -xjf "$file" -C "$dest" ;;
+      *.tar.xz|*.txz) tar -xJf "$file" -C "$dest" ;;
+      *.zip) unzip -q "$file" -d "$dest" ;;
+    esac
+  else
+    mkdir -p "$target"
+    case "$file" in
+      *.tar.gz|*.tgz) tar -xzf "$file" -C "$target" ;;
+      *.tar.bz2|*.tbz2) tar -xjf "$file" -C "$target" ;;
+      *.tar.xz|*.txz) tar -xJf "$file" -C "$target" ;;
+      *.zip) unzip -q "$file" -d "$target" ;;
+    esac
+  fi
+
+  echo "Extracted to $dest"
+
+  # Symlink if requested
+  if [ "$do_link" = true ]; then
+    local target_bin="${bin_name:-$name}"
+    local source_bin="$dest/bin/$target_bin"
+
+    if [ ! -f "$source_bin" ]; then
+      echo "Warning: $source_bin not found, trying bin/$name"
+      source_bin="$dest/bin/$name"
+    fi
+
+    if [ -f "$source_bin" ]; then
+      ln -sf "$source_bin" "$HOME/.local/bin/$target_bin"
+      echo "Symlinked $target_bin to ~/.local/bin/"
+    else
+      echo "Error: No binary found in $dest/bin/"
+      [ -t 0 ] || rm -f "$file"
+      return 1
+    fi
+  fi
+
+  # Clean up temp file if from stdin
+  [ -t 0 ] || rm -f "$file"
+
+  cd "$dest"
 }
 
 dl() {
@@ -1104,15 +1255,13 @@ alias dp='docker container port'
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
 
 __path_init \
-  /mnt/c/Tools/msgraph \
   "$XDG_DATA_HOME/opencode/bin" \
   "$XDG_DATA_HOME/android/cmdline-tools/latest/bin" \
   "$XDG_DATA_HOME/android/platform-tools" \
-  "$XDG_DATA_HOME/pnpm" \
   "$XDG_DATA_HOME/dotnet/tools" \
   "$XDG_DATA_HOME/dotnet" \
   "$XDG_CONFIG_HOME/composer/vendor/bin" \
+  "$XDG_DATA_HOME/pnpm" \
   /usr/local/go/bin \
   "$CARGO_HOME/bin" \
-  "$HOME/.local/bin" \
-  "/home"
+  "$HOME/.local/bin" 
