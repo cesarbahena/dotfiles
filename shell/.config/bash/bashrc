@@ -804,7 +804,7 @@ gf() {
   incoming=$(git log --oneline HEAD.."$upstream")
 
   if [ -z "$incoming" ] && [ -z "$outgoing" ]; then
-    echo "✅ Everything is in sync with $upstream"
+    echo "Everything is in sync with $upstream"
     return 0
   fi
 
@@ -1211,13 +1211,31 @@ alias ga='git add -v'
 alias gaa='git add -v --all'
 alias gah='git add -p' # add hunk
 alias gat='git add -uv' # add tracked
-alias gc='git commit -v'
+alias gc='git commit -vm'
 alias gca='git commit -av'
 alias gcf='git config --list'
 alias gfck='git reflog' # find commit killed
 alias gfk='git commit -v --amend --no-edit' # quick amend
 alias gfuck='git commit -v --amend' # need to be precise with the msg
 alias gp='git push -v'
+
+gpu() {
+  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ -z "$branch" ]; then
+    echo "Not in a git repository"
+    return 1
+  fi
+
+  local remote="${1:-origin}"
+
+  if ! git remote | grep -q "^${remote}$"; then
+    echo "Remote '$remote' not found"
+    return 1
+  fi
+
+  git push -u "$remote" "$branch"
+}
+
 alias gcpr='git reset --soft' # copy index --reset head
 alias grm='git rm'
 alias grmf='git rm --cached' # file unstage
