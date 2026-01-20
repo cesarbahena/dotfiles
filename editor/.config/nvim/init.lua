@@ -5,8 +5,8 @@ for k, v in pairs({
   expandtab = true,
   smartindent = true,
   wrap = false,
-  number = true,
-  relativenumber = true,
+  number = false,
+  relativenumber = false,
   scrolloff = 8,
   fillchars = { eob = " " },
   colorcolumn = nil,
@@ -21,6 +21,9 @@ for k, v in pairs({
   pumheight = 10,
 
   -- UI
+  signcolumn = "no",
+  foldcolumn = "0",
+  numberwidth = 1,
   splitright = true,
   splitbelow = true,
   equalalways = false,
@@ -167,3 +170,23 @@ vim.api.nvim_set_hl(0, "BashYellowBold", {ctermfg = 226, fg = "#ffff00", bold = 
 vim.api.nvim_set_hl(0, "BashRed", {ctermfg = 196, fg = "#ff0000"})
 vim.api.nvim_set_hl(0, "BashBlue", {ctermfg = 39, fg = "#00afff"})
 vim.api.nvim_set_hl(0, "BashMagenta", {ctermfg = 201, fg = "#ff00ff"})
+
+_G.custom_statuscolumn = function()
+  local lnum = vim.v.lnum
+  local relnum = vim.v.relnum
+
+  -- Current line → green $
+  if relnum == 0 then
+    return "%#BashGreen# $%* "
+  end
+
+  -- Other lines → relative number
+  return string.format("%2d ", relnum)
+end
+
+vim.opt.statuscolumn = "%!v:lua.custom_statuscolumn()"
+vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+  callback = function()
+    vim.cmd("redrawstatus")
+  end,
+})
