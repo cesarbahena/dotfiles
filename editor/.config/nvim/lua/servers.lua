@@ -12,14 +12,10 @@ vim.api.nvim_create_autocmd('LspAttach', {
 vim.api.nvim_create_autocmd('BufWritePre', {
   pattern = '*.lua',
   callback = function()
-    local bufnr = vim.api.nvim_get_current_buf()
-    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-    local input = table.concat(lines, '\n')
-    local output = vim.fn.system({ 'stylua', '--search-parent-directories', '-' }, input)
-    if vim.v.shell_error == 0 then
-      local formatted = vim.split(output, '\n')
-      if formatted[#formatted] == '' then table.remove(formatted) end
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, formatted)
+    local view = vim.fn.winsaveview()
+    local ok = pcall(vim.cmd, 'silent %!stylua --search-parent-directories -')
+    if ok then
+      vim.fn.winrestview(view)
     end
   end,
 })
