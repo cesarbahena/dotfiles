@@ -4,9 +4,7 @@ for k, v in pairs({
   shiftwidth = 2,
   expandtab = true,
   smartindent = true,
-  wrap = false,
-  number = false,
-  relativenumber = false,
+  wrap = true,
   scrolloff = 8,
   fillchars = { eob = " " },
   colorcolumn = nil,
@@ -21,9 +19,9 @@ for k, v in pairs({
   pumheight = 10,
 
   -- UI
+  relativenumber = true,
   signcolumn = "no",
   foldcolumn = "0",
-  numberwidth = 1,
   splitright = true,
   splitbelow = true,
   equalalways = false,
@@ -143,23 +141,22 @@ end, { silent = true })
 map("n", "<leader>f", ":find **/*<left>")
 map("n", "-", ":Ex<cr>")
 
--- LSP
 vim.lsp.enable("lua_ls")
 
--- Plugin management
+local function gh(repo)
+  return "https://github.com/" .. repo
+end
 vim.pack.add({
-  "https://github.com/ellisonleao/gruvbox.nvim",
+  gh "ellisonleao/gruvbox.nvim",
+  gh "luukvbaal/statuscol.nvim",
 })
 
--- Colorscheme
 require("gruvbox").setup({
   transparent_mode = true,
 })
 vim.cmd("colorscheme gruvbox")
 
--- Tabline
 vim.o.tabline = "%!v:lua.require'statusline'.render()"
-
 vim.api.nvim_set_hl(0, "TabLineFill", {bg = "NONE"})
 vim.api.nvim_set_hl(0, "TabLine", {bg = "NONE"})
 vim.api.nvim_set_hl(0, "BashGray", {ctermfg = 240, fg = "#585858"})
@@ -170,23 +167,4 @@ vim.api.nvim_set_hl(0, "BashYellowBold", {ctermfg = 226, fg = "#ffff00", bold = 
 vim.api.nvim_set_hl(0, "BashRed", {ctermfg = 196, fg = "#ff0000"})
 vim.api.nvim_set_hl(0, "BashBlue", {ctermfg = 39, fg = "#00afff"})
 vim.api.nvim_set_hl(0, "BashMagenta", {ctermfg = 201, fg = "#ff00ff"})
-
-_G.custom_statuscolumn = function()
-  local lnum = vim.v.lnum
-  local relnum = vim.v.relnum
-
-  -- Current line → green $
-  if relnum == 0 then
-    return "%#BashGreen# $%* "
-  end
-
-  -- Other lines → relative number
-  return string.format("%2d ", relnum)
-end
-
-vim.opt.statuscolumn = "%!v:lua.custom_statuscolumn()"
-vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-  callback = function()
-    vim.cmd("redrawstatus")
-  end,
-})
+vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "NONE" })
