@@ -13,8 +13,10 @@ vim.api.nvim_create_autocmd('BufWritePre', {
   pattern = '*.lua',
   callback = function()
     local view = vim.fn.winsaveview()
-    local ok = pcall(vim.cmd, 'silent %!stylua --search-parent-directories -')
-    if ok then
+    local buf_content = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
+    local result = vim.system({ 'stylua', '--search-parent-directories', '-' }, { stdin = buf_content }):wait()
+    if result.code == 0 then
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(result.stdout, '\n', { plain = true, trimempty = true }))
       vim.fn.winrestview(view)
     end
   end,

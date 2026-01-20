@@ -1,4 +1,5 @@
 local map = vim.keymap.set
+local q = { silent = true }
 
 vim.g.mapleader = ' '
 
@@ -32,33 +33,18 @@ map('n', 'k', function()
   end
 end)
 
--- Positioning commands (delayed scrolloff restore)
 for _, key in ipairs { 'zt', 'zb', 'zz' } do
-  map('n', key, no_scrolloff(key, true))
+  map('n', key, no_scrolloff(key, true)) --delayed restore
 end
 
--- Screen and file motions
 for _, key in ipairs { 'H', 'M', 'L' } do
   map('n', key, no_scrolloff(key))
 end
-
-map('n', 'gg', function()
-  no_scrolloff((vim.v.count > 0 and vim.v.count or '') .. 'gg')()
-end)
 
 map('n', 'G', function()
   no_scrolloff((vim.v.count > 0 and vim.v.count or '') .. 'G')()
 end)
 
-map('n', '<C-d>', '<C-d>zz')
-map('n', '<C-u>', '<C-u>zz')
-map('n', 'n', 'nzz')
-map('n', 'N', 'Nzz')
-map('i', ',', ',<C-g>u')
-map('i', '.', '.<C-g>u')
-map('i', ';', ';<C-g>u')
-map('c', '<C-a>', '<Home>')
-map('c', '<C-e>', '<End>')
 map('c', ';', function()
   local cmd = vim.fn.getcmdline()
   local pos = vim.fn.getcmdpos()
@@ -68,16 +54,6 @@ map('c', ';', function()
     return '<CR>'
   end
 end, { expr = true })
-map('v', '<', '<gv')
-map('v', '>', '>gv')
-map('v', 'J', ':m \'>+1<CR>gv=gv')
-map('v', 'K', ':m \'<-2<CR>gv=gv')
-map('n', 'Y', 'yyp')
-map('n', '<', ',', { silent = true })
-map('n', '>', '.j', { silent = true })
-map('n', ':', '@:', { silent = true })
-map('n', ';', ':')
-map('n', ',', ';', { silent = true })
 
 map('n', 'Q', function()
   local count = vim.v.count > 0 and vim.v.count or 1
@@ -88,5 +64,22 @@ map('n', 'Q', function()
   end
 end, { silent = true })
 
+map('n', '<C-d>', '<C-d>zz')
+map('n', '<C-u>', '<C-u>zz')
+map('n', 'n', 'nzz')
+map('n', 'N', 'Nzz')
+map('i', ',', ',<C-g>u')
+map('i', '.', '.<C-g>u')
+map('i', ';', ';<C-g>u')
+map('c', '<C-a>', '<Home>')
+map('c', '<C-e>', '<End>')
+map('v', '<', '<gv')
+map('v', '>', '>gv')
+map('n', 'Y', 'yyp')
+map('n', '<', ',', q)
+map('n', '>', 'j.', q)
+map('n', ':', '@:', q)
+map({ 'n', 'v' }, ';', ':')
+map({ 'n', 'v' }, ',', ';', q)
 map('n', '<leader>f', ':find **/*<left>')
 map('n', '-', ':Ex<cr>')
