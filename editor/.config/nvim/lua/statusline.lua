@@ -40,7 +40,7 @@ end
 local function mode_flag()
   local m = vim.fn.mode()
   local map = {n = "-n", i = "-i", v = "-v", V = "-V", ["\22"] = "-b", c = "-c"}
-  return "%#BashYellow#" .. (map[m] or "-?") .. "%#Normal#"
+  return "%#BashYellowBold#" .. (map[m] or "-?") .. "%#Normal#"
 end
 
 local function filename()
@@ -107,24 +107,30 @@ local function encoding_format()
   return "%#BashGray#" .. encoding .. "." .. format .. " "
 end
 
-local function grep_info()
+local function search_pattern()
   local search = vim.fn.getreg("/")
-  if search == "" then search = "pattern" end
+  return search ~= "" and search or "pattern"
+end
 
-  local line = vim.fn.line(".")
+local function match_count(pattern)
+  if pattern == "pattern" then return 0 end
+  local ok, result = pcall(vim.fn.searchcount, {pattern = pattern, maxcount = 999})
+  return (ok and result.total) and result.total or 0
+end
+
+local function grep_cmd()
+  return vim.fn.executable("rg") == 1 and "rg" or "grep"
+end
+
+local function grep_info()
+  local pattern = search_pattern()
+  local matches = match_count(pattern)
   local total = vim.fn.line("$")
+  local cmd = grep_cmd()
 
-  local matches = 0
-  if search ~= "pattern" then
-    local count_ok, count_result = pcall(vim.fn.searchcount, {pattern = search, maxcount = 999})
-    if count_ok and count_result.total then
-      matches = count_result.total
-    end
-  end
+  local pattern_color = matches > 0 and "%#BashGreen#" or "%#BashRed#"
 
-  local cmd = vim.fn.executable("rg") == 1 and "rg" or "grep"
-
-  return "%#BashGray#| " .. cmd .. " %#BashBlue#" .. search .. " %#BashGray#-c " .. matches .. " -L" .. line .. "," .. total .. "%#Normal# "
+  return "%#BashGray#| " .. cmd .. " " .. pattern_color .. "\"" .. pattern .. "\" %#BashGray#-" .. matches .. " -L=" .. total .. "%#Normal# "
 end
 
 local function alternate()
