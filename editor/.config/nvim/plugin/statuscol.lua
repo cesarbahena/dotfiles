@@ -1,24 +1,24 @@
 local function resolve_hl(buf, lnum, is_current)
-  local placed = vim.fn.sign_getplaced(buf, { group = "*", lnum = lnum })[1]
+  local placed = vim.fn.sign_getplaced(buf, { group = '*', lnum = lnum })[1]
   for _, s in ipairs(placed and placed.signs or {}) do
-    if s.name:match("^Dap") then
-      return "BashBlue"
+    if s.name:match '^Dap' then
+      return 'BashBlue'
     end
   end
 
   local diags = vim.diagnostic.get(buf, { lnum = lnum - 1 })
   for _, d in ipairs(diags) do
     if d.severity == vim.diagnostic.severity.ERROR then
-      return "BashRed"
+      return 'BashRed'
     elseif d.severity == vim.diagnostic.severity.WARN then
-      return "BashYellow"
+      return 'BashYellow'
     end
   end
 
-  return is_current and "BashGreen" or "BashGray"
+  return is_current and 'BashGreen' or 'BashGray'
 end
 
-require("statuscol").setup({
+require('statuscol').setup {
   setopt = true,
   segments = {
     {
@@ -27,14 +27,12 @@ require("statuscol").setup({
           local hl = resolve_hl(args.buf, args.lnum, args.relnum == 0)
 
           if args.relnum == 0 then
-            return "%#" .. hl .. "# $ %*"
+            return '%#' .. hl .. '# $ %*'
           end
 
-          return "%#" .. hl .. "#"
-            .. string.format("%2d", args.relnum)
-            .. " %*"
+          return '%#' .. hl .. '#' .. string.format('%2d', args.relnum) .. ' %*'
         end,
       },
     },
   },
-})
+}

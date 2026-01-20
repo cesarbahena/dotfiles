@@ -1,4 +1,4 @@
-for k, v in pairs({
+for k, v in pairs {
   -- Editing
   tabstop = 2,
   shiftwidth = 2,
@@ -6,7 +6,7 @@ for k, v in pairs({
   smartindent = true,
   wrap = true,
   scrolloff = 8,
-  fillchars = { eob = " " },
+  fillchars = { eob = ' ' },
   colorcolumn = nil,
 
   -- Searching
@@ -15,25 +15,25 @@ for k, v in pairs({
   ignorecase = true,
   smartcase = true,
   wildignorecase = true,
-  completeopt = { "menu", "menuone", "noselect" },
+  completeopt = { 'menu', 'menuone', 'noselect' },
   pumheight = 10,
 
   -- UI
   relativenumber = true,
-  signcolumn = "no",
-  foldcolumn = "0",
+  signcolumn = 'no',
+  foldcolumn = '0',
   splitright = true,
   splitbelow = true,
   equalalways = false,
-  splitkeep = "screen",
+  splitkeep = 'screen',
   termguicolors = true,
   laststatus = 0,
   showtabline = 2,
   cmdheight = 0,
   showcmd = false,
   showmode = false,
-  foldmethod = "expr",
-  foldexpr = "v:lua.vim.treesitter.foldexpr()",
+  foldmethod = 'expr',
+  foldexpr = 'v:lua.vim.treesitter.foldexpr()',
   foldenable = false,
 
   -- Responsiveness
@@ -44,8 +44,12 @@ for k, v in pairs({
   synmaxcol = 240,
 
   -- Persistence
-  clipboard = "unnamedplus",
+  clipboard = 'unnamedplus',
   autoread = true,
   swapfile = false,
+  backup = false,
+  writebackup = false,
   undofile = true,
-}) do vim.opt[k] = v end
+} do
+  vim.opt[k] = v
+end

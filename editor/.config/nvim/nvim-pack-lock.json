@@ -12,6 +12,10 @@
       "rev": "7c0a674f620ddc701903b887b2dade836b23ea79",
       "src": "https://github.com/nvim-mini/mini.pick"
     },
+    "nvim-dap": {
+      "rev": "085386b9359ddf8d76ad89b98973b8e332dc5ba3",
+      "src": "https://github.com/mfussenegger/nvim-dap"
+    },
     "statuscol.nvim": {
       "rev": "c46172d0911aa5d49ba5f39f4351d1bb7aa289cc",
       "src": "https://github.com/luukvbaal/statuscol.nvim"
