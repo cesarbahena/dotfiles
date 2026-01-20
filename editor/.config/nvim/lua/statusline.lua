@@ -207,4 +207,7 @@ vim.api.nvim_create_autocmd({"ModeChanged", "CursorMoved", "CursorMovedI"}, {
   callback = function() vim.cmd.redrawtabline() end
 })
 
+vim.o.tabline = "%!v:lua.require'statusline'.render()"
+require "hlgroups"
+
 return M
