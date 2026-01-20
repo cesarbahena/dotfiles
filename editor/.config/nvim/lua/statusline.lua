@@ -98,13 +98,32 @@ local function error_count()
 end
 
 local function modified_flag()
-  return vim.bo.modified and "%#BashYellow#<< " or "%#BashGray#>> "
+  if vim.bo.modified then
+    return "%#BashYellow#>> "
+  elseif fname ~= "" and vim.fn.filereadable(fname) == 0 then
+    return "%#BashGreen#> "
+  else
+    return "%#BashGray#< "
+  end
 end
 
 local function encoding_format()
   local encoding = vim.bo.fileencoding ~= "" and vim.bo.fileencoding or vim.o.encoding
   local format = vim.bo.fileformat
   return "%#BashGray#" .. encoding .. "." .. format .. " "
+end
+
+local function filesize()
+  local size = vim.fn.getfsize(vim.fn.expand("%"))
+  local total = vim.fn.line("$")
+  local size_str
+  if size < 0 then size_str = "0B"
+  elseif size < 1024 then size_str = size .. "B"
+  elseif size < 1024 * 1024 then size_str = string.format("%.1fK", size / 1024)
+  elseif size < 1024 * 1024 * 1024 then size_str = string.format("%.1fM", size / (1024 * 1024))
+  else size_str = string.format("%.1fG", size / (1024 * 1024 * 1024))
+  end
+  return "${" .. size_str .. ":-" .. total .. "} "
 end
 
 local function search_pattern()
@@ -130,12 +149,13 @@ local function grep_info()
 
   local pattern_color = matches > 0 and "%#BashGreen#" or "%#BashRed#"
 
-  return "%#BashGray#| " .. cmd .. " " .. pattern_color .. "\"" .. pattern .. "\" %#BashGray#-" .. matches .. " -L=" .. total .. "%#Normal# "
+  return "%#BashGray#| " .. cmd .. " " .. pattern_color .. "\"" .. pattern .. "\" %#BashGray#-" .. matches .. "%#Normal# "
 end
 
 local function alternate()
   local alt = vim.fn.expand("#:t:r")
-  return alt .. "."
+  if #alt == 0 then return "." end
+  return alt 
 end
 
 local function second_lsp()
@@ -157,8 +177,11 @@ local function second_lsp()
 end
 
 function M.render()
+  local current_line = vim.fn.line(".")
+  local buf_count = #vim.fn.getbufinfo({buflisted = 1})
+
   local parts = {
-    cwd() .. " %#BashGreen#$ ",
+    cwd() .. " %#BashGreen#$ %#BashGray#L=" .. current_line .. "%#Normal# ",
     main_lsp(),
     mode_flag() .. " ",
     "%#BashBold#" .. filename() .. "%#Normal# ",
@@ -167,15 +190,21 @@ function M.render()
     modified_flag(),
     encoding_format(),
     grep_info(),
+    "%#BashGray#" .. filesize(),
     "%#BashGray#&& ",
     second_lsp(),
     alternate(),
+    " %#BashMagenta#-" .. buf_count .. "%#Normal#",
   }
   return table.concat(parts, "")
 end
 
 vim.api.nvim_create_autocmd({"BufEnter", "DirChanged"}, {
   callback = function() vim.b.git_branch = nil end
+})
+
+vim.api.nvim_create_autocmd({"ModeChanged", "CursorMoved", "CursorMovedI"}, {
+  callback = function() vim.cmd.redrawtabline() end
 })
 
 return M

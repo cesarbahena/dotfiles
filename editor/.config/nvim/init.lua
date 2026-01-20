@@ -137,6 +137,9 @@ map("n", "Q", function()
   end
 end, { silent = true })
 
+map("n", "<leader>f", ":find **/*<left>")
+map("n", "-", ":Ex<cr>")
+
 -- LSP
 vim.lsp.enable("lua_ls")
 
@@ -163,3 +166,4 @@ vim.api.nvim_set_hl(0, "BashYellow", {ctermfg = 226, fg = "#ffff00"})
 vim.api.nvim_set_hl(0, "BashYellowBold", {ctermfg = 226, fg = "#ffff00", bold = true})
 vim.api.nvim_set_hl(0, "BashRed", {ctermfg = 196, fg = "#ff0000"})
 vim.api.nvim_set_hl(0, "BashBlue", {ctermfg = 39, fg = "#00afff"})
+vim.api.nvim_set_hl(0, "BashMagenta", {ctermfg = 201, fg = "#ff00ff"})

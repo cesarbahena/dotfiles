@@ -20,7 +20,7 @@ if [ -d "$path/.git" ] || git -C "$path" rev-parse --git-dir &>/dev/null 2>&1; t
 fi
 
 if [ "$is_active" = "1" ]; then
-  output="${BLUE}${cmd} -${win_idx} ${basename}${RESET}"
+  output="${BLUE}${cmd} -${win_idx}${RESET} ${basename}"
 else
   output="${cmd} -${win_idx} ${basename}"
 fi
