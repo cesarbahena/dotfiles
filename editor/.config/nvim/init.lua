@@ -150,3 +150,15 @@ require("gruvbox").setup({
   transparent_mode = true,
 })
 vim.cmd("colorscheme gruvbox")
+
+-- Statusline
+vim.o.statusline = "%!v:lua.require'statusline'.render()"
+
+vim.api.nvim_set_hl(0, "StatusLine", {bg = "NONE"})
+vim.api.nvim_set_hl(0, "StatusLineNC", {bg = "NONE"})
+vim.api.nvim_set_hl(0, "BashGray", {ctermfg = 240, fg = "#585858"})
+vim.api.nvim_set_hl(0, "BashBold", {bold = true})
+vim.api.nvim_set_hl(0, "BashGreen", {ctermfg = 46, fg = "#00ff5f"})
+vim.api.nvim_set_hl(0, "BashYellow", {ctermfg = 226, fg = "#ffff00"})
+vim.api.nvim_set_hl(0, "BashRed", {ctermfg = 196, fg = "#ff0000"})
+vim.api.nvim_set_hl(0, "BashBlue", {ctermfg = 39, fg = "#00afff"})
