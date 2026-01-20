@@ -1,7 +1,9 @@
 local function resolve_hl(buf, lnum, is_current)
   local placed = vim.fn.sign_getplaced(buf, { group = '*', lnum = lnum })[1]
   for _, s in ipairs(placed and placed.signs or {}) do
-    if s.name:match '^Dap' then
+    if s.name == 'DapStopped' then
+      return 'BashMagenta'
+    elseif s.name:match '^Dap' then
       return 'BashBlue'
     end
   end
