@@ -105,6 +105,7 @@ __prompt_command() {
       76)  prompt='¶'  ;; # Protocol error
       77)  prompt='©'  ;; # Permission denied
       78)  prompt='ç'  ;; # Configuration error
+      101) prompt='®'  ;; # Rust build error
       125) prompt='Ð'  ;; # Permission denied
       126) prompt='×'  ;; # Command not executable
       127) prompt='?'  ;; # Command not found
