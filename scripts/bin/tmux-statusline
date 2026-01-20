@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+GRAY="#[fg=colour240]"
+GREEN="#[fg=colour46]"
+RESET="#[default]"
+
+USER=$(whoami)
+HOST=$(hostname -s)
+
+echo -n "${GRAY}${USER}@${HOST} ${GREEN}\$ ${RESET}"

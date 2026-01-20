@@ -11,13 +11,13 @@ M.lsp_map = {
   cpp = {cmd = "clangd", name = "clangd"},
 }
 
-M.tools_map = {
-  lua = {"stylua", "luacheck"},
-  python = {"black", "ruff"},
-  javascript = {"prettier", "eslint"},
-  typescript = {"prettier", "eslint"},
-  go = {"gofmt"},
-  rust = {"rustfmt"},
+M.formatters = {
+  lua = "stylua",
+  python = "black",
+  javascript = "prettier",
+  typescript = "prettier",
+  go = "gofmt",
+  rust = "rustfmt",
 }
 
 local function cwd()
@@ -37,18 +37,10 @@ local function cwd()
   return table.concat(result, "/")
 end
 
-local function git_branch()
-  if not vim.b.git_branch then
-    local branch = vim.fn.system("git branch --show-current 2>/dev/null"):gsub("\n", "")
-    vim.b.git_branch = branch ~= "" and branch or nil
-  end
-  return vim.b.git_branch and ("GIT=" .. vim.b.git_branch .. " ") or ""
-end
-
 local function mode_flag()
   local m = vim.fn.mode()
   local map = {n = "-n", i = "-i", v = "-v", V = "-V", ["\22"] = "-b", c = "-c"}
-  return map[m] or "-?"
+  return "%#BashYellow#" .. (map[m] or "-?") .. "%#Normal#"
 end
 
 local function filename()
@@ -58,7 +50,7 @@ end
 local function main_lsp()
   local ft = vim.bo.filetype
   local expected = M.lsp_map[ft]
-  if not expected then return "" end
+  if not expected then return "nvim " end
 
   local clients = vim.lsp.get_clients({bufnr = 0})
   local has_client = false
@@ -77,49 +69,101 @@ local function main_lsp()
   return color .. expected.name .. "%#Normal# "
 end
 
-local function tools()
+local function formatter()
   local ft = vim.bo.filetype
-  local tool_list = M.tools_map[ft]
-  if not tool_list then return "" end
+  local fmt = M.formatters[ft]
+  if not fmt or vim.fn.executable(fmt) ~= 1 then return "" end
+  return "%#BashGray#--" .. fmt .. " "
+end
 
-  local active = {}
-  for _, tool in ipairs(tool_list) do
-    if vim.fn.executable(tool) == 1 then
-      table.insert(active, "--" .. tool)
+local function error_count()
+  local diagnostics = vim.diagnostic.get(0)
+  local errors = 0
+  local warnings = 0
+
+  for _, d in ipairs(diagnostics) do
+    if d.severity == vim.diagnostic.severity.ERROR then
+      errors = errors + 1
+    elseif d.severity == vim.diagnostic.severity.WARN then
+      warnings = warnings + 1
     end
   end
 
-  return #active > 0 and ("%#BashGray#" .. table.concat(active, " ")) or ""
+  if errors > 0 then
+    return "%#BashGray#2>" .. "%#BashRed#" .. errors .. ".err%#Normal# "
+  elseif warnings > 0 then
+    return "%#BashGray#2>" .. "%#BashYellow#" .. warnings .. ".warn%#Normal# "
+  end
+  return ""
 end
 
-local function other_lsps()
+local function modified_flag()
+  return vim.bo.modified and "%#BashYellow#<< " or "%#BashGray#>> "
+end
+
+local function encoding_format()
+  local encoding = vim.bo.fileencoding ~= "" and vim.bo.fileencoding or vim.o.encoding
+  local format = vim.bo.fileformat
+  return "%#BashGray#" .. encoding .. "." .. format .. " "
+end
+
+local function grep_info()
+  local search = vim.fn.getreg("/")
+  if search == "" then search = "pattern" end
+
+  local line = vim.fn.line(".")
+  local total = vim.fn.line("$")
+
+  local matches = 0
+  if search ~= "pattern" then
+    local count_ok, count_result = pcall(vim.fn.searchcount, {pattern = search, maxcount = 999})
+    if count_ok and count_result.total then
+      matches = count_result.total
+    end
+  end
+
+  local cmd = vim.fn.executable("rg") == 1 and "rg" or "grep"
+
+  return "%#BashGray#| " .. cmd .. " %#BashBlue#" .. search .. " %#BashGray#-c " .. matches .. " -L" .. line .. "," .. total .. "%#Normal# "
+end
+
+local function alternate()
+  local alt = vim.fn.expand("#:t:r")
+  return alt .. "."
+end
+
+local function second_lsp()
   local ft = vim.bo.filetype
   local expected = M.lsp_map[ft]
   local main_name = expected and expected.name or nil
 
   local clients = vim.lsp.get_clients({bufnr = 0})
-  local others = {}
 
   for _, c in ipairs(clients) do
     if c.name ~= main_name then
       local has_exe = vim.fn.executable(c.name) == 1
-      local color = has_exe and "%#BashGreen#" or "%#BashYellow#"
-      table.insert(others, color .. c.name)
+      local color = has_exe and "%#BashGreen#" or "%#BashRed#"
+      return color .. c.name .. "%#Normal# "
     end
   end
 
-  return #others > 0 and ("%#Normal# | " .. table.concat(others, " ")) or ""
+  return "nvim "
 end
 
 function M.render()
   local parts = {
     cwd() .. " %#BashGreen#$ ",
-    "%#BashGray#" .. git_branch(),
     main_lsp(),
-    "%#Normal#" .. mode_flag() .. " ",
-    "%#BashBold#" .. filename(),
-    " " .. tools(),
-    other_lsps(),
+    mode_flag() .. " ",
+    "%#BashBold#" .. filename() .. "%#Normal# ",
+    formatter(),
+    error_count(),
+    modified_flag(),
+    encoding_format(),
+    grep_info(),
+    "%#BashGray#&& ",
+    second_lsp(),
+    alternate(),
   }
   return table.concat(parts, "")
 end
