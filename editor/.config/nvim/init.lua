@@ -26,10 +26,10 @@ for k, v in pairs({
   equalalways = false,
   splitkeep = "screen",
   termguicolors = true,
-  laststatus = 3,
+  laststatus = 0,
+  showtabline = 2,
   cmdheight = 0,
   showcmd = false,
-  showcmdloc = "statusline",
   showmode = false,
   foldmethod = "expr",
   foldexpr = "v:lua.vim.treesitter.foldexpr()",
@@ -151,11 +151,11 @@ require("gruvbox").setup({
 })
 vim.cmd("colorscheme gruvbox")
 
--- Statusline
-vim.o.statusline = "%!v:lua.require'statusline'.render()"
+-- Tabline
+vim.o.tabline = "%!v:lua.require'statusline'.render()"
 
-vim.api.nvim_set_hl(0, "StatusLine", {bg = "NONE"})
-vim.api.nvim_set_hl(0, "StatusLineNC", {bg = "NONE"})
+vim.api.nvim_set_hl(0, "TabLineFill", {bg = "NONE"})
+vim.api.nvim_set_hl(0, "TabLine", {bg = "NONE"})
 vim.api.nvim_set_hl(0, "BashGray", {ctermfg = 240, fg = "#585858"})
 vim.api.nvim_set_hl(0, "BashBold", {bold = true})
 vim.api.nvim_set_hl(0, "BashGreen", {ctermfg = 46, fg = "#00ff5f"})
