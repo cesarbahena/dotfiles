@@ -10,4 +10,7 @@ vim.pack.add {
   gh 'mfussenegger/nvim-dap',
   gh 'nvim-treesitter/nvim-treesitter',
   gh 'theHamsta/nvim-dap-virtual-text',
+  gh 'rafamadriz/friendly-snippets',
+  { src = gh 'saghen/blink.cmp', version = vim.version.range '1' },
+  { src = gh 'saghen/blink.pairs', version = vim.version.range '0' },
 }

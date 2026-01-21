@@ -169,7 +169,7 @@ path() {
 
 alias l='ls -nohaX --group-directories-first --color'
 alias ls='ls -A --color'
-alias rm='rm -r'
+alias rm='rm -rv'
 alias v='nvim -c "$NVIM_CONFIG"'
 alias c='claude -c'
 alias oc='opencode -c'
@@ -1074,6 +1074,23 @@ gbare() {
   git clone --bare "$1" .git
 }
 
+gpu() {
+  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ -z "$branch" ]; then
+    echo "Not in a git repository"
+    return 1
+  fi
+
+  local remote="${1:-origin}"
+
+  if ! git remote | grep -q "^${remote}$"; then
+    echo "Remote '$remote' not found"
+    return 1
+  fi
+
+  git push -u "$remote" "$branch"
+}
+
 gg() {
   git_dir=$(git rev-parse --git-dir 2>/dev/null) || return 1
   bisect_file="$git_dir/BISECT_LOG"
@@ -1180,6 +1197,10 @@ gmvu() {
   fi
 }
 
+hlv() {
+  nvim --headless -c $@ +qa
+}
+
 alias gls='git log --stat \
 --pretty="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%n\
 %C(magenta)%h%Creset\
@@ -1219,24 +1240,6 @@ alias gfck='git reflog' # find commit killed
 alias gfk='git commit -v --amend --no-edit' # quick amend
 alias gfuck='git commit -v --amend' # need to be precise with the msg
 alias gp='git push -v'
-
-gpu() {
-  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-  if [ -z "$branch" ]; then
-    echo "Not in a git repository"
-    return 1
-  fi
-
-  local remote="${1:-origin}"
-
-  if ! git remote | grep -q "^${remote}$"; then
-    echo "Remote '$remote' not found"
-    return 1
-  fi
-
-  git push -u "$remote" "$branch"
-}
-
 alias gcpr='git reset --soft' # copy index --reset head
 alias grm='git rm'
 alias grmf='git rm --cached' # file unstage

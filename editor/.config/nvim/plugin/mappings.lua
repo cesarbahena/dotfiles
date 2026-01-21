@@ -1,7 +1,9 @@
 local map = vim.keymap.set
 local q = { silent = true }
 
+map('n', ' ', 'nop')
 vim.g.mapleader = ' '
+map('i', '<c-c>', '<esc>')
 
 local function no_scrolloff(motion, schedule_restore)
   return function()
@@ -85,7 +87,6 @@ map('c', '<C-a>', '<Home>')
 map('c', '<C-e>', '<End>')
 map('x', '<', '<gv')
 map('x', '>', '>gv')
-map('n', 'Y', 'yyp')
 map('n', '<', ',', q)
 map('n', '>', 'j.', q)
 map('n', ':', '@:', q)

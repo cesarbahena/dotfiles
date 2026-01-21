@@ -1,5 +1,19 @@
 {
   "plugins": {
+    "blink.cmp": {
+      "rev": "49f211fe5d729df53df4c042d7c3464cf47d199e",
+      "src": "https://github.com/saghen/blink.cmp",
+      "version": "1.0.0 - 2.0.0"
+    },
+    "blink.pairs": {
+      "rev": "5a34bf6ea72340a70083548e186d745ac4882899",
+      "src": "https://github.com/saghen/blink.pairs",
+      "version": "0.0.0 - 1.0.0"
+    },
+    "friendly-snippets": {
+      "rev": "572f5660cf05f8cd8834e096d7b4c921ba18e175",
+      "src": "https://github.com/rafamadriz/friendly-snippets"
+    },
     "gruvbox.nvim": {
       "rev": "a472496e1a4465a2dd574389dcf6cdb29af9bf1b",
       "src": "https://github.com/ellisonleao/gruvbox.nvim"
@@ -27,10 +41,6 @@
     "statuscol.nvim": {
       "rev": "c46172d0911aa5d49ba5f39f4351d1bb7aa289cc",
       "src": "https://github.com/luukvbaal/statuscol.nvim"
-    },
-    "wilder.nvim": {
-      "rev": "679f348dc90d80ff9ba0e7c470c40a4d038dcecf",
-      "src": "https://github.com/gelguy/wilder.nvim"
     }
   }
 }
