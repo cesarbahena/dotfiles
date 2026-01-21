@@ -1,8 +1,7 @@
 local map = vim.keymap.set
 local q = { silent = true }
 
-map('n', ' ', 'nop')
-vim.g.mapleader = ' '
+map('n', '<space>', '<nop>')
 map('i', '<c-c>', '<esc>')
 
 local function no_scrolloff(motion, schedule_restore)
