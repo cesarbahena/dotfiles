@@ -62,7 +62,17 @@ map('n', 'Q', function()
       pcall(vim.cmd, 'normal! @q')
     end
   end
-end, { silent = true })
+end, q)
+
+map('c', '<c-s>', function()
+  local line = vim.fn.getcmdline()
+  local pos = vim.fn.getcmdpos()
+  if pos <= 1 then
+    return ''
+  end
+  local c = line:sub(pos - 1, pos - 1)
+  return vim.api.nvim_replace_termcodes('\\1' .. c .. '<cr>', true, false, true)
+end, { expr = true })
 
 map('n', '<C-d>', '<C-d>zz')
 map('n', '<C-u>', '<C-u>zz')
@@ -73,13 +83,14 @@ map('i', '.', '.<C-g>u')
 map('i', ';', ';<C-g>u')
 map('c', '<C-a>', '<Home>')
 map('c', '<C-e>', '<End>')
-map('v', '<', '<gv')
-map('v', '>', '>gv')
+map('x', '<', '<gv')
+map('x', '>', '>gv')
 map('n', 'Y', 'yyp')
 map('n', '<', ',', q)
 map('n', '>', 'j.', q)
 map('n', ':', '@:', q)
 map({ 'n', 'v' }, ';', ':')
 map({ 'n', 'v' }, ',', ';', q)
-map('n', '<leader>f', ':find **/*<left>')
 map('n', '-', ':Ex<cr>')
+map('n', '<leader>f', ':find **/*<left>')
+map('x', 's', [[y:s/\(<C-R>=substitute(@", '\n$', '', '')<cr>\)/]])

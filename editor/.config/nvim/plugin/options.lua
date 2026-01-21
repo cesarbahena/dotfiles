@@ -4,10 +4,27 @@ for k, v in pairs {
   shiftwidth = 2,
   expandtab = true,
   smartindent = true,
-  wrap = true,
   scrolloff = 8,
   fillchars = { eob = ' ' },
   colorcolumn = nil,
+  foldmethod = 'expr',
+  foldexpr = 'v:lua.vim.treesitter.foldexpr()',
+  foldenable = false,
+
+  -- UI
+  relativenumber = true,
+  signcolumn = 'no',
+  foldcolumn = '0',
+  splitright = true,
+  splitbelow = true,
+  equalalways = true,
+  splitkeep = 'screen',
+  tabline = [[%!v:lua.require'components'.tabline()]],
+  showtabline = 2,
+  laststatus = 0,
+  cmdheight = 0,
+  showcmd = false,
+  showmode = false,
 
   -- Searching
   hlsearch = false,
@@ -18,25 +35,8 @@ for k, v in pairs {
   completeopt = { 'menu', 'menuone', 'noselect' },
   pumheight = 10,
 
-  -- UI
-  relativenumber = true,
-  signcolumn = 'no',
-  foldcolumn = '0',
-  splitright = true,
-  splitbelow = true,
-  equalalways = false,
-  splitkeep = 'screen',
+  -- Performance
   termguicolors = true,
-  laststatus = 0,
-  showtabline = 2,
-  cmdheight = 0,
-  showcmd = false,
-  showmode = false,
-  foldmethod = 'expr',
-  foldexpr = 'v:lua.vim.treesitter.foldexpr()',
-  foldenable = false,
-
-  -- Responsiveness
   updatetime = 100,
   timeoutlen = 300,
   ttimeoutlen = 10,
