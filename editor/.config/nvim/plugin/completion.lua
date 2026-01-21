@@ -3,6 +3,9 @@ if vim.uv.fs_stat(vim.fn.stdpath 'data' .. '/site/pack/core/opt/blink.pairs/targ
 end
 
 require('blink.cmp').setup {
+  enabled = function()
+    return not vim.tbl_contains({ 'minifiles' }, vim.bo.filetype)
+  end,
   completion = {
     documentation = { auto_show = true },
   },
