@@ -79,7 +79,7 @@ __prompt_command() {
     local color="$RED"
 
     case "$exit" in
-      2|64|65|66|67|68|69|75|78|125|127|128)
+      2|16|64|65|66|67|68|69|75|78|125|127|128)
         color="$YELLOW"
         ;;
       129|130|131|141|142|148)
@@ -90,6 +90,7 @@ __prompt_command() {
     case "$exit" in
       1)   prompt='!'  ;; # General failure
       2)   prompt='€'  ;; # Misuse of shell builtins
+      16)  prompt='M'  ;; # No manual entry found
       64)  prompt='¿'  ;; # Usage
       65)  prompt='%'  ;; # Format
       66)  prompt='«'  ;; # No input
