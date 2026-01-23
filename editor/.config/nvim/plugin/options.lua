@@ -21,6 +21,7 @@ for k, v in pairs {
   splitkeep = 'screen',
   tabline = [[%!v:lua.require'components'.tabline()]],
   showtabline = 2,
+  statusline = ' ',
   laststatus = 0,
   cmdheight = 0,
   showcmd = false,

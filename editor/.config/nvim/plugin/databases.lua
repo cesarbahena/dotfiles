@@ -25,9 +25,11 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.api.nvim_create_autocmd('CursorMoved', {
       buffer = 0,
       callback = function()
-        vim.cmd('redraw!')
+        vim.cmd 'redraw!'
       end,
     })
+    vim.keymap.set('n', '<c-n>', 'j', { buffer = 0 })
+    vim.keymap.set('n', '<cr>', 'j', { buffer = 0 })
   end,
 })
 

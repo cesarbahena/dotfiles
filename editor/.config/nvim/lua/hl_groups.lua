@@ -14,6 +14,8 @@ function M.apply_all()
   hl(0, 'TabLine', { bg = 'NONE' })
   hl(0, 'TabLineFill', { bg = 'NONE' })
   hl(0, 'CursorLineNr', { fg = 'NONE' })
+  hl(0, 'StatusLine', { bg = 'NONE', fg = 'NONE' })
+  hl(0, 'StatusLineNC', { bg = 'NONE', fg = 'NONE' })
 end
 
 function M.get_lnr_color(buf, lnum, is_current)
