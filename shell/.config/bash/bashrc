@@ -24,162 +24,52 @@ export GNUPGHOME="$XDG_DATA_HOME/gnupg"
 export CONDA_ENVS_PATH="$XDG_DATA_HOME/conda/envs"
 export SDKMAN_DIR="$XDG_DATA_HOME/sdkman"
 
-__prompt_command() {
-  local exit=$?
-  local prompt='$'
-  local colors=$(tput colors 2>/dev/null || echo 0)
+paths=(
+  "$XDG_DATA_HOME/opencode/bin"
+  "$XDG_DATA_HOME/android/cmdline-tools/latest/bin"
+  "$XDG_DATA_HOME/android/platform-tools"
+  "$XDG_DATA_HOME/dotnet/tools"
+  "$XDG_DATA_HOME/dotnet"
+  "$XDG_CONFIG_HOME/composer/vendor/bin"
+  "$XDG_DATA_HOME/pnpm"
+  "/usr/local/go/bin"
+  "$CARGO_HOME/bin"
+  "$HOME/.local/bin"
+  "$XDG_DATA_HOME/bob/nvim-bin"
+)
 
-  # Progressive color enhancement based on terminal capability
-  if [ "$colors" -ge 256 ]; then
-    # 256-color: dimmest cwd, most vibrant prompts
-    local GRAY='\[\e[38;5;240m\]' # very dim gray
-    local GREEN='\[\e[38;5;46m\]'  # bright green
-    local YELLOW='\[\e[38;5;226m\]' # bright yellow
-    local RED='\[\e[38;5;196m\]'    # bright red
-    local BLUE='\[\e[38;5;39m\]'    # bright blue
-  elif [ "$colors" -ge 16 ]; then
-    # 16-color: dim cwd, bright prompts
-    local GRAY='\[\e[90m\]'   # dim gray
-    local GREEN='\[\e[92m\]'  # bright green
-    local YELLOW='\[\e[93m\]' # bright yellow
-    local RED='\[\e[91m\]'    # bright red
-    local BLUE='\[\e[94m\]'   # bright blue
-  else
-    # 8-color fallback: white cwd, normal prompts
-    local GRAY='\[\e[37m\]'   # white
-    local GREEN='\[\e[32m\]'  # green
-    local YELLOW='\[\e[33m\]' # yellow
-    local RED='\[\e[31m\]'    # red
-    local BLUE='\[\e[34m\]'   # blue
-  fi
-  local RESET='\[\e[0m\]'
+for p in "${paths[@]}"; do
+  [[ -d "$p" ]] || continue
+  case ":$PATH:" in
+    *":$p:"*) ;;
+    *) PATH="$p:$PATH" ;;
+  esac
+done
 
-  local MAPFILE
-  mapfile -tn 2 MAPFILE < ~/.bashrc
-  if [ "${#MAPFILE[@]}" -gt 1 ]; then
-    prompt='þ'  # mnemonic: bash profile corrupted
-    local color="$RED"
-    local cwd="${PWD/#$HOME/\~}"
-    local dir="${cwd%/*}"
-    local base="${cwd##*/}"
-    [ "$cwd" = "$base" ] && dir=""  # Handle root or no slash case
-    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} " || PS1="${base} ${color}${prompt}${RESET} "
-    return
-  fi
-
-  [ "$EUID" -eq 0 ] && prompt='#'
-
-  # Split path: dim directory, bright basename
-  local cwd="${PWD/#$HOME/\~}"
-  local dir="${cwd%/*}"
-  local base="${cwd##*/}"
-  [ "$cwd" = "$base" ] && dir=""  # Handle root or no slash case
-
-  if [ "$exit" -ne 0 ]; then
-    local color="$RED"
-
-    case "$exit" in
-      2|16|64|65|66|67|68|69|75|78|125|127|128)
-        color="$YELLOW"
-        ;;
-      129|130|131|141|142|148)
-        color="$BLUE"
-        ;;
-    esac
-
-    case "$exit" in
-      1)   prompt='!'  ;; # General failure
-      2)   prompt='€'  ;; # Misuse of shell builtins
-      16)  prompt='M'  ;; # No manual entry found
-      64)  prompt='¿'  ;; # Usage
-      65)  prompt='%'  ;; # Format
-      66)  prompt='«'  ;; # No input
-      67)  prompt='µ'  ;; # No user
-      68)  prompt='@'  ;; # No host
-      69)  prompt='ø'  ;; # Unavailable
-      70)  prompt='£'  ;; # Internal software error
-      71)  prompt='œ'  ;; # OS error
-      72)  prompt='ƒ'  ;; # File error
-      73)  prompt='+'  ;; # Cannot create
-      74)  prompt='|'  ;; # IO error
-      75)  prompt='…'  ;; # Temporary failure (retry)
-      76)  prompt='¶'  ;; # Protocol error
-      77)  prompt='©'  ;; # Permission denied
-      78)  prompt='ç'  ;; # Configuration error
-      101) prompt='®'  ;; # Rust build error
-      125) prompt='Ð'  ;; # Permission denied
-      126) prompt='×'  ;; # Command not executable
-      127) prompt='?'  ;; # Command not found
-      128) prompt='§'  ;; # Fatal application error
-      129) prompt='¥'  ;; # SIGHUP (terminal/session closed)
-      130) prompt='¢'  ;; # SIGINT (^C)
-      131) prompt='\\' ;; # SIGQUIT (^\)
-      132) prompt='¡'  ;; # SIGILL (illegal instruction)
-      133) prompt='»'  ;; # SIGTRAP (redirected signal)
-      134) prompt='‡'  ;; # SIGABRT (abort)
-      135) prompt='ß'  ;; # SIGBUS (bus error)
-      136) prompt='÷'  ;; # SIGFPE (arithmetic error)
-      137) prompt='ð'  ;; # SIGKILL (-9)
-      139) prompt='‰'  ;; # SIGSEGV (segmentation fault)
-      141) prompt='¦'  ;; # SIGPIPE (broken pipe)
-      142) prompt='ö'  ;; # SIGALRM (timeout)
-      143) prompt='†'  ;; # SIGTERM (graceful termination)
-      147) prompt='¬'  ;; # SIGSTOP (suspended not from terminal)
-      148) prompt='&'  ;; # SIGSTP (^Z)
-      *)   prompt="($exit)" ;;
-    esac
-
-    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} " || PS1="${base} ${color}${prompt}${RESET} "
-  else
-    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${GREEN}${prompt}${RESET} " || PS1="${base} ${GREEN}${prompt}${RESET} "
-  fi
-}
-
-PROMPT_COMMAND=__prompt_command
-
-__path_init() {
-  local combined=""
-  for dir in "$@"; do
-    combined="$dir:$combined"
-  done
-  combined="$combined$PATH"
-
-  export PATH=$(echo "$combined" | tr : '\n' | awk '!seen[$0]++' | tr '\n' : | sed 's/:$//')
-}
-
-path() {
-  [ $# -eq 0 ] && echo "$PATH" | tr : '\n' && return
-
-  local bashrc="${XDG_CONFIG_HOME:-$HOME/.config}/bash/bashrc"
-  [ ! -f "$bashrc" ] && echo "Error: $bashrc not found" && return 1
-
-  # Add backslash continuation to last line (if not already there)
-  sed -i '$ s/\([^\\]\)$/\1 \\/' "$bashrc"
-
-  # Append new paths
-  for dir in "$@"; do
-    printf '  "%s" \\\n' "$dir" >> "$bashrc"
-  done
-
-  # Remove trailing backslash from last line
-  sed -i '$ s/ \\$//' "$bashrc"
-
-  . ~/.bashrc
-  echo "Added to $bashrc and reloaded"
-}
+unset paths
+export PATH
 
 alias l='ls -nohaX --group-directories-first --color'
 alias ls='ls -A --color'
 alias rm='rm -rv'
-alias v='nvim -c "$NVIM_CONFIG"'
+alias v='nvim'
 alias c='claude -c'
 alias oc='opencode -c'
 alias du='dust 2>/dev/null' # silence permission errors
 alias get='sudo apt update && sudo apt install -y'
 alias venv='source .venv/bin/activate'
 
+path() {
+  echo "$PATH" | tr : '\n'
+}
+
 imin() {
-  cat ~/.config/bash/bashrc | ssh "$@" 'bash --rcfile /dev/stdin'
+  if [ $# -eq 0 ]; then
+    echo "Usage: imin user@host [ssh options]"
+    return 1
+  fi
+
+  ssh "$@" 'bash --rcfile /dev/stdin' < ~/.config/bash/bashrc
 }
 
 x() {
@@ -1199,7 +1089,11 @@ gmvu() {
 }
 
 hlv() {
-  nvim --headless -c $@ +qa
+  local args=()
+  for cmd in "$@"; do
+    args+=(-c "$cmd")
+  done
+  nvim --headless "${args[@]}" -c 'echon "\n"' +qa
 }
 
 alias gls='git log --stat \
@@ -1283,16 +1177,119 @@ alias dnd='docker network disconnect'
 alias dp='docker container port'
 
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
+eval "$(fnm env)"
 
-__path_init \
-  "$XDG_DATA_HOME/opencode/bin" \
-  "$XDG_DATA_HOME/android/cmdline-tools/latest/bin" \
-  "$XDG_DATA_HOME/android/platform-tools" \
-  "$XDG_DATA_HOME/dotnet/tools" \
-  "$XDG_DATA_HOME/dotnet" \
-  "$XDG_CONFIG_HOME/composer/vendor/bin" \
-  "$XDG_DATA_HOME/pnpm" \
-  /usr/local/go/bin \
-  "$CARGO_HOME/bin" \
-  "$HOME/.local/bin"  \
-  "$XDG_DATA_HOME/bob/nvim-bin"
+__prompt_command() {
+  local exit=$?
+  local prompt='$'
+  local colors=$(tput colors 2>/dev/null || echo 0)
+
+  # Progressive color enhancement based on terminal capability
+  if [ "$colors" -ge 256 ]; then
+    # 256-color: dimmest cwd, most vibrant prompts
+    local GRAY='\[\e[38;5;240m\]' # very dim gray
+    local GREEN='\[\e[38;5;46m\]'  # bright green
+    local YELLOW='\[\e[38;5;226m\]' # bright yellow
+    local RED='\[\e[38;5;196m\]'    # bright red
+    local BLUE='\[\e[38;5;39m\]'    # bright blue
+  elif [ "$colors" -ge 16 ]; then
+    # 16-color: dim cwd, bright prompts
+    local GRAY='\[\e[90m\]'   # dim gray
+    local GREEN='\[\e[92m\]'  # bright green
+    local YELLOW='\[\e[93m\]' # bright yellow
+    local RED='\[\e[91m\]'    # bright red
+    local BLUE='\[\e[94m\]'   # bright blue
+  else
+    # 8-color fallback: white cwd, normal prompts
+    local GRAY='\[\e[37m\]'   # white
+    local GREEN='\[\e[32m\]'  # green
+    local YELLOW='\[\e[33m\]' # yellow
+    local RED='\[\e[31m\]'    # red
+    local BLUE='\[\e[34m\]'   # blue
+  fi
+  local RESET='\[\e[0m\]'
+
+  local MAPFILE
+  mapfile -tn 2 MAPFILE < ~/.bashrc
+  if [ "${#MAPFILE[@]}" -gt 1 ]; then
+    prompt='þ'  # mnemonic: bash profile corrupted
+    local color="$RED"
+    local cwd="${PWD/#$HOME/\~}"
+    local dir="${cwd%/*}"
+    local base="${cwd##*/}"
+    [ "$cwd" = "$base" ] && dir=""  # Handle root or no slash case
+    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} " || PS1="${base} ${color}${prompt}${RESET} "
+    return
+  fi
+
+  [ "$EUID" -eq 0 ] && prompt='#'
+
+  # Split path: dim directory, bright basename
+  local cwd="${PWD/#$HOME/\~}"
+  local dir="${cwd%/*}"
+  local base="${cwd##*/}"
+  [ "$cwd" = "$base" ] && dir=""  # Handle root or no slash case
+
+  if [ "$exit" -ne 0 ]; then
+    local color="$RED"
+
+    case "$exit" in
+      2|3|16|64|65|66|67|68|69|75|78|125|127|128)
+        color="$YELLOW"
+        ;;
+      129|130|131|141|142|148)
+        color="$BLUE"
+        ;;
+    esac
+
+    case "$exit" in
+      1)   prompt='!'  ;; # General failure
+      2)   prompt='€'  ;; # Misuse of shell builtins
+      3)   prompt='Æ'  ;; # Page not found
+      16)  prompt='M'  ;; # No manual entry found
+      64)  prompt='¿'  ;; # Usage
+      65)  prompt='%'  ;; # Format
+      66)  prompt='«'  ;; # No input
+      67)  prompt='µ'  ;; # No user
+      68)  prompt='@'  ;; # No host
+      69)  prompt='ø'  ;; # Unavailable
+      70)  prompt='£'  ;; # Internal software error
+      71)  prompt='œ'  ;; # OS error
+      72)  prompt='ƒ'  ;; # File error
+      73)  prompt='+'  ;; # Cannot create
+      74)  prompt='|'  ;; # IO error
+      75)  prompt='…'  ;; # Temporary failure (retry)
+      76)  prompt='¶'  ;; # Protocol error
+      77)  prompt='©'  ;; # Permission denied
+      78)  prompt='ç'  ;; # Configuration error
+      101) prompt='®'  ;; # Rust build error
+      125) prompt='Ð'  ;; # Permission denied
+      126) prompt='×'  ;; # Command not executable
+      127) prompt='?'  ;; # Command not found
+      128) prompt='§'  ;; # Fatal application error
+      129) prompt='¥'  ;; # SIGHUP (terminal/session closed)
+      130) prompt='¢'  ;; # SIGINT (^C)
+      131) prompt='\\' ;; # SIGQUIT (^\)
+      132) prompt='¡'  ;; # SIGILL (illegal instruction)
+      133) prompt='»'  ;; # SIGTRAP (redirected signal)
+      134) prompt='‡'  ;; # SIGABRT (abort)
+      135) prompt='ß'  ;; # SIGBUS (bus error)
+      136) prompt='÷'  ;; # SIGFPE (arithmetic error)
+      137) prompt='ð'  ;; # SIGKILL (-9)
+      139) prompt='‰'  ;; # SIGSEGV (segmentation fault)
+      141) prompt='¦'  ;; # SIGPIPE (broken pipe)
+      142) prompt='ö'  ;; # SIGALRM (timeout)
+      143) prompt='†'  ;; # SIGTERM (graceful termination)
+      147) prompt='¬'  ;; # SIGSTOP (suspended not from terminal)
+      148) prompt='&'  ;; # SIGSTP (^Z)
+      255) prompt='&'  ;; # Invalid characters
+      *)   prompt="($exit)" ;;
+    esac
+
+    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} " || PS1="${base} ${color}${prompt}${RESET} "
+  else
+    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${GREEN}${prompt}${RESET} " || PS1="${base} ${GREEN}${prompt}${RESET} "
+  fi
+}
+
+PROMPT_COMMAND=__prompt_command
