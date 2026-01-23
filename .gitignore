@@ -25,3 +25,4 @@ Thumbs.db
 
 # Logs
 *.log
+editor/.config/nvim/connections.json
