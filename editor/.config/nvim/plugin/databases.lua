@@ -19,4 +19,16 @@ vim.api.nvim_create_autocmd('FileType', {
   end,
 })
 
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'dbui',
+  callback = function()
+    vim.api.nvim_create_autocmd('CursorMoved', {
+      buffer = 0,
+      callback = function()
+        vim.cmd('redraw!')
+      end,
+    })
+  end,
+})
+
 vim.keymap.set('n', '<leader>q', require('smart_tabs').cycle_dbui_tab)
