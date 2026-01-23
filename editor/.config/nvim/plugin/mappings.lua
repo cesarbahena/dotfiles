@@ -1,52 +1,30 @@
 local map = vim.keymap.set
 local q = { silent = true }
 
-map('n', '<space>', '<nop>')
-map('i', '<c-c>', '<esc>')
+map('n', '>', 'j.', q) -- Repeat over multiple lines (S-.)
 
-local function no_scrolloff(motion, schedule_restore)
-  return function()
-    vim.o.scrolloff = 0
-    vim.cmd('normal! ' .. motion)
-    if schedule_restore then
-      vim.schedule(function()
-        vim.o.scrolloff = 8
-      end)
-    else
-      vim.o.scrolloff = 8
+map('n', 'Q', function() -- Repeat macro
+  local count = vim.v.count > 0 and vim.v.count or 1
+  for _ = 1, count do
+    if not pcall(vim.cmd, 'normal! @@') then
+      -- if you forgot to call it (asuming its q)
+      pcall(vim.cmd, 'normal! @q')
     end
   end
-end
+end, q)
 
-map('n', 'j', function()
-  if vim.v.count > 0 then
-    no_scrolloff(vim.v.count .. 'j')()
-  else
-    vim.cmd 'normal! gj'
-  end
-end)
+-- Vim surround at home
+map('x', 's', [[y:s/\(<C-R>=substitute(@", '\n$', '', '')<cr>\)/]])
 
-map('n', 'k', function()
-  if vim.v.count > 0 then
-    no_scrolloff(vim.v.count .. 'k')()
-  else
-    vim.cmd 'normal! gk'
-  end
-end)
+-- Quick line move (use yank and paste for complex cases)
+map('n', '<A-n>', ':m .+1<CR>==')
+map('n', '<A-k>', ':m .-2<CR>==')
 
-for _, key in ipairs { 'zt', 'zb', 'zz' } do
-  map('n', key, no_scrolloff(key, true)) --delayed restore
-end
+-- Cmdline mode
+map({ 'n', 'x' }, ';', ':') -- ; faster than :
+map({ 'n', 'x' }, ':', '@:', q) -- S-;
 
-for _, key in ipairs { 'H', 'M', 'L' } do
-  map('n', key, no_scrolloff(key))
-end
-
-map('n', 'G', function()
-  no_scrolloff((vim.v.count > 0 and vim.v.count or '') .. 'G')()
-end)
-
-map('c', ';', function()
+map('c', ';', function() -- smart ; also to execute
   local cmd = vim.fn.getcmdline()
   local pos = vim.fn.getcmdpos()
   if pos > 1 and cmd:sub(pos - 1, pos - 1) == '\\' then
@@ -56,16 +34,7 @@ map('c', ';', function()
   end
 end, { expr = true })
 
-map('n', 'Q', function()
-  local count = vim.v.count > 0 and vim.v.count or 1
-  for _ = 1, count do
-    if not pcall(vim.cmd, 'normal! @@') then
-      pcall(vim.cmd, 'normal! @q')
-    end
-  end
-end, q)
-
-map('c', '<c-s>', function()
+map('c', '<c-s>', function() -- to use with custom visual mode s
   local line = vim.fn.getcmdline()
   local pos = vim.fn.getcmdpos()
   if pos <= 1 then
@@ -75,22 +44,21 @@ map('c', '<c-s>', function()
   return vim.api.nvim_replace_termcodes('\\1' .. c .. '<cr>', true, false, true)
 end, { expr = true })
 
-map('n', '<C-d>', '<C-d>zz')
-map('n', '<C-u>', '<C-u>zz')
-map('n', 'n', 'nzz')
-map('n', 'N', 'Nzz')
+-- But then we need to move ; to ,
+map({ 'n', 'x' }, ',', ';', q)
+map('n', '<', ',', q) -- and S-, for backwards
+
+-- Sensible defaults
+map('i', '<c-c>', '<esc>') -- Saves block mode edits
+map('x', '<', '<gv')
+map('x', '>', '>gv')
+require('scrolloff').set_sensible_kemaps()
+
+-- Undo breakpoints
 map('i', ',', ',<C-g>u')
 map('i', '.', '.<C-g>u')
 map('i', ';', ';<C-g>u')
-map('c', '<C-a>', '<Home>')
-map('c', '<C-e>', '<End>')
-map('x', '<', '<gv')
-map('x', '>', '>gv')
-map('n', '<', ',', q)
-map('n', '>', 'j.', q)
-map('n', ':', '@:', q)
-map({ 'n', 'v' }, ';', ':')
-map({ 'n', 'v' }, ',', ';', q)
-map('n', '<leader>e', ':Ex<cr>')
-map('n', '<leader>f', ':find **/*<left>')
-map('x', 's', [[y:s/\(<C-R>=substitute(@", '\n$', '', '')<cr>\)/]])
+
+-- Fallbacks
+map('n', '<leader>e', ':Ex<cr>') -- file explorer
+map('n', '<leader>f', ':find **/*<left>') -- picker
