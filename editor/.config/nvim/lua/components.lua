@@ -1,4 +1,19 @@
 local M = {}
+local hl = require 'hl_groups'
+
+local gray = '%#' .. hl.gray .. '#'
+local bold = '%#' .. hl.bold .. '#'
+local green = '%#' .. hl.green .. '#'
+local green_bold = '%#' .. hl.green_bold .. '#'
+local yellow = '%#' .. hl.yellow .. '#'
+local yellow_bold = '%#' .. hl.yellow_bold .. '#'
+local red = '%#' .. hl.red .. '#'
+local red_bold = '%#' .. hl.red_bold .. '#'
+local blue = '%#' .. hl.blue .. '#'
+local blue_bold = '%#' .. hl.blue_bold .. '#'
+local magenta = '%#' .. hl.magenta .. '#'
+local magenta_bold = '%#' .. hl.magenta_bold .. '#'
+local normal = '%#Normal#'
 
 M.lsp_map = {
   lua = { cmd = 'lua-language-server', name = 'lua_ls' },
@@ -33,20 +48,31 @@ local function cwd()
 
   local result = {}
   for i = 1, #parts - 1 do
-    table.insert(result, '%#BashGray#' .. parts[i])
+    table.insert(result, gray .. parts[i])
   end
-  table.insert(result, '%#Normal#' .. parts[#parts])
+  table.insert(result, normal .. parts[#parts])
   return table.concat(result, '/') .. ' '
 end
 
 local function mode_flag()
-  local m = vim.fn.mode()
-  local map = { n = '-n', i = '-i', v = '-v', V = '-V', ['\22'] = '-b', c = '-c' }
-  return '%#BashYellowBold#' .. (map[m] or '-?') .. '%#Normal# '
+  local m = vim.fn.mode(true)
+  if m:match '^no' then
+    return magenta_bold .. '-o' .. normal .. ' '
+  end
+  local map = {
+    n = { green_bold, '-n' },
+    i = { yellow_bold, '-i' },
+    v = { blue_bold, '-v' },
+    V = { blue_bold, '-V' },
+    ['\22'] = { blue_bold, '-b' },
+    c = { bold, '-c' },
+  }
+  local mode = map[m] or { red_bold, '-?' }
+  return mode[1] .. mode[2] .. normal .. ' '
 end
 
 local function filename()
-  return '%#BashBold#' .. vim.fn.expand '%:.' .. '%#Normal# '
+  return bold .. vim.fn.expand '%:.' .. normal .. ' '
 end
 
 local function main_lsp()
@@ -66,9 +92,9 @@ local function main_lsp()
   end
 
   local has_exe = vim.fn.executable(expected.cmd) == 1
-  local color = has_client and has_exe and '%#BashGreen#' or has_client and '%#BashYellow#' or '%#BashRed#'
+  local color = has_client and has_exe and green or has_client and yellow or red
 
-  return color .. expected.name .. '%#Normal# '
+  return color .. expected.name .. normal .. ' '
 end
 
 local function formatter()
@@ -77,7 +103,7 @@ local function formatter()
   if not fmt or vim.fn.executable(fmt) ~= 1 then
     return ''
   end
-  return '%#BashGray#--' .. fmt .. ' '
+  return gray .. '--' .. fmt .. ' '
 end
 
 local function error_file()
@@ -94,27 +120,28 @@ local function error_file()
   end
 
   if errors > 0 then
-    return '%#BashGray#2>' .. '%#BashRed#' .. errors .. '.err%#Normal# '
+    return gray .. '2>' .. red .. errors .. '.err' .. normal .. ' '
   elseif warnings > 0 then
-    return '%#BashGray#2>' .. '%#BashYellow#' .. warnings .. '.warn%#Normal# '
+    return gray .. '2>' .. yellow .. warnings .. '.warn' .. normal .. ' '
   end
   return ''
 end
 
 local function modified_redir()
+  local fname = vim.fn.expand '%'
   if vim.bo.modified then
-    return '%#BashYellow#>> '
+    return yellow .. '>> '
   elseif fname ~= '' and vim.fn.filereadable(fname) == 0 then
-    return '%#BashGreen#> '
+    return green .. '> '
   else
-    return '%#BashGray#< '
+    return gray .. '< '
   end
 end
 
 local function encoding_format_file()
   local encoding = vim.bo.fileencoding ~= '' and vim.bo.fileencoding or vim.o.encoding
   local format = vim.bo.fileformat
-  return '%#BashGray#' .. encoding .. '.' .. format .. ' '
+  return gray .. encoding .. '.' .. format .. ' '
 end
 
 local function filesize_param_expansion()
@@ -132,7 +159,7 @@ local function filesize_param_expansion()
   else
     size_str = string.format('%.1fG', size / (1024 * 1024 * 1024))
   end
-  return '%#BashGray#${' .. size_str .. ':-' .. total .. '} '
+  return gray .. '${' .. size_str .. ':-' .. total .. '} '
 end
 
 local function grep_cmd()
@@ -158,9 +185,21 @@ local function grep_invocation()
   local total = vim.fn.line '$'
   local cmd = grep_cmd()
 
-  local pattern_color = matches > 0 and '%#BashGreen#' or '%#BashRed#'
+  local pattern_color = matches > 0 and green or red
 
-  return '%#BashGray#| ' .. cmd .. ' ' .. pattern_color .. '"' .. pattern .. '" %#BashGray#-' .. matches .. '%#Normal# '
+  return gray
+    .. '| '
+    .. cmd
+    .. ' '
+    .. pattern_color
+    .. '"'
+    .. pattern
+    .. '" '
+    .. gray
+    .. '-'
+    .. matches
+    .. normal
+    .. ' '
 end
 
 local function second_lsp()
@@ -173,8 +212,8 @@ local function second_lsp()
   for _, c in ipairs(clients) do
     if c.name ~= main_name then
       local has_exe = vim.fn.executable(c.name) == 1
-      local color = has_exe and '%#BashGreen#' or '%#BashRed#'
-      return color .. c.name .. '%#Normal# '
+      local color = has_exe and green or red
+      return color .. c.name .. normal .. ' '
     end
   end
 
@@ -190,17 +229,17 @@ local function alternate_file()
 end
 
 function curr_line_env_var()
-  return '%#BashGray#L=' .. vim.fn.line '.' .. ' '
+  return gray .. 'L=' .. vim.fn.line '.' .. ' '
 end
 
 function buf_count_flag()
-  return '%#BashMagenta#-' .. #vim.fn.getbufinfo { buflisted = 1 }
+  return magenta .. '-' .. #vim.fn.getbufinfo { buflisted = 1 }
 end
 
 function M.tabline()
   return table.concat({
     cwd(),
-    '%#BashGreen#$ ',
+    green .. '$ ',
     curr_line_env_var(),
     main_lsp(),
     mode_flag(),
@@ -211,7 +250,7 @@ function M.tabline()
     encoding_format_file(),
     grep_invocation(),
     filesize_param_expansion(),
-    '%#BashGray#&& ',
+    gray .. '&& ',
     second_lsp(),
     alternate_file(),
     buf_count_flag(),

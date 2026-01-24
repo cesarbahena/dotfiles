@@ -9,6 +9,7 @@ local function gh(repo)
 end
 
 vim.pack.add {
+  gh 'nvim-lua/plenary.nvim',
   gh 'nvim-treesitter/nvim-treesitter',
   gh 'nvim-mini/mini.pick',
   gh 'nvim-mini/mini.files',
@@ -23,4 +24,6 @@ vim.pack.add {
   gh 'kristijanhusak/vim-dadbod-ui',
   gh 'kristijanhusak/vim-dadbod-completion',
   gh 'lewis6991/gitsigns.nvim',
+  gh 'sindrets/diffview.nvim',
+  gh 'NeogitOrg/neogit',
 }
