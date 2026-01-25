@@ -1,0 +1,20 @@
+[user]
+	email = cabahenac@gmail.com
+	name = cesarbahena
+[init]
+	defaultBranch = main
+[format]
+	pretty = %C(magenta)%h%Creset %C(242)%p%Creset %C(blue)%as%Creset%C(auto)%d%Creset %s %Creset%C(242)%an%Creset
+[alias]
+	feat = "!f() { [ $# -eq 1 ] && git commit -m \"feat: $1\" || git commit -m \"feat($1): $2\"; }; f"
+	fix = "!f() { [ $# -eq 1 ] && git commit -m \"fix: $1\" || git commit -m \"fix($1): $2\"; }; f"
+	refactor = "!f() { [ $# -eq 1 ] && git commit -m \"refactor: $1\" || git commit -m \"refactor($1): $2\"; }; f"
+	chore = "!f() { [ $# -eq 1 ] && git commit -m \"chore: $1\" || git commit -m \"chore($1): $2\"; }; f"
+	docs = "!f() { [ $# -eq 1 ] && git commit -m \"docs: $1\" || git commit -m \"docs($1): $2\"; }; f"
+	style = "!f() { [ $# -eq 1 ] && git commit -m \"style: $1\" || git commit -m \"style($1): $2\"; }; f"
+	perf = "!f() { [ $# -eq 1 ] && git commit -m \"perf: $1\" || git commit -m \"perf($1): $2\"; }; f"
+	test = "!f() { [ $# -eq 1 ] && git commit -m \"test: $1\" || git commit -m \"test($1): $2\"; }; f"
+	build = "!f() { [ $# -eq 1 ] && git commit -m \"build: $1\" || git commit -m \"build($1): $2\"; }; f"
+	ci = "!f() { [ $# -eq 1 ] && git commit -m \"ci: $1\" || git commit -m \"ci($1): $2\"; }; f"
+	wip = "!f() { [ $# -eq 1 ] && git commit -m \"wip: $1\" || git commit -m \"wip($1): $2\"; }; f"
+	rev = "!f() { [ $# -eq 1 ] && git commit -m \"revert: $1\" || git commit -m \"revert($1): $2\"; }; f"

@@ -1,0 +1,3 @@
+{
+  "psFormat": "table {{.State}}\t{{.Names}}\t{{.Image}}\t{{.Status}}"
+}
