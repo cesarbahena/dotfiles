@@ -48,45 +48,12 @@ done
 unset paths
 export PATH
 
-# Helpers
-path() {
-  echo "$PATH" | tr : '\n'
-}
-
-ssh() { # With my aliases and minimal nvim confg (TODO)
-  if [ $# -eq 0 ]; then
-    echo "Usage: imin user@host [ssh options]"
-    return 1
-  fi
-  ssh "$@" 'bash --rcfile /dev/stdin' < ~/.config/bash/bashrc
-}
-
-# Bash preferences
-source /usr/share/bash-completion/bash_completion
-export HISTFILE="$XDG_STATE_HOME/bash/history"
-mkdir -p "$(dirname "$HISTFILE")"
-HISTCONTROL=ignoreboth:erasedups
-shopt -s histappend
-shopt -s checkwinsize
-shopt -s globstar
-shopt -s cdspell
-shopt -s dirspell
-
-# Core utils sensible defaults
-alias l='ls -nohaX --group-directories-first --color'
-alias ls='ls -A --color'
-alias cp='cp -rv'
-alias rm='rm -rv'
-alias mkdir='mkdir -pv'
-alias du='dust 2>/dev/null' # silence permission errors
-alias v='nvim'
-alias g='git status -b --show-stash'
-
-# Long command names aliases with restored completion
-alias d='docker'
+# Aliases
+source "$XDG_CONFIG_HOME/bash/aliases.sh"
+alias d='docker' # Restore completion
 complete -o default -F __start_docker d
 alias c='docker compose'
-_docker_compose_wrapper() {
+_docker_compose_wrapper() { # Patch to point to subcommand
   COMP_WORDS=(docker compose "${COMP_WORDS[@]:1}")
   ((COMP_CWORD+=1))
   __start_docker
@@ -95,10 +62,13 @@ complete -o default -F _docker_compose_wrapper c
 
 # Zoxide init plus z .. overload
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
-z() { [ $# -eq 0 ] && __zoxide_z .. || __zoxide_z "$@"; }
+z() { [ $# -eq 0 ] && __zoxide_z .. || __zoxide_z "$@" && ls -nohaX --color --group-directories-first; }
 
 # Environment activation
 alias venv='source .venv/bin/activate'
+
+# SSH with portable aliases
+s() { ssh -t "$1" "bash --rcfile <(echo \"$(cat "$XDG_CONFIG_HOME/bash/aliases.sh")\")"; }
 eval "$(fnm env)"
 
 __prompt_command() {
