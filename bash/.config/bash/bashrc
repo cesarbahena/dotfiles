@@ -67,8 +67,12 @@ z() { [ $# -eq 0 ] && __zoxide_z .. || __zoxide_z "$@" && ls -nohaX --color --gr
 # Environment activation
 alias venv='source .venv/bin/activate'
 
-# SSH with portable aliases
-s() { ssh -t "$1" "bash --rcfile <(echo \"$(cat "$XDG_CONFIG_HOME/bash/aliases.sh")\")"; }
+# SSH with portable config
+s() {
+  local v64=$(base64 -w0 "$XDG_CONFIG_HOME/nvim/init.vim")
+  local a64=$(base64 -w0 "$XDG_CONFIG_HOME/bash/aliases.sh")
+  ssh -t "$1" "base64 -d <<<$a64 > /tmp/a.sh; base64 -d <<<$v64 > /tmp/v.vim; bash --rcfile <(cat /tmp/a.sh; echo 'vrc() { if command -v nvim &>/dev/null; then nvim --clean -u /tmp/v.vim \"\$@\"; else vim -u /tmp/v.vim \"\$@\"; fi; }')"
+}
 eval "$(fnm env)"
 
 __prompt_command() {
