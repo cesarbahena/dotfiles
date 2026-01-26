@@ -4,6 +4,9 @@ vim.g.mapleader = ' '
 vim.g.loaded_sql_completion = 1
 vim.g.omni_sql_no_default_maps = 1
 
+vim.opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+vim.opt.tabline = [[%!v:lua.require'components'.tabline()]]
+
 local function gh(repo)
   return 'https://github.com/' .. repo
 end
