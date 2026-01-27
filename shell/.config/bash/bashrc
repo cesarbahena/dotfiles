@@ -1,15 +1,24 @@
-# Source shared shell config
-. "$HOME/.config/shell/env.sh"
-. "$HOME/.config/shell/path.sh"
-. "$HOME/.config/shell/aliases.sh"
-. "$HOME/.config/shell/init.sh"
+# XDG Base Directory
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
-# Docker completions (bash-specific)
+# Source shell agnostic config
+. "$XDG_CONFIG_HOME/shell/env.sh"
+. "$XDG_CONFIG_HOME/shell/path.sh"
+. "$XDG_CONFIG_HOME/shell/aliases.sh"
+. "$XDG_CONFIG_HOME/shell/init.sh"
+
+# Docker aliases with completions
+. /usr/share/bash-completion/completions/docker
 alias d='docker'
 complete -o default -F __start_docker d
 alias c='docker compose'
 _docker_compose_wrapper() {
+  COMP_LINE="docker compose${COMP_LINE:1}"
   COMP_WORDS=(docker compose "${COMP_WORDS[@]:1}")
+  ((COMP_POINT+=13))
   ((COMP_CWORD+=1))
   __start_docker
 }

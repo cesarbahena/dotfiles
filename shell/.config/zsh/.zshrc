@@ -1,17 +1,21 @@
-# Source shared shell config
-. "$HOME/.config/shell/env.sh"
-. "$HOME/.config/shell/path.sh"
-. "$HOME/.config/shell/aliases.sh"
-. "$HOME/.config/shell/init.sh"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
-# Docker completions (zsh-specific)
+# Source shell agnostic config
+. "$XDG_CONFIG_HOME/shell/env.sh"
+. "$XDG_CONFIG_HOME/shell/path.sh"
+. "$XDG_CONFIG_HOME/shell/aliases.sh"
+. "$XDG_CONFIG_HOME/shell/init.sh"
+
+# Docker aliases with completions
 autoload -Uz compinit && compinit
 alias d='docker'
 alias c='docker compose'
 compdef _docker d=docker
 compdef '_dispatch docker docker-compose' c
 
-# Zsh prompt
 setopt prompt_subst
 
 precmd() {

@@ -1,4 +1,3 @@
-# Shell detection
 if [ -n "$ZSH_VERSION" ]; then
   _shell=zsh
 elif [ -n "$BASH_VERSION" ]; then
