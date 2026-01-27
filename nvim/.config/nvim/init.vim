@@ -1,3 +1,7 @@
+" Basic config in vimscript for portability in over ssh
+" The bash s function loads this into a variable and sets 
+" the vi function that executes vim or nvim with this config
+
 " Options
 set tabstop=2 shiftwidth=2 expandtab smartindent
 set scrolloff=8
@@ -10,12 +14,11 @@ set termguicolors
 set updatetime=100 timeoutlen=300 ttimeoutlen=10
 set lazyredraw synmaxcol=240
 set clipboard=unnamedplus autoread noswapfile nobackup nowritebackup undofile
+set nofoldenable foldcolumn=0
 let &fillchars = 'eob: '
-set foldmethod=expr nofoldenable foldcolumn=0
-set laststatus=0 cmdheight=0 noshowcmd noshowmode
-set statusline=\  showtabline=2
 
 " Mappings
+nnoremap <space> <nop>
 let mapleader = ' '
 
 function! s:repeat_macro()

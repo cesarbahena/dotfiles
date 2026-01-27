@@ -1,11 +1,12 @@
-vim.keymap.set('n', '<space>', '<nop>')
-vim.g.mapleader = ' '
-
-vim.g.loaded_sql_completion = 1
-vim.g.omni_sql_no_default_maps = 1
-
-vim.opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+-- Neovim specific options
+vim.opt.laststatus = 0
+vim.opt.cmdheight = 0
+vim.opt.showmode = false
+vim.opt.showcmd = false
+vim.opt.statusline = ' '
+vim.opt.showtabline = 2
 vim.opt.tabline = [[%!v:lua.require'components'.tabline()]]
+vim.opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
 
 local function gh(repo)
   return 'https://github.com/' .. repo

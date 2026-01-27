@@ -8,6 +8,8 @@ else
   vim.g.dbs = {}
 end
 
+vim.g.loaded_sql_completion = 1
+vim.g.omni_sql_no_default_maps = 1
 vim.g.db_ui_save_location = vim.fn.stdpath 'data' .. '/dadbod_ui'
 vim.g.db_ui_auto_execute_table_helpers = 1
 vim.g.db_ui_force_echo_notifications = 1
