@@ -4,8 +4,10 @@ alias ls='ls -A --color'
 alias cp='cp -rv'
 alias rm='rm -rv'
 alias mkdir='mkdir -pv'
-alias path='"$PATH" | tr : "\n"'
+alias path='echo "$PATH" | tr : "\n"'
 alias du='dust 2>/dev/null' # silence permission errors
 alias g='git status -b --show-stash'
 alias v='nvim'
 
+# Environment activation
+alias venv='source .venv/bin/activate'
