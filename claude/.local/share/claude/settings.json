@@ -1,5 +1,14 @@
 {
+  "permissions": {
+    "defaultMode": "plan"
+  },
   "enabledPlugins": {
     "lua-lsp@claude-plugins-official": true
-  }
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "autoUpdatesChannel": "stable",
+  "minimumVersion": "2.1.19"
 }

@@ -15,16 +15,9 @@ set foldmethod=expr nofoldenable foldcolumn=0
 set laststatus=0 cmdheight=0 noshowcmd noshowmode
 set statusline=\  showtabline=2
 
-" Scrolloff helper
-function! s:no_scrolloff(motion)
-  set scrolloff=0
-  execute 'normal! ' . a:motion
-  call timer_start(0, {-> execute('set scrolloff=8')})
-endfunction
-
 " Mappings
 let mapleader = ' '
-nnoremap <silent> > j.
+
 function! s:repeat_macro()
   let l:count = v:count > 0 ? v:count : 1
   for i in range(l:count)
@@ -36,48 +29,68 @@ function! s:repeat_macro()
   endfor
 endfunction
 nnoremap <silent> Q :<C-u>call <SID>repeat_macro()<CR>
+nnoremap <silent> > j.
+" Repeat over multiple lines (S-.)
 
+" Vim surround at home
 xnoremap s y:s/\(<C-R>=substitute(@", '\n$', '', '')<CR>\)/
 
+" Quick line move (use yank and paste for complex cases)
 nnoremap <A-n> :m .+1<CR>==
 nnoremap <A-k> :m .-2<CR>==
 
+" Cmdline mode
 nnoremap ; :
 xnoremap ; :
+" ; faster than :
 nnoremap <silent> : @:
 xnoremap <silent> : @:
-
+" S-;
 cnoremap <expr> ; getcmdline()[getcmdpos()-2] == '\' ? "\b;" : "\<CR>"
+" smart ; also to execute
 cnoremap <expr> <C-s> getcmdpos() > 1 ? '\1' . getcmdline()[getcmdpos()-2] . "\<CR>" : ''
+" to use with custom visual mode s
 
+" But then we need to move ; to ,
 nnoremap <silent> , ;
 xnoremap <silent> , ;
 nnoremap <silent> < ,
+" and S-, for backwards
 
+" Sensible defaults
 inoremap <C-c> <Esc>
+" Saves block mode edits
 xnoremap < <gv
 xnoremap > >gv
 
+" Undo breakpoints
 inoremap , ,<C-g>u
 inoremap . .<C-g>u
 inoremap ; ;<C-g>u
 
+" Fallbacks
 nnoremap <leader>e :Ex<CR>
+" file explorer
 nnoremap <leader>f :find **/*<Left>
+" picker
 
-" Scrolloff-aware motions
+" Better scrolloff
+function! s:no_scrolloff(motion)
+  set scrolloff=0
+  execute 'normal! ' . a:motion
+  call timer_start(0, {-> execute('set scrolloff=8')})
+endfunction
+
 nnoremap <silent> <C-d> <C-d>zz
 nnoremap <silent> <C-u> <C-u>zz
 nnoremap <silent> n nzz
 nnoremap <silent> N Nzz
-
-nnoremap <silent> j :<C-u>execute v:count ? 'call <SID>no_scrolloff('.v:count.'."j")' : 'normal! gj'<CR>
-nnoremap <silent> k :<C-u>execute v:count ? 'call <SID>no_scrolloff('.v:count.'."k")' : 'normal! gk'<CR>
-
 nnoremap <silent> zt :call <SID>no_scrolloff('zt')<CR>
 nnoremap <silent> zb :call <SID>no_scrolloff('zb')<CR>
 nnoremap <silent> zz :call <SID>no_scrolloff('zz')<CR>
 nnoremap <silent> H :call <SID>no_scrolloff('H')<CR>
 nnoremap <silent> M :call <SID>no_scrolloff('M')<CR>
 nnoremap <silent> L :call <SID>no_scrolloff('L')<CR>
+nnoremap <silent> j :<C-u>execute v:count ? 'call <SID>no_scrolloff('.v:count.'."j")' : 'normal! gj'<CR>
+nnoremap <silent> k :<C-u>execute v:count ? 'call <SID>no_scrolloff('.v:count.'."k")' : 'normal! gk'<CR>
 nnoremap <silent> G :<C-u>call <SID>no_scrolloff((v:count ? v:count : '').'G')<CR>
