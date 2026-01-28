@@ -43,7 +43,7 @@ local function cwd()
   end
   local parts = vim.split(path, '/')
   if #parts <= 1 then
-    return path
+    return path .. ' '
   end
 
   local result = {}
