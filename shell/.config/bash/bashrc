@@ -32,19 +32,23 @@ __prompt_command() {
   local prompt='$'
   local colors=$(tput colors 2>/dev/null || echo 0)
 
+  # Progressive color enhancement based on terminal capability
   if [ "$colors" -ge 256 ]; then
+    # 256-color: dimmest cwd, most vibrant prompts
     local GRAY='\[\e[38;5;240m\]'
     local GREEN='\[\e[38;5;46m\]'
     local YELLOW='\[\e[38;5;226m\]'
     local RED='\[\e[38;5;196m\]'
     local BLUE='\[\e[38;5;39m\]'
   elif [ "$colors" -ge 16 ]; then
+    # 16-color: dim cwd, bright prompts
     local GRAY='\[\e[90m\]'
     local GREEN='\[\e[92m\]'
     local YELLOW='\[\e[93m\]'
     local RED='\[\e[91m\]'
     local BLUE='\[\e[94m\]'
   else
+    # 8-color fallback: white cwd, normal prompts
     local GRAY='\[\e[37m\]'
     local GREEN='\[\e[32m\]'
     local YELLOW='\[\e[33m\]'
@@ -56,7 +60,7 @@ __prompt_command() {
   local MAPFILE
   mapfile -tn 2 MAPFILE < ~/.bashrc
   if [ "${#MAPFILE[@]}" -gt 1 ]; then
-    prompt='þ'
+    prompt='þ'  # mnemonic: bash profile corrupted
     local color="$RED"
     local cwd="${PWD/#$HOME/\~}"
     local dir="${cwd%/*}"
@@ -75,10 +79,11 @@ __prompt_command() {
 
   [ "$EUID" -eq 0 ] && prompt='#'
 
+  # Split path: dim directory, bright basename
   local cwd="${PWD/#$HOME/\~}"
   local dir="${cwd%/*}"
   local base="${cwd##*/}"
-  [ "$cwd" = "$base" ] && dir=""
+  [ "$cwd" = "$base" ] && dir=""  # Handle root or no slash case
   [ -z "$dir" ] && [ "${cwd:0:1}" = "/" ] && base="$cwd"
 
   # Python env indicator
@@ -102,46 +107,47 @@ __prompt_command() {
     esac
 
     case "$exit" in
-      1)   prompt='!'  ;;
-      2)   prompt='€'  ;;
-      3)   prompt='Æ'  ;;
-      16)  prompt='M'  ;;
-      64)  prompt='¿'  ;;
-      65)  prompt='%'  ;;
-      66)  prompt='«'  ;;
-      67)  prompt='µ'  ;;
-      68)  prompt='@'  ;;
-      69)  prompt='ø'  ;;
-      70)  prompt='£'  ;;
-      71)  prompt='œ'  ;;
-      72)  prompt='ƒ'  ;;
-      73)  prompt='+'  ;;
-      74)  prompt='|'  ;;
-      75)  prompt='…'  ;;
-      76)  prompt='¶'  ;;
-      77)  prompt='©'  ;;
-      78)  prompt='ç'  ;;
-      101) prompt='®'  ;;
-      125) prompt='Ð'  ;;
-      126) prompt='×'  ;;
-      127) prompt='?'  ;;
-      128) prompt='§'  ;;
-      129) prompt='¥'  ;;
-      130) prompt='¢'  ;;
-      131) prompt='\\' ;;
-      132) prompt='¡'  ;;
-      133) prompt='»'  ;;
-      134) prompt='‡'  ;;
-      135) prompt='ß'  ;;
-      136) prompt='÷'  ;;
-      137) prompt='ð'  ;;
-      139) prompt='‰'  ;;
-      141) prompt='¦'  ;;
-      142) prompt='ö'  ;;
-      143) prompt='†'  ;;
-      147) prompt='¬'  ;;
-      148) prompt='&'  ;;
-      255) prompt='&'  ;;
+      1)   prompt='!'  ;; # General failure
+      2)   prompt='€'  ;; # Misuse of shell builtins
+      3)   prompt='Æ'  ;; # Page not found
+      16)  prompt='M'  ;; # No manual entry found
+      64)  prompt='¿'  ;; # Usage
+      65)  prompt='%'  ;; # Format
+      66)  prompt='«'  ;; # No input
+      67)  prompt='µ'  ;; # No user
+      68)  prompt='@'  ;; # No host
+      69)  prompt='ø'  ;; # Unavailable
+      70)  prompt='£'  ;; # Internal software error
+      71)  prompt='œ'  ;; # OS error
+      72)  prompt='ƒ'  ;; # File error
+      73)  prompt='+'  ;; # Cannot create
+      74)  prompt='|'  ;; # IO error
+      75)  prompt='…'  ;; # Temporary failure (retry)
+      76)  prompt='¶'  ;; # Protocol error
+      77)  prompt='–'  ;; # Permission denied
+      78)  prompt='ç'  ;; # Configuration error
+      100) prompt='©'  ;; # APT failure
+      101) prompt='®'  ;; # Rust build error
+      125) prompt='Ð'  ;; # Permission denied
+      126) prompt='×'  ;; # Command not executable
+      127) prompt='?'  ;; # Command not found
+      128) prompt='§'  ;; # Fatal application error
+      129) prompt='¥'  ;; # SIGHUP (terminal/session closed)
+      130) prompt='¢'  ;; # SIGINT (^C)
+      131) prompt='\\' ;; # SIGQUIT (^\)
+      132) prompt='¡'  ;; # SIGILL (illegal instruction)
+      133) prompt='»'  ;; # SIGTRAP (redirected signal)
+      134) prompt='‡'  ;; # SIGABRT (abort)
+      135) prompt='ß'  ;; # SIGBUS (bus error)
+      136) prompt='÷'  ;; # SIGFPE (arithmetic error)
+      137) prompt='ð'  ;; # SIGKILL (-9)
+      139) prompt='‰'  ;; # SIGSEGV (segmentation fault)
+      141) prompt='¦'  ;; # SIGPIPE (broken pipe)
+      142) prompt='ö'  ;; # SIGALRM (timeout)
+      143) prompt='†'  ;; # SIGTERM (graceful termination)
+      147) prompt='¬'  ;; # SIGSTOP (suspended not from terminal)
+      148) prompt='&'  ;; # SIGSTP (^Z)
+      255) prompt='Ñ'  ;; # Invalid characters
       *)   prompt="($exit)" ;;
     esac
 
