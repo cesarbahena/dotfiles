@@ -151,4 +151,4 @@ __prompt_command() {
   fi
 }
 
-PROMPT_COMMAND=__prompt_command
+PROMPT_COMMAND="__prompt_command;${PROMPT_COMMAND#;}"
