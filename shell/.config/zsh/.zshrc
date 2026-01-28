@@ -31,6 +31,7 @@ precmd() {
     local dir="${cwd%/*}"
     local base="${cwd##*/}"
     [[ "$cwd" = "$base" ]] && dir=""
+    [[ -z "$dir" && "$cwd" = /* ]] && base="$cwd"
     local env=""
     if [[ -n "$VIRTUAL_ENV" ]]; then
       env="VENV=1 "
@@ -103,6 +104,7 @@ precmd() {
   local dir="${cwd%/*}"
   local base="${cwd##*/}"
   [[ "$cwd" = "$base" ]] && dir=""
+  [[ -z "$dir" && "$cwd" = /* ]] && base="$cwd"
 
   # Python env indicator
   local env=""

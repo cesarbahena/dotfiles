@@ -62,6 +62,7 @@ __prompt_command() {
     local dir="${cwd%/*}"
     local base="${cwd##*/}"
     [ "$cwd" = "$base" ] && dir=""
+    [ -z "$dir" ] && [ "${cwd:0:1}" = "/" ] && base="$cwd"
     local env=""
     if [[ -n "$VIRTUAL_ENV" ]]; then
       env="VENV=1 "
@@ -78,6 +79,7 @@ __prompt_command() {
   local dir="${cwd%/*}"
   local base="${cwd##*/}"
   [ "$cwd" = "$base" ] && dir=""
+  [ -z "$dir" ] && [ "${cwd:0:1}" = "/" ] && base="$cwd"
 
   # Python env indicator
   local env=""
