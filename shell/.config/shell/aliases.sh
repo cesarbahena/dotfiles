@@ -8,3 +8,4 @@ alias du='dust 2>/dev/null' # silence permission errors
 alias g='git status -b --show-stash'
 alias v='nvim'
 alias venv='source .venv/bin/activate'
+cat() { command -v bat >/dev/null && bat "$@" || command cat "$@"; }
