@@ -21,8 +21,31 @@ setopt prompt_subst
 precmd() {
   local exit=$?
   local sym='%%'
-  local color='%F{46}'  # green
+  local color='%F{196}'  # red
 
+  # zshenv corruption check
+  local zshenv_lines=("${(@f)$(< ~/.zshenv 2>/dev/null)}")
+  if (( ${#zshenv_lines} > 1 )); then
+    sym='þ'
+    local cwd="${PWD/#$HOME/~}"
+    local dir="${cwd%/*}"
+    local base="${cwd##*/}"
+    [[ "$cwd" = "$base" ]] && dir=""
+    local env=""
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+      env="VENV=1 "
+    elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+      env="CONDA=$CONDA_DEFAULT_ENV "
+    fi
+    if [[ -n "$dir" ]]; then
+      PROMPT="%F{240}${dir}/%f${base} ${color}${sym}%f %F{240}${env}%f"
+    else
+      PROMPT="${base} ${color}${sym}%f %F{240}${env}%f"
+    fi
+    return
+  fi
+
+  color='%F{46}'  # green
   (( EUID == 0 )) && sym='#'
 
   if (( exit != 0 )); then
@@ -81,9 +104,17 @@ precmd() {
   local base="${cwd##*/}"
   [[ "$cwd" = "$base" ]] && dir=""
 
+  # Python env indicator
+  local env=""
+  if [[ -n "$VIRTUAL_ENV" ]]; then
+    env="VENV=1 "
+  elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+    env="CONDA=$CONDA_DEFAULT_ENV "
+  fi
+
   if [[ -n "$dir" ]]; then
-    PROMPT="%F{240}${dir}/%f${base} ${color}${sym}%f "
+    PROMPT="%F{240}${dir}/%f${base} ${color}${sym}%f %F{240}${env}%f"
   else
-    PROMPT="${base} ${color}${sym}%f "
+    PROMPT="${base} ${color}${sym}%f %F{240}${env}%f"
   fi
 }

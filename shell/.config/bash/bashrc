@@ -1,3 +1,5 @@
+[[ $- != *i* ]] && return
+
 # XDG Base Directory
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -60,7 +62,13 @@ __prompt_command() {
     local dir="${cwd%/*}"
     local base="${cwd##*/}"
     [ "$cwd" = "$base" ] && dir=""
-    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} " || PS1="${base} ${color}${prompt}${RESET} "
+    local env=""
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+      env="VENV=1 "
+    elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+      env="CONDA=$CONDA_DEFAULT_ENV "
+    fi
+    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} ${GRAY}${env}${RESET}" || PS1="${base} ${color}${prompt}${RESET} ${GRAY}${env}${RESET}"
     return
   fi
 
@@ -70,6 +78,14 @@ __prompt_command() {
   local dir="${cwd%/*}"
   local base="${cwd##*/}"
   [ "$cwd" = "$base" ] && dir=""
+
+  # Python env indicator
+  local env=""
+  if [[ -n "$VIRTUAL_ENV" ]]; then
+    env="VENV=1 "
+  elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+    env="CONDA=$CONDA_DEFAULT_ENV "
+  fi
 
   if [ "$exit" -ne 0 ]; then
     local color="$RED"
@@ -127,9 +143,9 @@ __prompt_command() {
       *)   prompt="($exit)" ;;
     esac
 
-    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} " || PS1="${base} ${color}${prompt}${RESET} "
+    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} ${GRAY}${env}${RESET}" || PS1="${base} ${color}${prompt}${RESET} ${GRAY}${env}${RESET}"
   else
-    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${GREEN}${prompt}${RESET} " || PS1="${base} ${GREEN}${prompt}${RESET} "
+    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${GREEN}${prompt}${RESET} ${GRAY}${env}${RESET}" || PS1="${base} ${GREEN}${prompt}${RESET} ${GRAY}${env}${RESET}"
   fi
 }
 
