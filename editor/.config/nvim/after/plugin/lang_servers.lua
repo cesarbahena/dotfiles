@@ -1,6 +1,15 @@
 vim.lsp.enable {
   'lua_ls',
   'pyright',
+  'ts_ls',
+  'intelephense',
+  'rust_analyzer',
+  'omnisharp',
+  'jdtls',
+  'jsonls',
+  'yamlls',
+  'taplo',
+  'bashls',
 }
 
 vim.api.nvim_create_autocmd('LspAttach', {
