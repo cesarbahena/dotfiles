@@ -62,5 +62,9 @@
   },
   "outputStyle": "concise",
   "autoUpdatesChannel": "stable",
-  "minimumVersion": "2.1.19"
+  "minimumVersion": "2.1.19",
+  "statusLine": {
+    "type": "command",
+    "command": "bash /home/cesar/.local/share/claude/statusline.sh"
+  }
 }
