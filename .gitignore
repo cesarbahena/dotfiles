@@ -1,15 +1,3 @@
-terminal/.config/tmux/plugins/
-
-# Environment files with secrets
-.env.local
-.env.*.local
-
-# Database connection files
-**/database_credentials.lua
-
-# Neovim specific ignores
-nvim/.config/nvim/lua/config/local_db_*.lua
-
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -25,4 +13,3 @@ Thumbs.db
 
 # Logs
 *.log
-editor/.config/nvim/connections.json

@@ -1,0 +1,14 @@
+# Ignore sensitive/cache files except tracked configs
+.local/share/claude/.claude.json.backup*
+.local/share/claude/.credentials.json
+.local/share/claude/cache/
+.local/share/claude/debug/
+.local/share/claude/file-history/
+.local/share/claude/paste-cache/
+.local/share/claude/plans/
+.local/share/claude/projects/
+.local/share/claude/statsig/
+.local/share/claude/todos/
+.local/share/claude/history.jsonl
+.local/share/claude/stats-cache.json
+.local/share/claude/plugins/
