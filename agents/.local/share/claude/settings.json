@@ -12,13 +12,13 @@
       "Bash(git commit*)",
       "Bash(git push*)",
       "Bash(npm*)",
-      "Bash(pip*)",
-      "Bash(curl*)"
+      "Bash(pip*)"
     ],
     "ask": [
       "Bash(rm*)",
       "Bash(git)",
-      "Bash(docker*)"
+      "Bash(docker*)",
+      "Bash(curl*)"
     ],
     "allow": [
       "Bash(ls*)",
