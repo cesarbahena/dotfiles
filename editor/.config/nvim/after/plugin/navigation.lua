@@ -1,5 +1,10 @@
 require('mini.pick').setup()
-vim.keymap.set('n', '<leader>f', ':Pick files<cr>')
+vim.keymap.set('n', '<leader>f', function()
+  MiniPick.builtin.cli(
+    { command = { 'rg', '--files', '--hidden', '--color=never' } },
+    { source = { name = 'Files (rg)' } }
+  )
+end)
 
 require('mini.files').setup {
   mappings = {
