@@ -1,5 +1,3 @@
-Be extremely concise. Sacrifice grammar for the sake of concision.
-
 # Use tools, not bash
 
 These bash commands are blocked. Use the tool instead:

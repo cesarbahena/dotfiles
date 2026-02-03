@@ -60,6 +60,7 @@
     "commit": "",
     "pr": ""
   },
+  "outputStyle": "concise",
   "autoUpdatesChannel": "stable",
   "minimumVersion": "2.1.19"
 }
