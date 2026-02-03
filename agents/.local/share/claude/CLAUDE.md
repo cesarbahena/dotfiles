@@ -1,11 +1,15 @@
 Be extremely concise. Sacrifice grammar for the sake of concision.
 
-# Prefer your tools before bash commands:
+# Use tools, not bash
 
-- read over cat
-- write over echo
-- edit over sed
-- glob over find
-- grep tool over bash grep
+These bash commands are blocked. Use the tool instead:
 
-You are forbiden to use a bash command if you have a tool for that.
+Tool  | Denied bash
+------|------------
+Read  | cat
+Write | echo, printf, touch, tee
+Edit  | sed, awk
+Glob  | ls, find
+Grep  | grep
+
+Use `rg`, `head` and `tail` for piping (allowed).
