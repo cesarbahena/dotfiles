@@ -1,5 +1,5 @@
 {
-  "numStartups": 6,
+  "numStartups": 7,
   "installMethod": "native",
   "autoUpdates": false,
   "tipsHistory": {
@@ -10,7 +10,7 @@
     "theme-command": 2,
     "colorterm-truecolor": 2,
     "status-line": 2,
-    "prompt-queue": 2,
+    "prompt-queue": 7,
     "enter-to-steer-in-relatime": 2,
     "todo-list": 2,
     "install-github-app": 2,
@@ -293,7 +293,7 @@
     "d056d31b-fc85-4da8-b337-b4c5aab5edf0": {
       "hasAccess": false,
       "hasAccessNotAsDefault": false,
-      "timestamp": 1770133249255
+      "timestamp": 1770138851336
     }
   },
   "lastReleaseNotesSeen": "2.1.22",

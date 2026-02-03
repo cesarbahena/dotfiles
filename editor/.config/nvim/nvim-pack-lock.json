@@ -9,6 +9,10 @@
       "rev": "65978aadaf9b7d6cae59c1c51cf2b366b370546e",
       "src": "https://github.com/saghen/blink.pairs"
     },
+    "conform.nvim": {
+      "rev": "c2526f1cde528a66e086ab1668e996d162c75f4f",
+      "src": "https://github.com/stevearc/conform.nvim"
+    },
     "friendly-snippets": {
       "rev": "6cd7280adead7f586db6fccbd15d2cac7e2188b9",
       "src": "https://github.com/rafamadriz/friendly-snippets"
