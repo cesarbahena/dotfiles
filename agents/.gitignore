@@ -1,5 +1,5 @@
 # Ignore sensitive/cache files except tracked configs
-.local/share/claude/.claude.json.backup*
+.local/share/claude/.claude.json*
 .local/share/claude/.credentials.json
 .local/share/claude/cache/
 .local/share/claude/debug/
