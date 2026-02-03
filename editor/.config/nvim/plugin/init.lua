@@ -27,4 +27,5 @@ vim.pack.add {
   gh 'kristijanhusak/vim-dadbod-ui',
   gh 'kristijanhusak/vim-dadbod-completion',
   gh 'lewis6991/gitsigns.nvim',
+  gh 'seblyng/roslyn.nvim',
 }

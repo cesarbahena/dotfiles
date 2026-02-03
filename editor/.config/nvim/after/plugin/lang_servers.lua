@@ -4,7 +4,6 @@ vim.lsp.enable {
   'ts_ls',
   'intelephense',
   'rust_analyzer',
-  'omnisharp',
   'jdtls',
   'jsonls',
   'yamlls',

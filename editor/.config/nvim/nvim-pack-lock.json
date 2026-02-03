@@ -41,6 +41,10 @@
       "rev": "568ede7e79172a0fe7c9d631454a97ad968deaf2",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter"
     },
+    "roslyn.nvim": {
+      "rev": "24f7c91ee5e09c63104deaab68f932620f25c24a",
+      "src": "https://github.com/seblyng/roslyn.nvim"
+    },
     "statuscol.nvim": {
       "rev": "c46172d0911aa5d49ba5f39f4351d1bb7aa289cc",
       "src": "https://github.com/luukvbaal/statuscol.nvim"
