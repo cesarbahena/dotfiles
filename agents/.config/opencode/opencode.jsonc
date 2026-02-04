@@ -3,7 +3,7 @@
   "permission": {
     "bash": {
       "*": "ask",
-      "ls*": "deny",
+      "ls*": "allow",
       "cd*": "allow",
       "pwd*": "allow",
       "mkdir*": "allow",
