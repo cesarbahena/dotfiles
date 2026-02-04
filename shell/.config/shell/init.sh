@@ -10,8 +10,8 @@ fi
 if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init $_shell)"
   z() {
-    [ $# -eq 0 ] && __zoxide_z .. || __zoxide_z "$@"
-    echo -e "\033[35m$(pwd)\033[0m"
+    [ $# -eq 0 ] && __zoxide_z .. || __zoxide_z "$@" && \
+    echo -e "\033[35m$(pwd)\033[0m" && \
     ls -nohaX --color --group-directories-first
   }
 fi
