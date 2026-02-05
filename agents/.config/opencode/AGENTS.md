@@ -4,12 +4,18 @@ Be extremely concise. Sacrifice grammar for the sake of concision.
 
 These bash commands are blocked. Use the tool instead:
 
-Tool  | Denied bash
-------|------------
-Read  | cat
-Write | echo, printf, touch, tee
-Edit  | sed, awk
-Glob  | find
-Grep  | grep
+| Tool  | Denied bash              |
+| ----- | ------------------------ |
+| Read  | cat                      |
+| Write | echo, printf, touch, tee |
+| Edit  | sed, awk                 |
+| Glob  | find                     |
 
-Use `rg`, `head` and `tail` for piping (allowed).
+# Use agents when possible
+
+These bash commands are blocked for you but allowed for subagents:
+
+| Agent        | Denied bash         |
+| ------------ | ------------------- |
+| git-commiter | git add, git commit |
+| api-tester   | curl                |

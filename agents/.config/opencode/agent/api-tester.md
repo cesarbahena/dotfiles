@@ -1,7 +1,6 @@
 ---
 description: The only allowed agent to test APIs
 mode: subagent
-model: anthropic/claude-3-5-haiku-20241022
 temperature: 0
 tools:
   write: false
