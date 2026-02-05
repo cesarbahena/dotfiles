@@ -12,9 +12,7 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 # Docker aliases with completions
 autoload -Uz compinit && compinit
 alias d='docker'
-alias c='docker compose'
 compdef _docker d=docker
-compdef '_dispatch docker docker-compose' c
 
 setopt prompt_subst
 

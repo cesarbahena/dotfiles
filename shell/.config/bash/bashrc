@@ -16,15 +16,6 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 . /usr/share/bash-completion/completions/docker
 alias d='docker'
 complete -o default -F __start_docker d
-alias c='docker compose'
-_docker_compose_wrapper() {
-  COMP_LINE="docker compose${COMP_LINE:1}"
-  COMP_WORDS=(docker compose "${COMP_WORDS[@]:1}")
-  ((COMP_POINT+=13))
-  ((COMP_CWORD+=1))
-  __start_docker
-}
-complete -o default -F _docker_compose_wrapper c
 
 # Bash prompt
 __prompt_command() {
