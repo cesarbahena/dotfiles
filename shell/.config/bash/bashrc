@@ -7,10 +7,10 @@ export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
 # Source shell agnostic config
-. "$XDG_CONFIG_HOME/shell/env.sh"
-. "$XDG_CONFIG_HOME/shell/path.sh"
-. "$XDG_CONFIG_HOME/shell/aliases.sh"
-. "$XDG_CONFIG_HOME/shell/init.sh"
+. "$XDG_CONFIG_HOME/sh/env.sh"
+. "$XDG_CONFIG_HOME/sh/path.sh"
+. "$XDG_CONFIG_HOME/sh/aliases.sh"
+. "$XDG_CONFIG_HOME/sh/init.sh"
 
 # Docker aliases with completions
 . /usr/share/bash-completion/completions/docker

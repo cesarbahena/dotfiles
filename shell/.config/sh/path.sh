@@ -1,7 +1,6 @@
 # PATH deduplicated construction (bash/zsh compatible)
 paths=(
   "$XDG_DATA_HOME/opencode/bin"
-  "~/.opencode/bin"
   "$XDG_DATA_HOME/android/cmdline-tools/latest/bin"
   "$XDG_DATA_HOME/android/platform-tools"
   "$XDG_DATA_HOME/dotnet/tools"

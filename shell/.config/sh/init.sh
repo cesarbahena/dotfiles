@@ -23,7 +23,7 @@ command -v fnm >/dev/null 2>&1 && eval "$(fnm env --shell=$_shell)"
 s() {
   local v64 a64
   v64=$(base64 -w0 "$XDG_CONFIG_HOME/nvim/init.vim")
-  a64=$(base64 -w0 "$XDG_CONFIG_HOME/shell/aliases.sh")
+  a64=$(base64 -w0 "$XDG_CONFIG_HOME/sh/aliases.sh")
   ssh -t "$1" "base64 -d <<<$a64 > /tmp/a.sh; base64 -d <<<$v64 > /tmp/v.vim; bash --rcfile <(cat /tmp/a.sh; echo 'vi() { if command -v nvim &>/dev/null; then nvim --clean -u /tmp/v.vim \"\$@\"; else vim -u /tmp/v.vim \"\$@\"; fi; }')"
 }
 

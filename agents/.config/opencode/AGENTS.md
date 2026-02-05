@@ -4,12 +4,13 @@ Be extremely concise. Sacrifice grammar for the sake of concision.
 
 These bash commands are blocked. Use the tool instead:
 
-| Tool  | Denied bash              |
-| ----- | ------------------------ |
-| Read  | cat                      |
-| Write | echo, printf, touch, tee |
-| Edit  | sed, awk                 |
-| Glob  | find                     |
+| Tool  | Denied bash                    |
+| ----- | ------------------------------ |
+| Read  | cat                            |
+| Write | echo, printf, touch, tee       |
+| Edit  | sed, awk                       |
+| Glob  | find                           |
+| Grep  | grep (only allowed from stdin) |
 
 # Use agents when possible
 
