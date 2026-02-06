@@ -16,7 +16,8 @@ These bash commands are blocked. Use the tool instead:
 
 These bash commands are blocked for you but allowed for subagents:
 
-| Agent        | Denied bash         |
-| ------------ | ------------------- |
-| git-commiter | git add, git commit |
-| api-tester   | curl                |
+| Denied bash                           | Use agent     |
+| ------------------------------------- | ------------- |
+| git add, git commit                   | git-commiter  |
+| git add, git commit (when backdating) | git-backdater |
+| curl                                  | api-tester    |
