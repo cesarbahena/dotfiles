@@ -19,6 +19,7 @@ Make applications XDG compliant by moving their config/data directories.
 
 Commands:
   opencode              Move OpenCode to XDG data directory
+  restore               Restore shell configs from dotfiles repos
 
 Options:
   -h, --help            Show this help message
@@ -30,6 +31,7 @@ Environment Variables:
 
 Examples:
   $PROGRAM_NAME opencode
+  $PROGRAM_NAME restore
 EOF
 }
 
@@ -117,6 +119,50 @@ merge_dirs() {
 	rmdir "$src" 2>/dev/null || true
 }
 
+restore_shell_configs() {
+	local restored=0
+	local file
+	local target
+
+	for file in .bashrc .bash_profile .zshenv .zshrc .zprofile; do
+		local filepath="$HOME/$file"
+
+		if [[ ! -L "$filepath" ]]; then
+			continue
+		fi
+
+		target=$(readlink -f "$filepath" 2>/dev/null) || continue
+
+		if [[ ! -e "$target" ]]; then
+			continue
+		fi
+
+		local file_dir
+		file_dir=$(dirname "$target")
+
+		while [[ "$file_dir" != "/" && "$file_dir" != "$HOME" ]]; do
+			if [[ -d "$file_dir/.git" ]]; then
+				local rel_path="${target#$file_dir/}"
+				if git -C "$file_dir" diff --quiet -- "$rel_path" 2>/dev/null; then
+					break
+				fi
+				if git -C "$file_dir" restore "$rel_path" 2>/dev/null; then
+					echo "Restored: $rel_path (from $file_dir)"
+					((restored++)) || true
+				fi
+				break
+			fi
+			file_dir=$(dirname "$file_dir")
+		done
+	done
+
+	if [[ $restored -gt 0 ]]; then
+		echo "Restored $restored shell config file(s)"
+	elif [[ $restored -eq 0 ]]; then
+		echo "Nothing to restore"
+	fi
+}
+
 cmd_opencode() {
 	local app="opencode"
 	local src_dir="$HOME/.$app"
@@ -138,6 +184,10 @@ cmd_opencode() {
 	echo "Done. $app is now XDG compliant at $dst_dir"
 }
 
+cmd_restore() {
+	restore_shell_configs
+}
+
 main() {
 	if [[ $# -eq 0 ]]; then
 		usage
@@ -156,6 +206,10 @@ main() {
 		opencode)
 			shift
 			cmd_opencode
+			;;
+		restore)
+			shift
+			cmd_restore
 			;;
 		*)
 			echo "Unknown command: $1"
