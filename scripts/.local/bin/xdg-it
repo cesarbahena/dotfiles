@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly PROGRAM_NAME="xdg-it"
+readonly VERSION="1.0.0"
+
+xdg_data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+xdg_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+declare -A app_config=(
+	["opencode"]="data:$xdg_data_home/opencode"
+)
+
+usage() {
+	cat <<EOF
+Usage: $PROGRAM_NAME <command> [options]
+
+Make applications XDG compliant by moving their config/data directories.
+
+Commands:
+  opencode              Move OpenCode to XDG data directory
+
+Options:
+  -h, --help            Show this help message
+  -v, --version         Show version information
+
+Environment Variables:
+  XDG_DATA_HOME         XDG data directory (default: ~/.local/share)
+  XDG_CONFIG_HOME       XDG config directory (default: ~/.config)
+
+Examples:
+  $PROGRAM_NAME opencode
+EOF
+}
+
+version() {
+	echo "$PROGRAM_NAME v$VERSION"
+}
+
+prompt_merge() {
+	local src="$1"
+	local dst="$2"
+	local rel_path="${src#$HOME/}"
+
+	clear
+	echo "=== Conflict detected: $rel_path ==="
+	echo
+	echo "Source (current):  $src"
+	echo "Destination (xdg): $dst"
+	echo
+	echo "Options:"
+	echo "  [y] Backup destination, move source"
+	echo "  [n] Backup source, keep destination"
+	echo "  [Y] Delete destination, move source (no backup)"
+	echo "  [N] Delete source, keep destination (no backup)"
+	echo "  [d] Show diff"
+	echo "  [q] Quit without changes"
+	echo
+	read -rp "Your choice: " choice
+
+	case "$choice" in
+		y)
+			cp -b "$dst" "${dst}.bak" 2>/dev/null || true
+			mv "$src" "$dst"
+			;;
+		n)
+			cp -b "$src" "${src}.bak" 2>/dev/null || true
+			mv "$dst" "$src"
+			;;
+		Y)
+			rm -f "$dst"
+			mv "$src" "$dst"
+			;;
+		N)
+			rm -f "$src"
+			;;
+		d)
+			if command -v diff &>/dev/null; then
+				diff -u "$dst" "$src" || true
+			else
+				echo "diff not available"
+			fi
+			prompt_merge "$src" "$dst"
+			;;
+		q)
+			echo "Skipped: $rel_path"
+			return 1
+			;;
+		*)
+			echo "Invalid choice: $choice"
+			prompt_merge "$src" "$dst"
+			;;
+	esac
+}
+
+merge_dirs() {
+	local src="$1"
+	local dst="$2"
+
+	while IFS= read -r -d '' file; do
+		local rel="${file#$src/}"
+		local target="$dst/$rel"
+
+		if [[ -d "$file" ]]; then
+			if [[ ! -d "$target" ]]; then
+				mkdir -p "$target"
+			fi
+		elif [[ -f "$file" ]]; then
+			if [[ -f "$target" ]]; then
+				prompt_merge "$file" "$target" || true
+			else
+				mv "$file" "$target"
+			fi
+		fi
+	done < <(find "$src" -mindepth 1 -print0 2>/dev/null || true)
+
+	rmdir "$src" 2>/dev/null || true
+}
+
+cmd_opencode() {
+	local app="opencode"
+	local src_dir="$HOME/.$app"
+	local dst_dir="${XDG_DATA_HOME:-$HOME/.local/share}/$app"
+
+	if [[ ! -d "$src_dir" ]]; then
+		echo "Source directory does not exist: $src_dir"
+		echo "Nothing to do."
+		return 0
+	fi
+
+	if [[ -d "$dst_dir" ]]; then
+		echo "Merging $src_dir into $dst_dir..."
+		merge_dirs "$src_dir" "$dst_dir"
+	else
+		mv "$src_dir" "$dst_dir"
+	fi
+
+	echo "Done. $app is now XDG compliant at $dst_dir"
+}
+
+main() {
+	if [[ $# -eq 0 ]]; then
+		usage
+		exit 1
+	fi
+
+	case "$1" in
+		-h|--help)
+			usage
+			exit 0
+			;;
+		-v|--version)
+			version
+			exit 0
+			;;
+		opencode)
+			shift
+			cmd_opencode
+			;;
+		*)
+			echo "Unknown command: $1"
+			usage
+			exit 1
+			;;
+	esac
+}
+
+main "$@"
