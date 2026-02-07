@@ -3,7 +3,7 @@ BEGIN {
   GREEN="#[fg=colour46]"
   YELLOW="#[fg=colour226]"
   RED="#[fg=colour196]"
-  GRAY="#[fg=colour240]"
+  DIM="#[fg=colour240]"
   Z="#[fg=default]"
 }
 NR==1 {
@@ -15,12 +15,12 @@ NR==1 {
     if (match(meta,/ahead [0-9]+/)) {
       tmp=substr(meta,RSTART,RLENGTH)
       sub(/ahead /,"",tmp)
-      ahead="a" tmp
+      ahead=tmp+0
     }
     if (match(meta,/behind [0-9]+/)) {
       tmp=substr(meta,RSTART,RLENGTH)
       sub(/behind /,"",tmp)
-      behind="b" tmp
+      behind=tmp+0
     }
     sub(/ \[.*\]$/,"",$0)
   }
@@ -28,15 +28,35 @@ NR==1 {
   split($0,a,"\\.\\.\\.")
   local=a[1]; remote=a[2]
 
-  if (remote == "") out=local ":?"
-  else {
+  if (remote == "") {
+    printf "%s%s%s %s?%s", BLUE, local, Z, DIM, Z
+  } else {
     if (index(remote,"origin/") == 1) remote=substr(remote,8)
-    out=(remote!=local)? local ":" remote : local
-  }
+    same_name = (remote == local)
+    out = same_name ? local : local ":" remote
 
-  printf "%s%s%s", BLUE, out, Z
-  if (ahead)  printf " %s%s%s", GREEN, ahead, Z
-  if (behind) printf " %s%s%s", RED, behind, Z
+    if (ahead > 0 && behind > 0) {
+      printf "%s%s%s %s%d %s!= %s%d%s", BLUE, out, Z, DIM, ahead, RED, behind, DIM, Z
+    } else if (ahead > 0) {
+      if (same_name) {
+        if (ahead == 1) printf "%s%s%s %s>%s", BLUE, local, Z, GREEN, Z
+        else printf "%s%s%s %s> %s%d%s", BLUE, local, Z, GREEN, DIM, ahead, Z
+      } else {
+        if (ahead == 1) printf "%s%s%s %s> %s%s%s", BLUE, out, Z, GREEN, DIM, remote, Z
+        else printf "%s%s%s %s> %s%d %s%s%s", BLUE, out, Z, GREEN, DIM, ahead, DIM, remote, Z
+      }
+    } else if (behind > 0) {
+      if (same_name) {
+        if (behind == 1) printf "%s%s%s %s<%s", BLUE, local, Z, YELLOW, Z
+        else printf "%s%s%s %s< %s%d%s", BLUE, local, Z, YELLOW, DIM, behind, Z
+      } else {
+        if (behind == 1) printf "%s%s%s %s< %s%s%s", BLUE, out, Z, YELLOW, DIM, remote, Z
+        else printf "%s%s%s %s< %s%d %s%s%s", BLUE, out, Z, YELLOW, DIM, behind, DIM, remote, Z
+      }
+    } else {
+      printf "%s%s%s", BLUE, out, Z
+    }
+  }
   next
 }
 {
@@ -64,6 +84,6 @@ END {
   for (b in both)
     printf " %s%d%s%s", RED, both[b], b, Z
   if (untracked)
-    printf " %s%d??%s", GRAY, untracked, Z
+    printf " %s%d??%s", DIM, untracked, Z
   print ""
 }
