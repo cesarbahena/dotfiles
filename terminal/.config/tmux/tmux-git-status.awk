@@ -36,22 +36,22 @@ NR==1 {
     out = same_name ? local : local ":" remote
 
     if (ahead > 0 && behind > 0) {
-      printf "%s%s%s %s%d %s!= %s%d%s", BLUE, out, Z, DIM, ahead, RED, behind, DIM, Z
+      printf "%s%s%s %s%d %s!= %s%d%s", BLUE, out, Z, RED, ahead, RED, behind, RED, Z
     } else if (ahead > 0) {
       if (same_name) {
         if (ahead == 1) printf "%s%s%s %s>%s", BLUE, local, Z, GREEN, Z
-        else printf "%s%s%s %s> %s%d%s", BLUE, local, Z, GREEN, DIM, ahead, Z
+        else printf "%s%s%s %s> %s%d%s", BLUE, local, Z, GREEN, GREEN, ahead, Z
       } else {
         if (ahead == 1) printf "%s%s%s %s> %s%s%s", BLUE, out, Z, GREEN, DIM, remote, Z
-        else printf "%s%s%s %s> %s%d %s%s%s", BLUE, out, Z, GREEN, DIM, ahead, DIM, remote, Z
+        else printf "%s%s%s %s> %s%d %s%s%s", BLUE, out, Z, GREEN, GREEN, ahead, DIM, remote, Z
       }
     } else if (behind > 0) {
       if (same_name) {
         if (behind == 1) printf "%s%s%s %s<%s", BLUE, local, Z, YELLOW, Z
-        else printf "%s%s%s %s< %s%d%s", BLUE, local, Z, YELLOW, DIM, behind, Z
+        else printf "%s%s%s %s< %s%d%s", BLUE, local, Z, YELLOW, YELLOW, behind, Z
       } else {
         if (behind == 1) printf "%s%s%s %s< %s%s%s", BLUE, out, Z, YELLOW, DIM, remote, Z
-        else printf "%s%s%s %s< %s%d %s%s%s", BLUE, out, Z, YELLOW, DIM, behind, DIM, remote, Z
+        else printf "%s%s%s %s< %s%d %s%s%s", BLUE, out, Z, YELLOW, YELLOW, behind, DIM, remote, Z
       }
     } else {
       printf "%s%s%s", BLUE, out, Z
