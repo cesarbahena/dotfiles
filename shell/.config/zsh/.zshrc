@@ -94,6 +94,7 @@ precmd() {
       143) sym='†'  ;; # SIGTERM (graceful termination)
       147) sym='¬'  ;; # SIGSTOP (suspended not from terminal)
       148) sym='&'  ;; # SIGSTP (^Z)
+      217) sym='™'  ;; # NPM error
       255) sym='Ñ'  ;; # Invalid characters
       *)   sym="($exit)" ;;
     esac

@@ -97,3 +97,7 @@ nnoremap <silent> L :call <SID>no_scrolloff('L')<CR>
 nnoremap <silent> j :<C-u>execute v:count ? 'call <SID>no_scrolloff('.v:count.'."j")' : 'normal! gj'<CR>
 nnoremap <silent> k :<C-u>execute v:count ? 'call <SID>no_scrolloff('.v:count.'."k")' : 'normal! gk'<CR>
 nnoremap <silent> G :<C-u>call <SID>no_scrolloff((v:count ? v:count : '').'G')<CR>
+
+" Custom commands
+command! DelMacros for r in range(char2nr('a'), char2nr('z')) | call setreg(nr2char(r), '') | endfor | for r in range(char2nr('A'), char2nr('Z')) | call setreg(nr2char(r), '') | endfor
+

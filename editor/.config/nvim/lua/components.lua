@@ -13,6 +13,7 @@ local blue = '%#' .. hl.blue .. '#'
 local blue_bold = '%#' .. hl.blue_bold .. '#'
 local magenta = '%#' .. hl.magenta .. '#'
 local magenta_bold = '%#' .. hl.magenta_bold .. '#'
+local white = '%#' .. hl.white .. '#'
 local normal = '%#Normal#'
 
 M.lsp_map = {
@@ -54,20 +55,20 @@ local function cwd()
   return table.concat(result, '/') .. ' '
 end
 
-local function mode_flag()
+local function mode_prompt_symbol()
   local m = vim.fn.mode(true)
   if m:match '^no' then
     return magenta_bold .. '-o' .. normal .. ' '
   end
   local map = {
-    n = { green_bold, '-n' },
-    i = { yellow_bold, '-i' },
-    v = { blue_bold, '-v' },
-    V = { blue_bold, '-V' },
-    ['\22'] = { blue_bold, '-b' },
-    c = { bold, '-c' },
+    n = { green, '$' },
+    i = { yellow, '&' },
+    v = { blue, 'æ' },
+    V = { blue, 'Æ' },
+    ['\22'] = { blue, 'ß' },
+    c = { green, '#' },
   }
-  local mode = map[m] or { red_bold, '-?' }
+  local mode = map[m] or { yellow, '?' }
   return mode[1] .. mode[2] .. normal .. ' '
 end
 
@@ -122,7 +123,7 @@ local function error_file()
   if errors > 0 then
     return gray .. '2>' .. red .. errors .. '.err' .. normal .. ' '
   elseif warnings > 0 then
-    return gray .. '2>' .. yellow .. warnings .. '.warn' .. normal .. ' '
+    return gray .. '2>' .. yellow .. warnings .. '.wrn' .. normal .. ' '
   end
   return ''
 end
@@ -141,25 +142,7 @@ end
 local function encoding_format_file()
   local encoding = vim.bo.fileencoding ~= '' and vim.bo.fileencoding or vim.o.encoding
   local format = vim.bo.fileformat
-  return gray .. encoding .. '.' .. format .. ' '
-end
-
-local function filesize_param_expansion()
-  local size = vim.fn.getfsize(vim.fn.expand '%')
-  local total = vim.fn.line '$'
-  local size_str
-  if size < 0 then
-    size_str = '0B'
-  elseif size < 1024 then
-    size_str = size .. 'B'
-  elseif size < 1024 * 1024 then
-    size_str = string.format('%.1fK', size / 1024)
-  elseif size < 1024 * 1024 * 1024 then
-    size_str = string.format('%.1fM', size / (1024 * 1024))
-  else
-    size_str = string.format('%.1fG', size / (1024 * 1024 * 1024))
-  end
-  return gray .. '${' .. size_str .. ':-' .. total .. '} '
+  return gray .. encoding .. '.' .. format
 end
 
 local function grep_cmd()
@@ -179,81 +162,86 @@ local function match_count_flag(pattern)
   return (ok and result.total) and result.total or 0
 end
 
+local function marks()
+  local upper = {}
+  local lower = {}
+  for i = 65, 90 do
+    local name = vim.fn.nr2char(i)
+    if vim.fn.getpos('\'' .. name)[1] ~= 0 then
+      table.insert(upper, name)
+    end
+  end
+  for i = 97, 122 do
+    local name = vim.fn.nr2char(i)
+    if vim.fn.getpos('\'' .. name)[2] ~= 0 then
+      table.insert(lower, name)
+    end
+  end
+  local result = table.concat(upper, '')
+  if #lower > 0 then
+    result = result .. '.' .. table.concat(lower, '')
+  end
+  return result
+end
+
 local function grep_invocation()
   local pattern = regex()
   local matches = match_count_flag(pattern)
-  local total = vim.fn.line '$'
   local cmd = grep_cmd()
 
   local pattern_color = matches > 0 and green or red
 
-  return gray
-    .. '| '
-    .. cmd
-    .. ' '
-    .. pattern_color
-    .. '"'
-    .. pattern
-    .. '" '
-    .. gray
-    .. '-'
-    .. matches
-    .. normal
-    .. ' '
-end
-
-local function second_lsp()
-  local ft = vim.bo.filetype
-  local expected = M.lsp_map[ft]
-  local main_name = expected and expected.name or nil
-
-  local clients = vim.lsp.get_clients { bufnr = 0 }
-
-  for _, c in ipairs(clients) do
-    if c.name ~= main_name then
-      local has_exe = vim.fn.executable(c.name) == 1
-      local color = has_exe and green or red
-      return color .. c.name .. normal .. ' '
-    end
-  end
-
-  return 'nvim '
+  return gray .. '&& ' .. cmd .. ' -' .. matches .. ' ' .. pattern_color .. '"' .. pattern .. '" ' .. gray .. marks()
 end
 
 local function alternate_file()
-  local alt = vim.fn.expand '#:t:r'
+  local alt = vim.fn.expand '#:t'
   if #alt == 0 then
-    return '. '
+    return gray .. '.'
   end
-  return alt .. ' '
+  return gray .. alt
 end
 
-function curr_line_env_var()
-  return gray .. 'L=' .. vim.fn.line '.' .. ' '
+function curr_line_env()
+  return gray .. '(' .. vim.fn.line '$' .. ') '
 end
 
 function buf_count_flag()
-  return magenta .. '-' .. #vim.fn.getbufinfo { buflisted = 1 }
+  return magenta .. '-' .. #vim.fn.getbufinfo { buflisted = 1 } .. gray
 end
 
-function M.tabline()
+local function test_buffers_file()
+  return gray .. '; [ ' .. buf_count_flag() .. ' ' .. alternate_file() .. ' ] '
+end
+
+local function pipe_macro()
+  local recording = vim.fn.reg_recording()
+  if recording ~= '' then
+    return gray .. ' | ' .. green .. recording
+  end
+
+  local last = vim.v.register
+  if last and last:match '^%a$' then
+    return gray .. ' | ' .. gray .. last
+  end
+
+  return ''
+end
+
+function M.statusline()
   return table.concat({
+    curr_line_env(),
     cwd(),
-    green .. '$ ',
-    curr_line_env_var(),
+    mode_prompt_symbol(),
     main_lsp(),
-    mode_flag(),
     filename(),
     formatter(),
     error_file(),
     modified_redir(),
     encoding_format_file(),
+    test_buffers_file(),
     grep_invocation(),
-    filesize_param_expansion(),
-    gray .. '&& ',
-    second_lsp(),
-    alternate_file(),
-    buf_count_flag(),
+    pipe_macro(),
   }, '')
 end
 

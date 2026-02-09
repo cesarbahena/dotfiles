@@ -42,20 +42,20 @@ require('statuscol').setup {
   setopt = true,
   segments = {
     {
+      sign = { namespace = { 'gitsign' }, maxwidth = 1, colwidth = 1, auto = false },
+    },
+    {
       text = {
         function(args)
           local hl = require('hl_groups').get_lnr_color(args.buf, args.lnum, args.relnum == 0)
 
           if args.relnum == 0 then
-            return '%#' .. hl .. '# $%*'
+            return '%#' .. hl .. '#' .. string.format('%2d', args.lnum) .. '%*'
           end
 
           return '%#' .. hl .. '#' .. string.format('%2d', args.relnum) .. '%*'
         end,
       },
-    },
-    {
-      sign = { namespace = { 'gitsign' }, maxwidth = 1, colwidth = 1, auto = false },
     },
   },
 }

@@ -138,6 +138,7 @@ __prompt_command() {
       143) prompt='†'  ;; # SIGTERM (graceful termination)
       147) prompt='¬'  ;; # SIGSTOP (suspended not from terminal)
       148) prompt='&'  ;; # SIGSTP (^Z)
+      217) prompt='™'  ;; # NPM error
       255) prompt='Ñ'  ;; # Invalid characters
       *)   prompt="($exit)" ;;
     esac
