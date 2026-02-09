@@ -10,19 +10,19 @@ M.langs = {
     fmt = { 'ruff_format', 'ruff_organize_imports' },
   },
   javascript = {
-    lsp = { 'ts_ls', 'typescript-language-server' },
+    lsp = { 'tsserver', 'typescript-language-server' },
     fmt = { 'prettier' },
   },
   typescript = {
-    lsp = { 'ts_ls', 'typescript-language-server' },
+    lsp = { 'tsserver', 'typescript-language-server' },
     fmt = { 'prettier' },
   },
   typescriptreact = {
-    lsp = { 'ts_ls', 'typescript-language-server' },
+    lsp = { 'tsserver', 'typescript-language-server' },
     fmt = { 'prettier' },
   },
   javascriptreact = {
-    lsp = { 'ts_ls', 'typescript-language-server' },
+    lsp = { 'tsserver', 'typescript-language-server' },
     fmt = { 'prettier' },
   },
   go = {
@@ -84,6 +84,10 @@ M.langs = {
   php = {
     lsp = { 'intelephense' },
     fmt = { 'phpbf', 'phpcbf' },
+  },
+  vim = {
+    lsp = { 'vimls' },
+    fmt = { 'vimfmt' },
   },
 }
 

@@ -64,18 +64,8 @@ local function main_lsp()
     return gray .. 'nvim '
   end
 
-  local clients = vim.lsp.get_clients { bufnr = 0 }
-  local has_client = false
-  for _, c in ipairs(clients) do
-    if c.name == expected.name then
-      has_client = true
-      break
-    end
-  end
-
   local has_exe = vim.fn.executable(expected.cmd) == 1
-  local color = has_client and has_exe and green or has_client and yellow or red
-
+  local color = has_exe and green or red
   return color .. expected.name .. normal .. ' '
 end
 
@@ -90,7 +80,9 @@ local function other_lsp_flags()
   local flags = {}
   for _, c in ipairs(clients) do
     if c.name ~= expected.name then
-      table.insert(flags, gray .. '--' .. c.name)
+      local has_exe = vim.fn.executable(c.name) == 1
+      local color = has_exe and gray or red
+      table.insert(flags, color .. '--' .. c.name)
     end
   end
   return #flags > 0 and ' ' .. table.concat(flags, ' ') or ''
@@ -106,7 +98,7 @@ local function formatter()
     return vim.fn.executable(f) == 1
   end, fmts)
   if #available == 0 then
-    return ''
+    return red .. '--' .. fmts[1] .. ' '
   end
   return gray .. '--' .. available[1] .. ' '
 end
@@ -206,7 +198,7 @@ local function alternate_file()
   return gray .. alt
 end
 
-function curr_line_env()
+function total_lines_env()
   return gray .. '(' .. vim.fn.line '$' .. ') '
 end
 
@@ -227,7 +219,7 @@ end
 
 function M.statusline()
   return table.concat({
-    curr_line_env(),
+    total_lines_env(),
     cwd(),
     mode_prompt_symbol(),
     main_lsp(),
