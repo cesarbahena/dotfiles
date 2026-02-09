@@ -1,58 +1,126 @@
 local M = {}
 
-M.lsps = {
-  { name = 'lua_ls', filetypes = { 'lua' } },
-  { name = 'pyright', filetypes = { 'python' } },
-  { name = 'ts_ls', filetypes = { 'typescript', 'javascript', 'typescriptreact', 'javascriptreact' } },
-  { name = 'gopls', filetypes = { 'go' } },
-  { name = 'rust_analyzer', filetypes = { 'rust' } },
-  { name = 'clangd', filetypes = { 'c', 'cpp' } },
-  { name = 'jdtls', filetypes = { 'java' } },
-  { name = 'jsonls', filetypes = { 'json' } },
-  { name = 'yamlls', filetypes = { 'yaml' } },
-  { name = 'taplo', filetypes = { 'toml' } },
-  { name = 'bashls', filetypes = { 'bash' } },
-  { name = 'marksman', filetypes = { 'markdown' } },
-  { name = 'intelephense', filetypes = { 'php' } },
+M.langs = {
+  lua = {
+    lsp = { 'lua_ls', 'lua-language-server' },
+    fmt = { 'stylua' },
+  },
+  python = {
+    lsp = { 'pyright' },
+    fmt = { 'ruff_format', 'ruff_organize_imports' },
+  },
+  javascript = {
+    lsp = { 'ts_ls', 'typescript-language-server' },
+    fmt = { 'prettier' },
+  },
+  typescript = {
+    lsp = { 'ts_ls', 'typescript-language-server' },
+    fmt = { 'prettier' },
+  },
+  typescriptreact = {
+    lsp = { 'ts_ls', 'typescript-language-server' },
+    fmt = { 'prettier' },
+  },
+  javascriptreact = {
+    lsp = { 'ts_ls', 'typescript-language-server' },
+    fmt = { 'prettier' },
+  },
+  go = {
+    lsp = { 'gopls' },
+    fmt = { 'goimports', 'gofumpt' },
+  },
+  rust = {
+    lsp = { 'rust_analyzer' },
+    fmt = { 'rustfmt' },
+  },
+  c = {
+    lsp = { 'clangd' },
+    fmt = { 'clang-format' },
+  },
+  cpp = {
+    lsp = { 'clangd' },
+    fmt = { 'clang-format' },
+  },
+  java = {
+    lsp = { 'jdtls' },
+    fmt = { 'google-java-format' },
+  },
+  json = {
+    lsp = { 'jsonls' },
+    fmt = { 'prettier' },
+  },
+  yaml = {
+    lsp = { 'yamlls' },
+    fmt = { 'prettier' },
+  },
+  toml = {
+    lsp = { 'taplo' },
+    fmt = { 'taplo' },
+  },
+  markdown = {
+    lsp = { 'marksman' },
+    fmt = { 'prettier' },
+  },
+  html = {
+    lsp = { 'nil' },
+    fmt = { 'prettier' },
+  },
+  css = {
+    lsp = { 'cssls' },
+    fmt = { 'prettier' },
+  },
+  scss = {
+    lsp = { 'cssls' },
+    fmt = { 'prettier' },
+  },
+  vue = {
+    lsp = { 'vuels' },
+    fmt = { 'prettier' },
+  },
+  bash = {
+    lsp = { 'bashls' },
+    fmt = { 'shfmt' },
+  },
+  php = {
+    lsp = { 'intelephense' },
+    fmt = { 'phpbf', 'phpcbf' },
+  },
 }
 
-M.formatters_by_ft = {
-  lua = { 'stylua' },
-  python = { 'ruff_format', 'ruff_organize_imports' },
-  go = { 'goimports', 'gofumpt' },
-  typescript = { 'prettier' },
-  typescriptreact = { 'prettier' },
-  javascript = { 'prettier' },
-  javascriptreact = { 'prettier' },
-  json = { 'prettier' },
-  yaml = { 'prettier' },
-  toml = { 'taplo' },
-  markdown = { 'prettier' },
-  html = { 'prettier' },
-  css = { 'prettier' },
-  scss = { 'prettier' },
-  vue = { 'prettier' },
-  java = { 'google-java-format' },
-}
+function M.get_lsp_names()
+  local names = {}
+  for _, cfg in pairs(M.langs) do
+    table.insert(names, cfg.lsp[1])
+  end
+  return names
+end
 
-M.lsp_map = {
-  lua = { cmd = 'lua-language-server', name = 'lua_ls' },
-  python = { cmd = 'pyright', name = 'pyright' },
-  javascript = { cmd = 'typescript-language-server', name = 'ts_ls' },
-  typescript = { cmd = 'typescript-language-server', name = 'ts_ls' },
-  go = { cmd = 'gopls', name = 'gopls' },
-  rust = { cmd = 'rust-analyzer', name = 'rust_analyzer' },
-  c = { cmd = 'clangd', name = 'clangd' },
-  cpp = { cmd = 'clangd', name = 'clangd' },
-}
+function M.get_lsp_config(ft)
+  local cfg = M.langs[ft]
+  if not cfg or not cfg.lsp then
+    return nil
+  end
+  local name = cfg.lsp[1]
+  local cmd = cfg.lsp[2] or name
+  return { name = name, cmd = cmd }
+end
 
-M.formatters = {
-  lua = 'stylua',
-  python = 'ruff_format',
-  javascript = 'prettier',
-  typescript = 'prettier',
-  go = 'goimports',
-  rust = 'rustfmt',
-}
+function M.get_formatters(ft)
+  local cfg = M.langs[ft]
+  if not cfg or not cfg.fmt then
+    return {}
+  end
+  return cfg.fmt
+end
+
+function M.get_formatters_by_ft()
+  local by_ft = {}
+  for ft, cfg in pairs(M.langs) do
+    if cfg.fmt then
+      by_ft[ft] = cfg.fmt
+    end
+  end
+  return by_ft
+end
 
 return M

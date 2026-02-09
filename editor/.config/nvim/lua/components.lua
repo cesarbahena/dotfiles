@@ -17,9 +17,6 @@ local magenta_bold = '%#' .. hl.magenta_bold .. '#'
 local white = '%#' .. hl.white .. '#'
 local normal = '%#Normal#'
 
-M.lsp_map = config.lsp_map
-M.formatters = config.formatters
-
 local function cwd()
   local path = vim.fn.getcwd()
   local home = vim.env.HOME
@@ -62,7 +59,7 @@ end
 
 local function main_lsp()
   local ft = vim.bo.filetype
-  local expected = M.lsp_map[ft]
+  local expected = config.get_lsp_config(ft)
   if not expected then
     return gray .. 'nvim '
   end
@@ -82,13 +79,36 @@ local function main_lsp()
   return color .. expected.name .. normal .. ' '
 end
 
-local function formatter()
+local function other_lsp_flags()
   local ft = vim.bo.filetype
-  local fmt = M.formatters[ft]
-  if not fmt or vim.fn.executable(fmt) ~= 1 then
+  local expected = config.get_lsp_config(ft)
+  if not expected then
     return ''
   end
-  return gray .. '--' .. fmt .. ' '
+
+  local clients = vim.lsp.get_clients { bufnr = 0 }
+  local flags = {}
+  for _, c in ipairs(clients) do
+    if c.name ~= expected.name then
+      table.insert(flags, gray .. '--' .. c.name)
+    end
+  end
+  return #flags > 0 and ' ' .. table.concat(flags, ' ') or ''
+end
+
+local function formatter()
+  local ft = vim.bo.filetype
+  local fmts = config.get_formatters(ft)
+  if #fmts == 0 then
+    return ''
+  end
+  local available = vim.tbl_filter(function(f)
+    return vim.fn.executable(f) == 1
+  end, fmts)
+  if #available == 0 then
+    return ''
+  end
+  return gray .. '--' .. available[1] .. ' '
 end
 
 local function error_file()
@@ -203,23 +223,6 @@ local function pipe_into_macro()
   if recording ~= '' then
     return gray .. ' | ' .. magenta .. recording
   end
-end
-
-local function other_lsp_flags()
-  local ft = vim.bo.filetype
-  local main = M.lsp_map[ft]
-  if not main then
-    return ''
-  end
-
-  local clients = vim.lsp.get_clients { bufnr = 0 }
-  local flags = {}
-  for _, c in ipairs(clients) do
-    if c.name ~= main.name then
-      table.insert(flags, gray .. '--' .. c.name)
-    end
-  end
-  return #flags > 0 and ' ' .. table.concat(flags, ' ') or ''
 end
 
 function M.statusline()
