@@ -1,4 +1,5 @@
 local M = {}
+local config = require 'config'
 local hl = require 'hl_groups'
 
 local gray = '%#' .. hl.gray .. '#'
@@ -16,25 +17,8 @@ local magenta_bold = '%#' .. hl.magenta_bold .. '#'
 local white = '%#' .. hl.white .. '#'
 local normal = '%#Normal#'
 
-M.lsp_map = {
-  lua = { cmd = 'lua-language-server', name = 'lua_ls' },
-  python = { cmd = 'pyright', name = 'pyright' },
-  javascript = { cmd = 'typescript-language-server', name = 'tsserver' },
-  typescript = { cmd = 'typescript-language-server', name = 'tsserver' },
-  go = { cmd = 'gopls', name = 'gopls' },
-  rust = { cmd = 'rust-analyzer', name = 'rust_analyzer' },
-  c = { cmd = 'clangd', name = 'clangd' },
-  cpp = { cmd = 'clangd', name = 'clangd' },
-}
-
-M.formatters = {
-  lua = 'stylua',
-  python = 'black',
-  javascript = 'prettier',
-  typescript = 'prettier',
-  go = 'gofmt',
-  rust = 'rustfmt',
-}
+M.lsp_map = config.lsp_map
+M.formatters = config.formatters
 
 local function cwd()
   local path = vim.fn.getcwd()
@@ -221,12 +205,30 @@ local function pipe_into_macro()
   end
 end
 
+local function other_lsp_flags()
+  local ft = vim.bo.filetype
+  local main = M.lsp_map[ft]
+  if not main then
+    return ''
+  end
+
+  local clients = vim.lsp.get_clients { bufnr = 0 }
+  local flags = {}
+  for _, c in ipairs(clients) do
+    if c.name ~= main.name then
+      table.insert(flags, gray .. '--' .. c.name)
+    end
+  end
+  return #flags > 0 and ' ' .. table.concat(flags, ' ') or ''
+end
+
 function M.statusline()
   return table.concat({
     curr_line_env(),
     cwd(),
     mode_prompt_symbol(),
     main_lsp(),
+    other_lsp_flags(),
     formatter(),
     filename(),
     error_file(),

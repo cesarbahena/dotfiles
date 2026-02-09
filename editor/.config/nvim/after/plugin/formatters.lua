@@ -1,22 +1,7 @@
+local config = require 'config'
+
 require('conform').setup {
-  formatters_by_ft = {
-    lua = { 'stylua' },
-    python = { 'ruff_format', 'ruff_organize_imports' },
-    go = { 'goimports', 'gofumpt' },
-    typescript = { 'prettier' },
-    typescriptreact = { 'prettier' },
-    javascript = { 'prettier' },
-    javascriptreact = { 'prettier' },
-    json = { 'prettier' },
-    yaml = { 'prettier' },
-    toml = { 'taplo' },
-    markdown = { 'prettier' },
-    html = { 'prettier' },
-    css = { 'prettier' },
-    scss = { 'prettier' },
-    vue = { 'prettier' },
-    java = { 'google-java-format' },
-  },
+  formatters_by_ft = config.formatters_by_ft,
   format_on_save = {
     timeout_ms = 500,
     lsp_fallback = true,
