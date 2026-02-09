@@ -32,14 +32,14 @@ precmd() {
     [[ -z "$dir" && "$cwd" = /* ]] && base="$cwd"
     local env=""
     if [[ -n "$VIRTUAL_ENV" ]]; then
-      env="VENV=1 "
+      env="(${VIRTUAL_ENV##*/}) "
     elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
-      env="CONDA=$CONDA_DEFAULT_ENV "
+      env="($CONDA_DEFAULT_ENV) "
     fi
     if [[ -n "$dir" ]]; then
-      PROMPT="%F{240}${dir}/%f${base} ${color}${sym}%f %F{240}${env}%f"
+      PROMPT="%F{240}${env}%f%F{240}${dir}/%f${base} ${color}${sym}%f "
     else
-      PROMPT="${base} ${color}${sym}%f %F{240}${env}%f"
+      PROMPT="%F{240}${env}%f${base} ${color}${sym}%f "
     fi
     return
   fi
@@ -106,17 +106,16 @@ precmd() {
   [[ "$cwd" = "$base" ]] && dir=""
   [[ -z "$dir" && "$cwd" = /* ]] && base="$cwd"
 
-  # Python env indicator
   local env=""
   if [[ -n "$VIRTUAL_ENV" ]]; then
-    env="VENV=1 "
+    env="(${VIRTUAL_ENV##*/}) "
   elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
-    env="CONDA=$CONDA_DEFAULT_ENV "
+    env="($CONDA_DEFAULT_ENV) "
   fi
 
   if [[ -n "$dir" ]]; then
-    PROMPT="%F{240}${dir}/%f${base} ${color}${sym}%f %F{240}${env}%f"
+    PROMPT="%F{240}${env}%f%F{240}${dir}/%f${base} ${color}${sym}%f "
   else
-    PROMPT="${base} ${color}${sym}%f %F{240}${env}%f"
+    PROMPT="%F{240}${env}%f${base} ${color}${sym}%f "
   fi
 }

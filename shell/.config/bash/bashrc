@@ -60,11 +60,11 @@ __prompt_command() {
     [ -z "$dir" ] && [ "${cwd:0:1}" = "/" ] && base="$cwd"
     local env=""
     if [[ -n "$VIRTUAL_ENV" ]]; then
-      env="VENV=1 "
+      env="(${VIRTUAL_ENV##*/}) "
     elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
-      env="CONDA=$CONDA_DEFAULT_ENV "
+      env="($CONDA_DEFAULT_ENV) "
     fi
-    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} ${GRAY}${env}${RESET}" || PS1="${base} ${color}${prompt}${RESET} ${GRAY}${env}${RESET}"
+    [ -n "$dir" ] && PS1="${env}${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET}" || PS1="${env}${base} ${color}${prompt}${RESET}"
     return
   fi
 
@@ -77,12 +77,11 @@ __prompt_command() {
   [ "$cwd" = "$base" ] && dir=""  # Handle root or no slash case
   [ -z "$dir" ] && [ "${cwd:0:1}" = "/" ] && base="$cwd"
 
-  # Python env indicator
   local env=""
   if [[ -n "$VIRTUAL_ENV" ]]; then
-    env="VENV=1 "
+    env="(${VIRTUAL_ENV##*/}) "
   elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
-    env="CONDA=$CONDA_DEFAULT_ENV "
+    env="($CONDA_DEFAULT_ENV) "
   fi
 
   if [ "$exit" -ne 0 ]; then
@@ -143,9 +142,9 @@ __prompt_command() {
       *)   prompt="($exit)" ;;
     esac
 
-    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET} ${GRAY}${env}${RESET}" || PS1="${base} ${color}${prompt}${RESET} ${GRAY}${env}${RESET}"
+    [ -n "$dir" ] && PS1="${GRAY}${env}${RESET}${GRAY}${dir}/${RESET}${base} ${color}${prompt} ${RESET}" || PS1="${GRAY}${env}${RESET}${base} ${color}${prompt} ${RESET}"
   else
-    [ -n "$dir" ] && PS1="${GRAY}${dir}/${RESET}${base} ${GREEN}${prompt}${RESET} ${GRAY}${env}${RESET}" || PS1="${base} ${GREEN}${prompt}${RESET} ${GRAY}${env}${RESET}"
+    [ -n "$dir" ] && PS1="${GRAY}${env}${RESET}${GRAY}${dir}/${RESET}${base} ${GREEN}${prompt} ${RESET}" || PS1="${GRAY}${env}${RESET}${base} ${GREEN}${prompt} ${RESET}"
   fi
 }
 
