@@ -57,7 +57,7 @@ local function filename()
   return bold .. vim.fn.expand '%:.' .. normal .. ' '
 end
 
-local function main_lsp()
+local function main_lsp_cmd()
   local ft = vim.bo.filetype
   local expected = config.get_lsp_config(ft)
   if not expected then
@@ -88,7 +88,7 @@ local function other_lsp_flags()
   return #flags > 0 and ' ' .. table.concat(flags, ' ') or ''
 end
 
-local function formatter()
+local function formatter_flags()
   local ft = vim.bo.filetype
   local fmts = config.get_formatters(ft)
   if #fmts == 0 then
@@ -222,9 +222,9 @@ function M.statusline()
     total_lines_env(),
     cwd(),
     mode_prompt_symbol(),
-    main_lsp(),
+    main_lsp_cmd(),
     other_lsp_flags(),
-    formatter(),
+    formatter_flags(),
     filename(),
     error_file(),
     modified_redir(),
