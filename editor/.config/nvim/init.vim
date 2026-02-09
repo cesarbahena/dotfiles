@@ -12,7 +12,7 @@ set nohlsearch incsearch ignorecase smartcase wildignorecase
 set completeopt=menu,menuone,noselect pumheight=10
 set termguicolors
 set updatetime=100 timeoutlen=300 ttimeoutlen=10
-set lazyredraw synmaxcol=240
+set synmaxcol=240
 set clipboard=unnamedplus autoread noswapfile nobackup nowritebackup undofile
 set nofoldenable foldcolumn=0
 let &fillchars = 'eob: '

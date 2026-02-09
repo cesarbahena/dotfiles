@@ -11,6 +11,7 @@ local function gh(repo)
 end
 
 vim.pack.add {
+  gh 'MunifTanjim/nui.nvim',
   gh 'nvim-treesitter/nvim-treesitter',
   gh 'nvim-mini/mini.pick',
   gh 'nvim-mini/mini.files',
@@ -21,10 +22,8 @@ vim.pack.add {
   gh 'ellisonleao/gruvbox.nvim',
   { src = gh 'saghen/blink.cmp', version = vim.version.range '1' },
   gh 'saghen/blink.pairs',
-  gh 'rafamadriz/friendly-snippets',
-  gh 'tpope/vim-dadbod',
-  gh 'kristijanhusak/vim-dadbod-ui',
-  gh 'kristijanhusak/vim-dadbod-completion',
   gh 'lewis6991/gitsigns.nvim',
+  gh 'folke/noice.nvim',
+  gh 'rafamadriz/friendly-snippets',
   gh 'seblyng/roslyn.nvim',
 }

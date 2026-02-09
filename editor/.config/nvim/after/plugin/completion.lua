@@ -9,29 +9,4 @@ require('blink.cmp').setup {
   completion = {
     documentation = { auto_show = true },
   },
-  sources = {
-    default = { 'snippets', 'lsp', 'path', 'buffer' },
-    providers = {
-      dadbod = {
-        name = 'Dadbod',
-        module = 'blink.cmp.sources.complete_func',
-        opts = {
-          complete_func = function()
-            if vim.tbl_contains({ 'sql', 'mysql', 'pgsql' }, vim.bo.filetype) then
-              if vim.bo.omnifunc == '' then
-                vim.bo.omnifunc = 'vim_dadbod_completion#omni'
-              end
-              return vim.bo.omnifunc
-            end
-            return nil
-          end,
-        },
-      },
-    },
-    per_filetype = {
-      sql = { 'dadbod', 'snippets', 'lsp', 'buffer' },
-      mysql = { 'dadbod', 'snippets', 'lsp', 'buffer' },
-      pgsql = { 'dadbod', 'snippets', 'lsp', 'buffer' },
-    },
-  },
 }
