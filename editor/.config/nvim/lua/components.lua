@@ -80,7 +80,7 @@ local function main_lsp()
   local ft = vim.bo.filetype
   local expected = M.lsp_map[ft]
   if not expected then
-    return 'nvim '
+    return gray .. 'nvim '
   end
 
   local clients = vim.lsp.get_clients { bufnr = 0 }
@@ -207,25 +207,18 @@ function curr_line_env()
 end
 
 function buf_count_flag()
-  return magenta .. '-' .. #vim.fn.getbufinfo { buflisted = 1 } .. gray
+  return blue .. '-' .. #vim.fn.getbufinfo { buflisted = 1 } .. gray
 end
 
 local function test_buffers_file()
   return gray .. '; [ ' .. buf_count_flag() .. ' ' .. alternate_file() .. ' ] '
 end
 
-local function pipe_macro()
+local function pipe_into_macro()
   local recording = vim.fn.reg_recording()
   if recording ~= '' then
-    return gray .. ' | ' .. green .. recording
+    return gray .. ' | ' .. magenta .. recording
   end
-
-  local last = vim.v.register
-  if last and last:match '^%a$' then
-    return gray .. ' | ' .. gray .. last
-  end
-
-  return ''
 end
 
 function M.statusline()
@@ -234,14 +227,14 @@ function M.statusline()
     cwd(),
     mode_prompt_symbol(),
     main_lsp(),
-    filename(),
     formatter(),
+    filename(),
     error_file(),
     modified_redir(),
     encoding_format_file(),
     test_buffers_file(),
     grep_invocation(),
-    pipe_macro(),
+    pipe_into_macro(),
   }, '')
 end
 
