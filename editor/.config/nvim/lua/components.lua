@@ -39,7 +39,7 @@ end
 local function mode_prompt_symbol()
   local m = vim.fn.mode(true)
   if m:match '^no' then
-    return magenta_bold .. '-o' .. normal .. ' '
+    return magenta_bold .. '#' .. normal .. ' '
   end
   local map = {
     n = { green, '$' },
@@ -47,7 +47,7 @@ local function mode_prompt_symbol()
     v = { blue, 'æ' },
     V = { blue, 'Æ' },
     ['\22'] = { blue, 'ß' },
-    c = { green, '#' },
+    c = { green, '$' },
   }
   local mode = map[m] or { yellow, '?' }
   return mode[1] .. mode[2] .. normal .. ' '
