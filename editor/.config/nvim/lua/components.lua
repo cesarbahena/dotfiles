@@ -35,6 +35,7 @@ function M.cmd_prompt()
 
   if #parts <= 1 then
     table.insert(result, { text = path, hl = hl.gray })
+    table.insert(result, { text = ' $', hl = hl.green })
     return result
   end
 
@@ -43,6 +44,21 @@ function M.cmd_prompt()
     table.insert(result, { text = '/', hl = hl.gray })
   end
   table.insert(result, { text = parts[#parts], hl = "Normal" })
+  table.insert(result, { text = ' $', hl = hl.green })
+  return result
+end
+
+function M.search_prompt()
+  local result = M.cmd_prompt()
+  local cmd = vim.fn.executable 'rg' == 1 and 'rg' or 'grep'
+  table.insert(result, { text = ' ' .. cmd, hl = hl.gray })
+  return result
+end
+
+function M.reverse_search_prompt()
+  local result = M.cmd_prompt()
+  local cmd = vim.fn.executable 'rg' == 1 and 'rg' or 'grep'
+  table.insert(result, { text = ' ' .. cmd .. ' -r', hl = hl.gray })
   return result
 end
 

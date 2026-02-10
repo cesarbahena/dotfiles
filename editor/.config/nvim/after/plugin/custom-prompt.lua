@@ -110,14 +110,14 @@ end
 
 function M.test_prompt()
   local parts = components.cmd_prompt()
-  local cwd_text = ""
-  for _, p in ipairs(parts) do
-    cwd_text = cwd_text .. p.text
-  end
 
-  local prompt_text = cwd_text .. " $ "
+  local prompt_text = ""
+  for _, p in ipairs(parts) do
+    prompt_text = prompt_text .. p.text
+  end
+  prompt_text = prompt_text .. " "
+
   local prompt_prefix = prompt_text
-  local cwd_len = #cwd_text
 
   return M.prompt({
     prompt_prefix = prompt_prefix,
@@ -132,13 +132,72 @@ function M.test_prompt()
         vim.api.nvim_buf_add_highlight(bufnr, ns, p.hl, 0, col, end_col)
         col = end_col
       end
-      vim.api.nvim_buf_add_highlight(bufnr, ns, hl.green, 0, cwd_len, cwd_len + 3)
+    end,
+  })
+end
+
+function M.test_search_prompt()
+  local parts = components.search_prompt()
+
+  local prompt_text = ""
+  for _, p in ipairs(parts) do
+    prompt_text = prompt_text .. p.text
+  end
+  prompt_text = prompt_text .. " "
+
+  return M.prompt({
+    prompt_prefix = prompt_text,
+    on_submit = function(text)
+      print("Submitted: " .. text)
+    end,
+    render = function(bufnr)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { prompt_text })
+      local col = 0
+      for _, p in ipairs(parts) do
+        local end_col = col + #p.text
+        vim.api.nvim_buf_add_highlight(bufnr, ns, p.hl, 0, col, end_col)
+        col = end_col
+      end
+    end,
+  })
+end
+
+function M.test_reverse_search_prompt()
+  local parts = components.reverse_search_prompt()
+
+  local prompt_text = ""
+  for _, p in ipairs(parts) do
+    prompt_text = prompt_text .. p.text
+  end
+  prompt_text = prompt_text .. " "
+
+  return M.prompt({
+    prompt_prefix = prompt_text,
+    on_submit = function(text)
+      print("Submitted: " .. text)
+    end,
+    render = function(bufnr)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { prompt_text })
+      local col = 0
+      for _, p in ipairs(parts) do
+        local end_col = col + #p.text
+        vim.api.nvim_buf_add_highlight(bufnr, ns, p.hl, 0, col, end_col)
+        col = end_col
+      end
     end,
   })
 end
 
 vim.api.nvim_create_user_command("TestPrompt", function()
   M.test_prompt()
+end, {})
+
+vim.api.nvim_create_user_command("TestSearchPrompt", function()
+  M.test_search_prompt()
+end, {})
+
+vim.api.nvim_create_user_command("TestReverseSearchPrompt", function()
+  M.test_reverse_search_prompt()
 end, {})
 
 return M
