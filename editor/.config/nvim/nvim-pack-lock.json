@@ -13,6 +13,10 @@
       "rev": "c2526f1cde528a66e086ab1668e996d162c75f4f",
       "src": "https://github.com/stevearc/conform.nvim"
     },
+    "fine-cmdline.nvim": {
+      "rev": "7db181d1cb294581b12a036eadffffde762a118f",
+      "src": "https://github.com/VonHeikemen/fine-cmdline.nvim"
+    },
     "friendly-snippets": {
       "rev": "6cd7280adead7f586db6fccbd15d2cac7e2188b9",
       "src": "https://github.com/rafamadriz/friendly-snippets"
