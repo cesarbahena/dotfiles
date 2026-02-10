@@ -121,11 +121,9 @@ function M.open_prompt(prefix)
     if prefix == ';' then
       vim.cmd(query)
     elseif prefix == '/' then
-      local search_query = query:gsub('^rg ', ''):gsub('^grep ', '')
-      vim.cmd('/' .. search_query)
+      vim.cmd('/' .. query)
     elseif prefix == '?' then
-      local search_query = query:gsub('^rg%-r ', ''):gsub('^grep%-r ', '')
-      vim.cmd('?' .. search_query)
+      vim.cmd('?' .. query)
     end
     vim.cmd('stopinsert')
   end

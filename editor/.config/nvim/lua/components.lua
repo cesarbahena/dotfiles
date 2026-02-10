@@ -43,7 +43,7 @@ function M.cmd_prompt()
     table.insert(result, { text = parts[i], hl = hl.gray })
     table.insert(result, { text = '/', hl = hl.gray })
   end
-  table.insert(result, { text = parts[#parts], hl = "Normal" })
+  table.insert(result, { text = parts[#parts], hl = 'Normal' })
   table.insert(result, { text = ' $', hl = hl.green })
   return result
 end
