@@ -118,14 +118,19 @@ function M.open_prompt(prefix)
   prompt_text = prompt_text .. " "
 
   local function execute(query)
-    if prefix == ';' then
-      vim.cmd(query)
-    elseif prefix == '/' then
-      vim.cmd('/' .. query)
-    elseif prefix == '?' then
-      vim.cmd('?' .. query)
-    end
+    local ok, err = pcall(function()
+      if prefix == ';' then
+        vim.cmd(query)
+      elseif prefix == '/' then
+        vim.cmd('/' .. query)
+      elseif prefix == '?' then
+        vim.cmd('?' .. query)
+      end
+    end)
     vim.cmd('stopinsert')
+    if not ok and err then
+      vim.notify(err, vim.log.levels.ERROR)
+    end
   end
 
   return M.prompt({
@@ -178,5 +183,17 @@ end, {})
 vim.api.nvim_create_user_command("ReverseSearchLine", function()
   M.open_prompt('?')
 end, {})
+
+vim.keymap.set('n', ';', function()
+  M.open_prompt(';')
+end, { silent = true })
+
+vim.keymap.set('n', '/', function()
+  M.open_prompt('/')
+end, { silent = true })
+
+vim.keymap.set('n', '?', function()
+  M.open_prompt('?')
+end, { silent = true })
 
 return M
