@@ -108,8 +108,8 @@ function M.prompt(opts)
   return prompt
 end
 
-function M.test_prompt()
-  local parts = components.cmd_prompt()
+function M.open_prompt(prefix)
+  local parts = components.prompt_parts(prefix)
 
   local prompt_text = ""
   for _, p in ipairs(parts) do
@@ -117,13 +117,22 @@ function M.test_prompt()
   end
   prompt_text = prompt_text .. " "
 
-  local prompt_prefix = prompt_text
+  local function execute(query)
+    if prefix == ';' then
+      vim.cmd(query)
+    elseif prefix == '/' then
+      local search_query = query:gsub('^rg ', ''):gsub('^grep ', '')
+      vim.cmd('/' .. search_query)
+    elseif prefix == '?' then
+      local search_query = query:gsub('^rg%-r ', ''):gsub('^grep%-r ', '')
+      vim.cmd('?' .. search_query)
+    end
+    vim.cmd('stopinsert')
+  end
 
   return M.prompt({
-    prompt_prefix = prompt_prefix,
-    on_submit = function(text)
-      print("Submitted: " .. text)
-    end,
+    prompt_prefix = prompt_text,
+    on_submit = execute,
     render = function(bufnr)
       vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { prompt_text })
       local col = 0
@@ -134,70 +143,42 @@ function M.test_prompt()
       end
     end,
   })
+end
+
+function M.test_prompt()
+  return M.open_prompt(';')
 end
 
 function M.test_search_prompt()
-  local parts = components.search_prompt()
-
-  local prompt_text = ""
-  for _, p in ipairs(parts) do
-    prompt_text = prompt_text .. p.text
-  end
-  prompt_text = prompt_text .. " "
-
-  return M.prompt({
-    prompt_prefix = prompt_text,
-    on_submit = function(text)
-      print("Submitted: " .. text)
-    end,
-    render = function(bufnr)
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { prompt_text })
-      local col = 0
-      for _, p in ipairs(parts) do
-        local end_col = col + #p.text
-        vim.api.nvim_buf_add_highlight(bufnr, ns, p.hl, 0, col, end_col)
-        col = end_col
-      end
-    end,
-  })
+  return M.open_prompt('/')
 end
 
 function M.test_reverse_search_prompt()
-  local parts = components.reverse_search_prompt()
-
-  local prompt_text = ""
-  for _, p in ipairs(parts) do
-    prompt_text = prompt_text .. p.text
-  end
-  prompt_text = prompt_text .. " "
-
-  return M.prompt({
-    prompt_prefix = prompt_text,
-    on_submit = function(text)
-      print("Submitted: " .. text)
-    end,
-    render = function(bufnr)
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { prompt_text })
-      local col = 0
-      for _, p in ipairs(parts) do
-        local end_col = col + #p.text
-        vim.api.nvim_buf_add_highlight(bufnr, ns, p.hl, 0, col, end_col)
-        col = end_col
-      end
-    end,
-  })
+  return M.open_prompt('?')
 end
 
 vim.api.nvim_create_user_command("TestPrompt", function()
-  M.test_prompt()
+  M.open_prompt(';')
 end, {})
 
 vim.api.nvim_create_user_command("TestSearchPrompt", function()
-  M.test_search_prompt()
+  M.open_prompt('/')
 end, {})
 
 vim.api.nvim_create_user_command("TestReverseSearchPrompt", function()
-  M.test_reverse_search_prompt()
+  M.open_prompt('?')
+end, {})
+
+vim.api.nvim_create_user_command("CmdLine", function()
+  M.open_prompt(';')
+end, {})
+
+vim.api.nvim_create_user_command("SearchLine", function()
+  M.open_prompt('/')
+end, {})
+
+vim.api.nvim_create_user_command("ReverseSearchLine", function()
+  M.open_prompt('?')
 end, {})
 
 return M

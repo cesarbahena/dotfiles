@@ -1,5 +1,5 @@
-require('noice').setup {
-  presets = {
-    bottom_search = true,
-  },
-}
+-- require('noice').setup {
+--   presets = {
+--     bottom_search = true,
+--   },
+-- }

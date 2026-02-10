@@ -62,6 +62,28 @@ function M.reverse_search_prompt()
   return result
 end
 
+function M.prompt_parts(prefix)
+  if prefix == ';' then
+    return M.cmd_prompt()
+  elseif prefix == '/' then
+    return M.search_prompt()
+  elseif prefix == '?' then
+    return M.reverse_search_prompt()
+  end
+  return M.cmd_prompt()
+end
+
+function M.execute_search(prefix, query)
+  local cmd = vim.fn.executable 'rg' == 1 and 'rg' or 'grep'
+  if prefix == ';' then
+    vim.cmd('vimgrep /' .. query .. '/g %')
+  elseif prefix == '/' then
+    vim.cmd('vimgrep /' .. query .. '/g **/*')
+  elseif prefix == '?' then
+    vim.cmd('vimgrep /' .. query .. '/rg **/*')
+  end
+end
+
 local function cwd()
   return M.cwd() .. ' '
 end
