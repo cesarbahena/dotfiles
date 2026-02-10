@@ -100,12 +100,24 @@ function M.prompt(opts)
 end
 
 function M.test_prompt()
+  local cwd = vim.fn.getcwd()
+  local home = vim.env.HOME
+  if cwd:sub(1, #home) == home then
+    cwd = "~" .. cwd:sub(#home + 1)
+  end
+
+  local prompt_text = cwd .. " $ "
+
+  local ns = vim.api.nvim_create_namespace("custom-prompt")
+
   return M.prompt({
     on_submit = function(text)
       print("Submitted: " .. text)
     end,
     render = function(bufnr)
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "> test " })
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { prompt_text })
+      vim.api.nvim_buf_add_highlight(bufnr, ns, "Comment", 0, 0, #cwd)
+      vim.api.nvim_buf_add_highlight(bufnr, ns, "String", 0, #cwd, #prompt_text)
     end,
   })
 end
