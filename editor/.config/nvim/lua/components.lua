@@ -17,23 +17,33 @@ local magenta_bold = '%#' .. hl.magenta_bold .. '#'
 local white = '%#' .. hl.white .. '#'
 local normal = '%#Normal#'
 
-local function cwd()
+function M.cwd()
   local path = vim.fn.getcwd()
   local home = vim.env.HOME
   if path:sub(1, #home) == home then
     path = '~' .. path:sub(#home + 1)
   end
+  return path
+end
+
+function M.prompt_cwd_parts()
+  local path = M.cwd()
   local parts = vim.split(path, '/')
   if #parts <= 1 then
-    return path .. ' '
+    return { { text = path, hl = hl.gray } }
   end
 
   local result = {}
   for i = 1, #parts - 1 do
-    table.insert(result, gray .. parts[i])
+    table.insert(result, { text = parts[i], hl = hl.gray })
+    table.insert(result, { text = '/', hl = hl.gray })
   end
-  table.insert(result, normal .. parts[#parts])
-  return table.concat(result, '/') .. ' '
+  table.insert(result, { text = parts[#parts], hl = "Normal" })
+  return result
+end
+
+local function cwd()
+  return M.cwd() .. ' '
 end
 
 local function mode_prompt_symbol()

@@ -2,6 +2,10 @@ local M = {}
 
 local Popup = require("nui.popup")
 local Object = require("nui.object")
+local components = require("components")
+local hl = require("hl_groups")
+
+local ns = vim.api.nvim_create_namespace("custom-prompt")
 
 local Prompt = Object("Prompt")
 
@@ -71,8 +75,13 @@ function Prompt:show(render_fn)
     callback = function()
       local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
       self:hide()
+      local text = lines[1] or ""
+      local prefix = self.opts.prompt_prefix or ""
+      if prefix ~= "" and text:sub(1, #prefix) == prefix then
+        text = text:sub(#prefix + 1)
+      end
       if self.opts.on_submit then
-        self.opts.on_submit(lines[1] or "")
+        self.opts.on_submit(text)
       end
     end,
     noremap = true,
@@ -100,24 +109,30 @@ function M.prompt(opts)
 end
 
 function M.test_prompt()
-  local cwd = vim.fn.getcwd()
-  local home = vim.env.HOME
-  if cwd:sub(1, #home) == home then
-    cwd = "~" .. cwd:sub(#home + 1)
+  local parts = components.prompt_cwd_parts()
+  local cwd_text = ""
+  for _, p in ipairs(parts) do
+    cwd_text = cwd_text .. p.text
   end
 
-  local prompt_text = cwd .. " $ "
-
-  local ns = vim.api.nvim_create_namespace("custom-prompt")
+  local prompt_text = cwd_text .. " $ "
+  local prompt_prefix = prompt_text
+  local cwd_len = #cwd_text
 
   return M.prompt({
+    prompt_prefix = prompt_prefix,
     on_submit = function(text)
       print("Submitted: " .. text)
     end,
     render = function(bufnr)
       vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { prompt_text })
-      vim.api.nvim_buf_add_highlight(bufnr, ns, "Comment", 0, 0, #cwd)
-      vim.api.nvim_buf_add_highlight(bufnr, ns, "String", 0, #cwd, #prompt_text)
+      local col = 0
+      for _, p in ipairs(parts) do
+        local end_col = col + #p.text
+        vim.api.nvim_buf_add_highlight(bufnr, ns, p.hl, 0, col, end_col)
+        col = end_col
+      end
+      vim.api.nvim_buf_add_highlight(bufnr, ns, hl.green, 0, cwd_len, cwd_len + 3)
     end,
   })
 end
