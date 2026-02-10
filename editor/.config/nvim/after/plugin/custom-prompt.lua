@@ -71,6 +71,40 @@ function Prompt:show(render_fn)
     silent = true,
   })
 
+  vim.api.nvim_buf_set_keymap(self._nui.bufnr, "i", "<C-s>", "", {
+    callback = function()
+      local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
+      self:hide()
+      local text = lines[1] or ""
+      local prefix = self.opts.prompt_prefix or ""
+      if prefix ~= "" and text:sub(1, #prefix) == prefix then
+        text = text:sub(#prefix + 1)
+      end
+      if self.opts.on_submit then
+        self.opts.on_submit(text)
+      end
+    end,
+    noremap = true,
+    silent = true,
+  })
+
+  vim.api.nvim_buf_set_keymap(self._nui.bufnr, "i", ";", "", {
+    callback = function()
+      local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
+      self:hide()
+      local text = lines[1] or ""
+      local prefix = self.opts.prompt_prefix or ""
+      if prefix ~= "" and text:sub(1, #prefix) == prefix then
+        text = text:sub(#prefix + 1)
+      end
+      if self.opts.on_submit then
+        self.opts.on_submit(text)
+      end
+    end,
+    noremap = true,
+    silent = true,
+  })
+
   vim.api.nvim_buf_set_keymap(self._nui.bufnr, "i", "<CR>", "", {
     callback = function()
       local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
