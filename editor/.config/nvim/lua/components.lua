@@ -26,14 +26,18 @@ function M.cwd()
   return path
 end
 
-function M.prompt_cwd_parts()
+function M.cmd_prompt()
   local path = M.cwd()
   local parts = vim.split(path, '/')
-  if #parts <= 1 then
-    return { { text = path, hl = hl.gray } }
-  end
 
   local result = {}
+  table.insert(result, { text = '(' .. vim.fn.line '$' .. ') ', hl = hl.gray })
+
+  if #parts <= 1 then
+    table.insert(result, { text = path, hl = hl.gray })
+    return result
+  end
+
   for i = 1, #parts - 1 do
     table.insert(result, { text = parts[i], hl = hl.gray })
     table.insert(result, { text = '/', hl = hl.gray })

@@ -109,7 +109,7 @@ function M.prompt(opts)
 end
 
 function M.test_prompt()
-  local parts = components.prompt_cwd_parts()
+  local parts = components.cmd_prompt()
   local cwd_text = ""
   for _, p in ipairs(parts) do
     cwd_text = cwd_text .. p.text
