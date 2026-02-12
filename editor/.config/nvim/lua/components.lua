@@ -48,7 +48,7 @@ function M.cmd_prompt()
   local parts = vim.split(path, '/')
 
   local result = {}
-  table.insert(result, { text = '(' .. line_count .. ') ', hl = hl.gray })
+  table.insert(result, { text = '(' .. line_count .. ')  ', hl = hl.gray })
 
   if #parts <= 1 then
     table.insert(result, { text = path, hl = hl.gray })

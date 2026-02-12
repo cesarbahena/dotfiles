@@ -3,13 +3,6 @@ local M = {}
 local Popup = require 'nui.popup'
 local Object = require 'nui.object'
 local components = require 'components'
-local hl = require 'hl_groups'
-
-local ns = vim.api.nvim_create_namespace 'custom-prompt'
-
-local function strip_hl(s)
-  return (s:gsub('%%#%S+#', ''))
-end
 
 local function calc_width(parts)
   local width = 0
