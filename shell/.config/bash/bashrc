@@ -101,6 +101,7 @@ __prompt_command() {
       2)   prompt='€'  ;; # Misuse of shell builtins
       3)   prompt='Æ'  ;; # Page not found
       16)  prompt='M'  ;; # No manual entry found
+      35)  prompt='Š'  ;; # SSL failure
       64)  prompt='¿'  ;; # Usage
       65)  prompt='%'  ;; # Format
       66)  prompt='«'  ;; # No input
