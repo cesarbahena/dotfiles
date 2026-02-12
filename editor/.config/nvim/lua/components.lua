@@ -2,6 +2,9 @@ local M = {}
 local config = require 'config'
 local hl = require 'hl_groups'
 
+M.total_lines_cache = {}
+M.ignored_filetypes = { 'custom-prompt' }
+
 local gray = '%#' .. hl.gray .. '#'
 local bold = '%#' .. hl.bold .. '#'
 local green = '%#' .. hl.green .. '#'
@@ -17,6 +20,18 @@ local magenta_bold = '%#' .. hl.magenta_bold .. '#'
 local white = '%#' .. hl.white .. '#'
 local normal = '%#Normal#'
 
+function M.update_total_lines(bufnr)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    M.total_lines_cache[bufnr] = nil
+    return
+  end
+  local ft = vim.bo[bufnr].filetype
+  if vim.tbl_contains(M.ignored_filetypes, ft) then return end
+  local buftype = vim.bo[bufnr].buftype
+  if buftype ~= '' then return end
+  M.total_lines_cache[bufnr] = vim.api.nvim_buf_line_count(bufnr)
+end
+
 function M.cwd()
   local path = vim.fn.getcwd()
   local home = vim.env.HOME
@@ -27,11 +42,13 @@ function M.cwd()
 end
 
 function M.cmd_prompt()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local line_count = M.total_lines_cache[bufnr] or vim.api.nvim_buf_line_count(bufnr)
   local path = M.cwd()
   local parts = vim.split(path, '/')
 
   local result = {}
-  table.insert(result, { text = '(' .. vim.fn.line '$' .. ') ', hl = hl.gray })
+  table.insert(result, { text = '(' .. line_count .. ') ', hl = hl.gray })
 
   if #parts <= 1 then
     table.insert(result, { text = path, hl = hl.gray })
@@ -71,17 +88,6 @@ function M.prompt_parts(prefix)
     return M.reverse_search_prompt()
   end
   return M.cmd_prompt()
-end
-
-function M.execute_search(prefix, query)
-  local cmd = vim.fn.executable 'rg' == 1 and 'rg' or 'grep'
-  if prefix == ';' then
-    vim.cmd('vimgrep /' .. query .. '/g %')
-  elseif prefix == '/' then
-    vim.cmd('vimgrep /' .. query .. '/g **/*')
-  elseif prefix == '?' then
-    vim.cmd('vimgrep /' .. query .. '/rg **/*')
-  end
 end
 
 local function cwd()
@@ -251,7 +257,17 @@ local function alternate_file()
 end
 
 function total_lines_env()
-  return gray .. '(' .. vim.fn.line '$' .. ') '
+  local ft = vim.bo.filetype
+  if vim.tbl_contains(M.ignored_filetypes, ft) then
+    local cached = M.total_lines_cache[0]  -- 0 = current buffer
+    if cached then
+      return gray .. '(' .. cached .. ') '
+    end
+  end
+  M.update_total_lines(0)
+  local count = vim.api.nvim_buf_line_count(0)
+  M.total_lines_cache[0] = count
+  return gray .. '(' .. count .. ') '
 end
 
 function buf_count_flag()

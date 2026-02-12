@@ -7,6 +7,22 @@ local hl = require 'hl_groups'
 
 local ns = vim.api.nvim_create_namespace 'custom-prompt'
 
+local function strip_hl(s)
+  return (s:gsub('%%#%S+#', ''))
+end
+
+local function calc_width(parts)
+  local width = 0
+  for _, p in ipairs(parts) do
+    width = width + vim.fn.strdisplaywidth(p.text)
+  end
+  return width
+end
+
+vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter', 'BufNew', 'BufDelete', 'BufModifiedSet' }, {
+  callback = function(ev) components.update_total_lines(ev.buf) end
+})
+
 local Prompt = Object 'Prompt'
 
 function Prompt:init(opts)
@@ -20,10 +36,10 @@ function Prompt:create()
     relative = 'editor',
     position = {
       row = '100%',
-      col = self.opts.col or 0,
+      col = 0,
     },
     size = {
-      width = (self.opts.width or vim.o.columns) - (self.opts.col or 0),
+      width = vim.o.columns,
       height = 1,
     },
     border = {
@@ -41,11 +57,27 @@ function Prompt:create()
 end
 
 function Prompt:show()
+  local bufnr = vim.api.nvim_get_current_buf()
+  components.update_total_lines(bufnr)
+
   if not self._nui then
     self:create()
   end
 
   self._nui:mount()
+
+  local parts = self.opts.parts_fn()
+  local col = calc_width(parts)
+  self._nui:update_layout {
+    position = {
+      row = '100%',
+      col = col,
+    },
+    size = {
+      width = vim.o.columns - col,
+      height = 1,
+    },
+  }
 
   self._nui:show()
   self._visible = true
@@ -90,10 +122,6 @@ function Prompt:execute()
   local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
   self:hide()
   local text = lines[1] or ''
-  local prefix = self.opts.prompt_prefix or ''
-  if prefix ~= '' and text:sub(1, #prefix) == prefix then
-    text = text:sub(#prefix + 1)
-  end
   if self.opts.on_submit then
     self.opts.on_submit(text)
   end
@@ -118,16 +146,7 @@ function M.prompt(opts)
   return prompt
 end
 
-local function calc_width()
-  local line_count = '(' .. vim.fn.line '$' .. ') '
-  local path = components.cwd():gsub(' $', '')
-  local prompt = line_count .. path .. ' $ '
-  return vim.fn.strdisplaywidth(prompt)
-end
-
 function M.open_prompt(prefix)
-  local col = calc_width()
-
   local function execute(query)
     local ok, err = pcall(function()
       if prefix == ';' then
@@ -148,8 +167,12 @@ function M.open_prompt(prefix)
     end
   end
 
+  local parts_fn = function()
+    return components.prompt_parts(prefix)
+  end
+
   return M.prompt {
-    col = col,
+    parts_fn = parts_fn,
     on_submit = execute,
   }
 end
