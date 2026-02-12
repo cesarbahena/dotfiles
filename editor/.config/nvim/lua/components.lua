@@ -99,9 +99,11 @@ local function mode_prompt_symbol()
   if m:match '^no' then
     return magenta_bold .. '#' .. normal .. ' '
   end
+  local ft = vim.bo.filetype
+  local is_custom_prompt = vim.tbl_contains(M.ignored_filetypes, ft)
   local map = {
     n = { green, '$' },
-    i = { yellow, '&' },
+    i = { is_custom_prompt and green or yellow, is_custom_prompt and '$' or '&' },
     v = { blue, 'æ' },
     V = { blue, 'Æ' },
     ['\22'] = { blue, 'ß' },
