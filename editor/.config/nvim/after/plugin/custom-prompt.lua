@@ -1,13 +1,13 @@
 local M = {}
 
-local Popup = require("nui.popup")
-local Object = require("nui.object")
-local components = require("components")
-local hl = require("hl_groups")
+local Popup = require 'nui.popup'
+local Object = require 'nui.object'
+local components = require 'components'
+local hl = require 'hl_groups'
 
-local ns = vim.api.nvim_create_namespace("custom-prompt")
+local ns = vim.api.nvim_create_namespace 'custom-prompt'
 
-local Prompt = Object("Prompt")
+local Prompt = Object 'Prompt'
 
 function Prompt:init(opts)
   self.opts = opts or {}
@@ -16,11 +16,10 @@ function Prompt:init(opts)
 end
 
 function Prompt:create()
-  local opts = self.opts
-  self._nui = Popup({
-    relative = "editor",
+  self._nui = Popup {
+    relative = 'editor',
     position = {
-      row = "100%",
+      row = '100%',
       col = 0,
     },
     size = {
@@ -28,17 +27,17 @@ function Prompt:create()
       height = 1,
     },
     border = {
-      style = "none",
+      style = 'none',
     },
     win_options = {
-      winhighlight = "Normal:Normal,IncSearch:,CurSearch:,Search:",
+      winhighlight = 'Normal:Normal,IncSearch:,CurSearch:,Search:',
     },
     buf_options = {
-      buftype = "nofile",
-      filetype = "custom-prompt",
+      buftype = 'nofile',
+      filetype = 'custom-prompt',
       modifiable = true,
     },
-  })
+  }
 end
 
 function Prompt:show(render_fn)
@@ -51,19 +50,18 @@ function Prompt:show(render_fn)
   if render_fn then
     render_fn(self._nui.bufnr)
   else
-    vim.api.nvim_buf_set_lines(self._nui.bufnr, 0, -1, false, { "" })
+    vim.api.nvim_buf_set_lines(self._nui.bufnr, 0, -1, false, { '' })
   end
 
   self._nui:show()
   self._visible = true
 
   vim.api.nvim_set_current_win(self._nui.winid)
-  vim.cmd("startinsert")
+  vim.cmd 'startinsert'
 
-  local line = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, 1, false)[1]
-  vim.api.nvim_win_set_cursor(self._nui.winid, { 1, #line })
+  vim.api.nvim_win_set_cursor(self._nui.winid, { 1, vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, 1, false)[1]:len() })
 
-  vim.api.nvim_buf_set_keymap(self._nui.bufnr, "i", "<Esc>", "", {
+  vim.api.nvim_buf_set_keymap(self._nui.bufnr, 'i', '<Esc>', '', {
     callback = function()
       self:hide()
     end,
@@ -71,56 +69,42 @@ function Prompt:show(render_fn)
     silent = true,
   })
 
-  vim.api.nvim_buf_set_keymap(self._nui.bufnr, "i", "<C-s>", "", {
+  vim.api.nvim_buf_set_keymap(self._nui.bufnr, 'i', '<C-s>', '', {
     callback = function()
-      local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
-      self:hide()
-      local text = lines[1] or ""
-      local prefix = self.opts.prompt_prefix or ""
-      if prefix ~= "" and text:sub(1, #prefix) == prefix then
-        text = text:sub(#prefix + 1)
-      end
-      if self.opts.on_submit then
-        self.opts.on_submit(text)
-      end
+      self:execute()
     end,
     noremap = true,
     silent = true,
   })
 
-  vim.api.nvim_buf_set_keymap(self._nui.bufnr, "i", ";", "", {
+  vim.api.nvim_buf_set_keymap(self._nui.bufnr, 'i', ';', '', {
     callback = function()
-      local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
-      self:hide()
-      local text = lines[1] or ""
-      local prefix = self.opts.prompt_prefix or ""
-      if prefix ~= "" and text:sub(1, #prefix) == prefix then
-        text = text:sub(#prefix + 1)
-      end
-      if self.opts.on_submit then
-        self.opts.on_submit(text)
-      end
+      self:execute()
     end,
     noremap = true,
     silent = true,
   })
 
-  vim.api.nvim_buf_set_keymap(self._nui.bufnr, "i", "<CR>", "", {
+  vim.api.nvim_buf_set_keymap(self._nui.bufnr, 'i', '<CR>', '', {
     callback = function()
-      local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
-      self:hide()
-      local text = lines[1] or ""
-      local prefix = self.opts.prompt_prefix or ""
-      if prefix ~= "" and text:sub(1, #prefix) == prefix then
-        text = text:sub(#prefix + 1)
-      end
-      if self.opts.on_submit then
-        self.opts.on_submit(text)
-      end
+      self:execute()
     end,
     noremap = true,
     silent = true,
   })
+end
+
+function Prompt:execute()
+  local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
+  self:hide()
+  local text = lines[1] or ''
+  local prefix = self.opts.prompt_prefix or ''
+  if prefix ~= '' and text:sub(1, #prefix) == prefix then
+    text = text:sub(#prefix + 1)
+  end
+  if self.opts.on_submit then
+    self.opts.on_submit(text)
+  end
 end
 
 function Prompt:hide()
@@ -145,29 +129,33 @@ end
 function M.open_prompt(prefix)
   local parts = components.prompt_parts(prefix)
 
-  local prompt_text = ""
+  local prompt_text = ''
   for _, p in ipairs(parts) do
     prompt_text = prompt_text .. p.text
   end
-  prompt_text = prompt_text .. " "
+  prompt_text = prompt_text .. ' '
 
   local function execute(query)
     local ok, err = pcall(function()
       if prefix == ';' then
-        vim.cmd(query)
+        vim.cmd('keepjumps noautocmd ' .. query)
+        vim.cmd 'redraw'
+        vim.cmd 'stopinsert'
       elseif prefix == '/' then
-        vim.cmd('/' .. query)
+        vim.cmd('keepjumps noautocmd /' .. query)
+        vim.cmd 'stopinsert'
       elseif prefix == '?' then
-        vim.cmd('?' .. query)
+        vim.cmd('keepjumps noautocmd ?' .. query)
+        vim.cmd 'stopinsert'
       end
     end)
-    vim.cmd('stopinsert')
     if not ok and err then
+      vim.cmd 'stopinsert'
       vim.notify(err, vim.log.levels.ERROR)
     end
   end
 
-  return M.prompt({
+  return M.prompt {
     prompt_prefix = prompt_text,
     on_submit = execute,
     render = function(bufnr)
@@ -179,55 +167,31 @@ function M.open_prompt(prefix)
         col = end_col
       end
     end,
-  })
+  }
 end
 
-function M.test_prompt()
-  return M.open_prompt(';')
-end
-
-function M.test_search_prompt()
-  return M.open_prompt('/')
-end
-
-function M.test_reverse_search_prompt()
-  return M.open_prompt('?')
-end
-
-vim.api.nvim_create_user_command("TestPrompt", function()
-  M.open_prompt(';')
+vim.api.nvim_create_user_command('CmdLine', function()
+  M.open_prompt ';'
 end, {})
 
-vim.api.nvim_create_user_command("TestSearchPrompt", function()
-  M.open_prompt('/')
+vim.api.nvim_create_user_command('SearchLine', function()
+  M.open_prompt '/'
 end, {})
 
-vim.api.nvim_create_user_command("TestReverseSearchPrompt", function()
-  M.open_prompt('?')
-end, {})
-
-vim.api.nvim_create_user_command("CmdLine", function()
-  M.open_prompt(';')
-end, {})
-
-vim.api.nvim_create_user_command("SearchLine", function()
-  M.open_prompt('/')
-end, {})
-
-vim.api.nvim_create_user_command("ReverseSearchLine", function()
-  M.open_prompt('?')
+vim.api.nvim_create_user_command('ReverseSearchLine', function()
+  M.open_prompt '?'
 end, {})
 
 vim.keymap.set('n', ';', function()
-  M.open_prompt(';')
+  M.open_prompt ';'
 end, { silent = true })
 
 vim.keymap.set('n', '/', function()
-  M.open_prompt('/')
+  M.open_prompt '/'
 end, { silent = true })
 
 vim.keymap.set('n', '?', function()
-  M.open_prompt('?')
+  M.open_prompt '?'
 end, { silent = true })
 
 return M
