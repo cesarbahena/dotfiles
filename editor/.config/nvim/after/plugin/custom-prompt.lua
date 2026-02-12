@@ -20,10 +20,10 @@ function Prompt:create()
     relative = 'editor',
     position = {
       row = '100%',
-      col = 0,
+      col = self.opts.col or 0,
     },
     size = {
-      width = vim.o.columns,
+      width = (self.opts.width or vim.o.columns) - (self.opts.col or 0),
       height = 1,
     },
     border = {
@@ -40,26 +40,18 @@ function Prompt:create()
   }
 end
 
-function Prompt:show(render_fn)
+function Prompt:show()
   if not self._nui then
     self:create()
   end
 
   self._nui:mount()
 
-  if render_fn then
-    render_fn(self._nui.bufnr)
-  else
-    vim.api.nvim_buf_set_lines(self._nui.bufnr, 0, -1, false, { '' })
-  end
-
   self._nui:show()
   self._visible = true
 
   vim.api.nvim_set_current_win(self._nui.winid)
   vim.cmd 'startinsert'
-
-  vim.api.nvim_win_set_cursor(self._nui.winid, { 1, vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, 1, false)[1]:len() })
 
   vim.api.nvim_buf_set_keymap(self._nui.bufnr, 'i', '<Esc>', '', {
     callback = function()
@@ -122,18 +114,19 @@ function M.prompt(opts)
   opts = opts or {}
   local prompt = Prompt()
   prompt:init(opts)
-  prompt:show(opts.render)
+  prompt:show()
   return prompt
 end
 
-function M.open_prompt(prefix)
-  local parts = components.prompt_parts(prefix)
+local function calc_width()
+  local line_count = '(' .. vim.fn.line '$' .. ') '
+  local path = components.cwd():gsub(' $', '')
+  local prompt = line_count .. path .. ' $ '
+  return vim.fn.strdisplaywidth(prompt)
+end
 
-  local prompt_text = ''
-  for _, p in ipairs(parts) do
-    prompt_text = prompt_text .. p.text
-  end
-  prompt_text = prompt_text .. ' '
+function M.open_prompt(prefix)
+  local col = calc_width()
 
   local function execute(query)
     local ok, err = pcall(function()
@@ -156,17 +149,8 @@ function M.open_prompt(prefix)
   end
 
   return M.prompt {
-    prompt_prefix = prompt_text,
+    col = col,
     on_submit = execute,
-    render = function(bufnr)
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { prompt_text })
-      local col = 0
-      for _, p in ipairs(parts) do
-        local end_col = col + #p.text
-        vim.api.nvim_buf_add_highlight(bufnr, ns, p.hl, 0, col, end_col)
-        col = end_col
-      end
-    end,
   }
 end
 
