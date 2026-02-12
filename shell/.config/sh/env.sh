@@ -16,3 +16,4 @@ export GNUPGHOME="$XDG_DATA_HOME/gnupg"
 export CONDA_ENVS_PATH="$XDG_DATA_HOME/conda/envs"
 export SDKMAN_DIR="$XDG_DATA_HOME/sdkman"
 export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
+export H='http://localhost'

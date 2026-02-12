@@ -36,6 +36,7 @@
       "git push*": "deny",
       "git status*": "allow",
       "git log*": "allow",
+      "git diff*": "allow",
       "git": "ask",
       "npm*": "deny",
       "pnpm*": "allow",
@@ -45,7 +46,7 @@
       "pytest*": "allow",
       "source*": "allow",
       "make*": "allow",
-      "curl*": "deny",
+      "curl*": "allow",
       "docker*": "ask"
     }
   },

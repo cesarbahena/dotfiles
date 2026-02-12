@@ -20,4 +20,3 @@ These bash commands are blocked for you but allowed for subagents:
 | ------------------------------------- | ------------- |
 | git add, git commit                   | git-commiter  |
 | git add, git commit (when backdating) | git-backdater |
-| curl                                  | api-tester    |
