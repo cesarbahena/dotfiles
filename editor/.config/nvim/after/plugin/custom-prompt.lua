@@ -4,25 +4,15 @@ local Popup = require 'nui.popup'
 local Object = require 'nui.object'
 local components = require 'components'
 
-local function calc_cursor_col(prefix)
+local function calc_base_col()
   local line_count = components.total_lines_cache[0] or vim.api.nvim_buf_line_count(0)
   local path = vim.fn.getcwd()
   local home = vim.env.HOME
   if path:sub(1, #home) == home then
     path = '~' .. path:sub(#home + 1)
   end
-  local prompt = '(' .. line_count .. ') ' .. path .. ' $'
-  local col = vim.fn.strdisplaywidth(prompt)
-
-  if prefix == ';' then
-    col = col + 1  -- Just the space after $
-  elseif prefix == '/' then
-    col = col + 1 + 3  -- space + "rg " (3 chars)
-  elseif prefix == '?' then
-    col = col + 1 + 6  -- space + "rg -r " (6 chars)
-  end
-
-  return col
+  local prompt = '(' .. line_count .. ') ' .. path .. ' $ '
+  return vim.fn.strdisplaywidth(prompt)
 end
 
 vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter', 'BufNew', 'BufDelete', 'BufModifiedSet' }, {
@@ -33,19 +23,66 @@ local Prompt = Object 'Prompt'
 
 function Prompt:init(opts)
   self.opts = opts or {}
-  self._nui = nil
+  self._left = nil
+  self._right = nil
   self._visible = false
 end
 
 function Prompt:create()
-  self._nui = Popup {
+  local base_col = calc_base_col()
+  local prefix = self.opts.prefix
+
+  -- Left popup: shows command (rg / rg -r) or nothing
+  if prefix == '/' or prefix == '?' then
+    local cmd_text = prefix == '/' and (vim.fn.executable('rg') == 1 and 'rg ' or 'grep ')
+                                    or (vim.fn.executable('rg') == 1 and 'rg -r ' or 'grep -r ')
+    self._left = Popup {
+      relative = 'editor',
+      position = {
+        row = '100%',
+        col = base_col,
+      },
+      size = {
+        width = vim.fn.strdisplaywidth(cmd_text),
+        height = 1,
+      },
+      border = {
+        style = 'none',
+      },
+      win_options = {
+        winhighlight = 'Normal:MyGray',
+      },
+      buf_options = {
+        buftype = 'nofile',
+        filetype = 'custom-prompt',
+        modifiable = true,
+        readonly = false,
+      },
+    }
+    -- Set the text
+    vim.schedule(function()
+      if self._left and self._left.bufnr then
+        vim.api.nvim_buf_set_lines(self._left.bufnr, 0, -1, false, { cmd_text })
+        vim.bo[self._left.bufnr].modifiable = false
+      end
+    end)
+  end
+
+  -- Right popup: editable input area
+  local right_col = base_col
+  if self._left then
+    right_col = base_col + vim.fn.strdisplaywidth(prefix == '/' and (vim.fn.executable('rg') == 1 and 'rg ' or 'grep ')
+                                                            or (vim.fn.executable('rg') == 1 and 'rg -r ' or 'grep -r '))
+  end
+
+  self._right = Popup {
     relative = 'editor',
     position = {
       row = '100%',
-      col = 0,
+      col = right_col,
     },
     size = {
-      width = vim.o.columns,
+      width = vim.o.columns - right_col,
       height = 1,
     },
     border = {
@@ -66,31 +103,27 @@ function Prompt:show()
   local bufnr = vim.api.nvim_get_current_buf()
   components.update_total_lines(bufnr)
 
-  if not self._nui then
+  if not self._right then
     self:create()
   end
 
-  self._nui:mount()
+  if self._left then
+    self._left:mount()
+  end
+  self._right:mount()
 
-  local col = calc_cursor_col(self.opts.prefix)
-  self._nui:update_layout {
-    position = {
-      row = '100%',
-      col = col,
-    },
-    size = {
-      width = vim.o.columns - col,
-      height = 1,
-    },
-  }
-
-  self._nui:show()
+  if self._left then
+    self._left:show()
+  end
+  self._right:show()
   self._visible = true
 
-  vim.api.nvim_set_current_win(self._nui.winid)
+  -- Focus the right window for typing
+  vim.api.nvim_set_current_win(self._right.winid)
   vim.cmd 'startinsert'
 
-  vim.api.nvim_buf_set_keymap(self._nui.bufnr, 'i', '<Esc>', '', {
+  -- Keymaps for right window
+  vim.api.nvim_buf_set_keymap(self._right.bufnr, 'i', '<Esc>', '', {
     callback = function()
       self:hide()
     end,
@@ -98,7 +131,7 @@ function Prompt:show()
     silent = true,
   })
 
-  vim.api.nvim_buf_set_keymap(self._nui.bufnr, 'i', '<C-s>', '', {
+  vim.api.nvim_buf_set_keymap(self._right.bufnr, 'i', '<C-s>', '', {
     callback = function()
       self:execute()
     end,
@@ -106,7 +139,7 @@ function Prompt:show()
     silent = true,
   })
 
-  vim.api.nvim_buf_set_keymap(self._nui.bufnr, 'i', ';', '', {
+  vim.api.nvim_buf_set_keymap(self._right.bufnr, 'i', ';', '', {
     callback = function()
       self:execute()
     end,
@@ -114,7 +147,7 @@ function Prompt:show()
     silent = true,
   })
 
-  vim.api.nvim_buf_set_keymap(self._nui.bufnr, 'i', '<CR>', '', {
+  vim.api.nvim_buf_set_keymap(self._right.bufnr, 'i', '<CR>', '', {
     callback = function()
       self:execute()
     end,
@@ -124,23 +157,38 @@ function Prompt:show()
 end
 
 function Prompt:execute()
-  local lines = vim.api.nvim_buf_get_lines(self._nui.bufnr, 0, -1, false)
+  local left_text = ''
+  if self._left then
+    local lines = vim.api.nvim_buf_get_lines(self._left.bufnr, 0, -1, false)
+    left_text = lines[1] or ''
+  end
+
+  local right_lines = vim.api.nvim_buf_get_lines(self._right.bufnr, 0, -1, false)
+  local right_text = right_lines[1] or ''
+
   self:hide()
-  local text = lines[1] or ''
+
+  local full_text = left_text .. (left_text ~= '' and ' ' or '') .. right_text
+
   if self.opts.on_submit then
-    self.opts.on_submit(text)
+    self.opts.on_submit(full_text)
   end
 end
 
 function Prompt:hide()
-  if self._nui then
-    self._nui:unmount()
-    self._visible = false
+  if self._left then
+    self._left:unmount()
+    self._left = nil
   end
+  if self._right then
+    self._right:unmount()
+    self._right = nil
+  end
+  self._visible = false
 end
 
 function Prompt:is_visible()
-  return self._visible and self._nui and self._nui.winid and vim.api.nvim_win_is_valid(self._nui.winid)
+  return self._visible
 end
 
 function M.prompt(opts)
@@ -152,8 +200,6 @@ function M.prompt(opts)
 end
 
 function M.open_prompt(prefix)
-  local cmd = vim.fn.executable('rg') == 1 and 'rg' or 'grep'
-
   local function execute(query)
     local ok, err = pcall(function()
       if prefix == ';' then
@@ -161,11 +207,13 @@ function M.open_prompt(prefix)
         vim.cmd 'redraw'
         vim.cmd 'stopinsert'
       elseif prefix == '/' then
-        local search_query = query:gsub('^' .. cmd .. ' ', '')
+        local cmd = vim.fn.executable('rg') == 1 and 'rg ' or 'grep '
+        local search_query = query:gsub('^' .. cmd, '')
         vim.cmd('keepjumps noautocmd /' .. search_query)
         vim.cmd 'stopinsert'
       elseif prefix == '?' then
-        local search_query = query:gsub('^' .. cmd .. '%-r ', '')
+        local cmd = vim.fn.executable('rg') == 1 and 'rg -r ' or 'grep -r '
+        local search_query = query:gsub('^' .. cmd, '')
         vim.cmd('keepjumps noautocmd ?' .. search_query)
         vim.cmd 'stopinsert'
       end
@@ -176,18 +224,9 @@ function M.open_prompt(prefix)
     end
   end
 
-  local function render(bufnr)
-    if prefix == '/' then
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { cmd })
-    elseif prefix == '?' then
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { cmd .. ' -r' })
-    end
-  end
-
   return M.prompt {
     prefix = prefix,
     on_submit = execute,
-    render = render,
   }
 end
 
