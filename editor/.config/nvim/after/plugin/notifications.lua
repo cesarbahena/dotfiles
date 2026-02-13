@@ -1,4 +1,4 @@
-local function calc_cwd_col()
+local function cwd_len()
   local path = vim.fn.getcwd()
   local home = vim.env.HOME
   if path:sub(1, #home) == home then
@@ -23,11 +23,24 @@ require('noice').setup {
     cmdline = {
       position = {
         row = 0,
-        col = calc_cwd_col(),
+        col = cwd_len(),
       },
       size = {
-        width = vim.o.columns - calc_cwd_col(),
+        width = vim.o.columns - cwd_len(),
       },
+    },
+  },
+  presets = {
+    long_message_to_split = true,
+    lsp_doc_border = true,
+  },
+  routes = {
+    {
+      filter = {
+        event = 'msg_show',
+        kind = 'search_count',
+      },
+      opts = { skip = true },
     },
   },
 }
