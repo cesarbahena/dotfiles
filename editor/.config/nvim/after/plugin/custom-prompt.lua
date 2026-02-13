@@ -4,12 +4,23 @@ local Popup = require 'nui.popup'
 local Object = require 'nui.object'
 local components = require 'components'
 
-local function calc_width(parts)
-  local width = 0
-  for _, p in ipairs(parts) do
-    width = width + vim.fn.strdisplaywidth(p.text)
+local function calc_cursor_col(prefix)
+  local line_count = components.total_lines_cache[0] or vim.api.nvim_buf_line_count(0)
+  local path = vim.fn.getcwd()
+  local home = vim.env.HOME
+  if path:sub(1, #home) == home then
+    path = '~' .. path:sub(#home + 1)
   end
-  return width
+  local prompt = '(' .. line_count .. ') ' .. path .. ' $'
+  local col = vim.fn.strdisplaywidth(prompt)
+
+  if prefix == '/' then
+    col = col + 1 + vim.fn.strdisplaywidth(vim.fn.executable('rg') == 1 and 'rg' or 'grep')
+  elseif prefix == '?' then
+    col = col + 1 + vim.fn.strdisplaywidth(vim.fn.executable('rg') == 1 and 'rg -r' or 'grep -r')
+  end
+
+  return col
 end
 
 vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter', 'BufNew', 'BufDelete', 'BufModifiedSet' }, {
@@ -59,8 +70,7 @@ function Prompt:show()
 
   self._nui:mount()
 
-  local parts = self.opts.parts_fn()
-  local col = calc_width(parts)
+  local col = calc_cursor_col(self.opts.prefix)
   self._nui:update_layout {
     position = {
       row = '100%',
@@ -140,6 +150,8 @@ function M.prompt(opts)
 end
 
 function M.open_prompt(prefix)
+  local cmd = vim.fn.executable('rg') == 1 and 'rg' or 'grep'
+
   local function execute(query)
     local ok, err = pcall(function()
       if prefix == ';' then
@@ -147,10 +159,12 @@ function M.open_prompt(prefix)
         vim.cmd 'redraw'
         vim.cmd 'stopinsert'
       elseif prefix == '/' then
-        vim.cmd('keepjumps noautocmd /' .. query)
+        local search_query = query:gsub('^' .. cmd .. ' ', '')
+        vim.cmd('keepjumps noautocmd /' .. search_query)
         vim.cmd 'stopinsert'
       elseif prefix == '?' then
-        vim.cmd('keepjumps noautocmd ?' .. query)
+        local search_query = query:gsub('^' .. cmd .. '%-r ', '')
+        vim.cmd('keepjumps noautocmd ?' .. search_query)
         vim.cmd 'stopinsert'
       end
     end)
@@ -160,13 +174,18 @@ function M.open_prompt(prefix)
     end
   end
 
-  local parts_fn = function()
-    return components.prompt_parts(prefix)
+  local function render(bufnr)
+    if prefix == '/' then
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { cmd })
+    elseif prefix == '?' then
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { cmd .. ' -r' })
+    end
   end
 
   return M.prompt {
-    parts_fn = parts_fn,
+    prefix = prefix,
     on_submit = execute,
+    render = render,
   }
 end
 
