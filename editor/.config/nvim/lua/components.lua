@@ -20,25 +20,13 @@ local magenta_bold = '%#' .. hl.magenta_bold .. '#'
 local white = '%#' .. hl.white .. '#'
 local normal = '%#Normal#'
 
-function M.update_total_lines(bufnr)
-  if not vim.api.nvim_buf_is_valid(bufnr) then
-    M.total_lines_cache[bufnr] = nil
-    return
-  end
-  local ft = vim.bo[bufnr].filetype
-  if vim.tbl_contains(M.ignored_filetypes, ft) then return end
-  local buftype = vim.bo[bufnr].buftype
-  if buftype ~= '' then return end
-  M.total_lines_cache[bufnr] = vim.api.nvim_buf_line_count(bufnr)
-end
-
-function M.cwd()
+local function cwd()
   local path = vim.fn.getcwd()
   local home = vim.env.HOME
   if path:sub(1, #home) == home then
     path = '~' .. path:sub(#home + 1)
   end
-  return path .. ' '
+  return gray .. path .. ' '
 end
 
 local function mode_prompt_symbol()
@@ -60,57 +48,8 @@ local function mode_prompt_symbol()
   return mode[1] .. mode[2] .. normal .. ' '
 end
 
-function M.cmd_prompt()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local line_count = M.total_lines_cache[bufnr] or vim.api.nvim_buf_line_count(bufnr)
-  local path = M.cwd()
-  local parts = vim.split(path, '/')
-
-  local result = {}
-  table.insert(result, { text = '(' .. line_count .. ')  ', hl = hl.gray })
-
-  if #parts <= 1 then
-    table.insert(result, { text = path, hl = hl.gray })
-    table.insert(result, { text = ' $', hl = hl.green })
-    return result
-  end
-
-  for i = 1, #parts - 1 do
-    table.insert(result, { text = parts[i], hl = hl.gray })
-    table.insert(result, { text = '/', hl = hl.gray })
-  end
-  table.insert(result, { text = parts[#parts], hl = 'Normal' })
-  table.insert(result, { text = ' $', hl = hl.green })
-  return result
-end
-
-function M.search_prompt()
-  local result = M.cmd_prompt()
-  local cmd = vim.fn.executable 'rg' == 1 and 'rg' or 'grep'
-  table.insert(result, { text = ' ' .. cmd, hl = hl.gray })
-  return result
-end
-
-function M.reverse_search_prompt()
-  local result = M.cmd_prompt()
-  local cmd = vim.fn.executable 'rg' == 1 and 'rg' or 'grep'
-  table.insert(result, { text = ' ' .. cmd .. ' -r', hl = hl.gray })
-  return result
-end
-
-function M.prompt_parts(prefix)
-  if prefix == ';' then
-    return M.cmd_prompt()
-  elseif prefix == '/' then
-    return M.search_prompt()
-  elseif prefix == '?' then
-    return M.reverse_search_prompt()
-  end
-  return M.cmd_prompt()
-end
-
 local function filename()
-  local file = vim.fn.expand('%.')
+  local file = vim.fn.expand '%.'
   return bold .. file .. #file and '' or ' ' .. normal
 end
 
@@ -257,20 +196,6 @@ local function alternate_file()
   return gray .. alt
 end
 
-local function total_lines_env()
-  local ft = vim.bo.filetype
-  if vim.tbl_contains(M.ignored_filetypes, ft) then
-    local cached = M.total_lines_cache[0]  -- 0 = current buffer
-    if cached then
-      return gray .. '(' .. cached .. ') '
-    end
-  end
-  M.update_total_lines(0)
-  local count = vim.api.nvim_buf_line_count(0)
-  M.total_lines_cache[0] = count
-  return gray .. '(' .. count .. ') '
-end
-
 local function buf_count_flag()
   return blue .. '-' .. #vim.fn.getbufinfo { buflisted = 1 } .. gray
 end
@@ -286,10 +211,9 @@ local function pipe_into_macro()
   end
 end
 
-function M.statusline()
+function M.tabline()
   return table.concat({
-    total_lines_env(),
-    M.cwd(),
+    cwd(),
     mode_prompt_symbol(),
     main_lsp_cmd(),
     other_lsp_flags(),

@@ -1,10 +1,10 @@
 -- Neovim specific options
-vim.opt.laststatus = 3
-vim.opt.cmdheight = 0
-vim.opt.showmode = false
-vim.opt.showcmd = false
-vim.opt.statusline = [[%!v:lua.require'components'.statusline()]]
-vim.opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+vim.o.showtabline = 2
+vim.o.tabline = [[%!v:lua.require'components'.tabline()]]
+vim.o.statusline = '%#MyGray#(%L)'
+vim.o.laststatus = 3
+vim.o.cmdheight = 0
+vim.o.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
 
 local function gh(repo)
   return 'https://github.com/' .. repo

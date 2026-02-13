@@ -4,7 +4,7 @@ au('ColorScheme', { callback = require('hl_groups').apply_all })
 
 au({ 'ModeChanged', 'CursorMoved', 'CursorMovedI' }, {
   callback = function()
-    vim.cmd('redrawstatus')
+    vim.cmd.redrawtabline()
   end,
 })
 
