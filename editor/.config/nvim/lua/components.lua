@@ -38,7 +38,26 @@ function M.cwd()
   if path:sub(1, #home) == home then
     path = '~' .. path:sub(#home + 1)
   end
-  return path
+  return path .. ' '
+end
+
+local function mode_prompt_symbol()
+  local m = vim.fn.mode(true)
+  if m:match '^no' then
+    return magenta_bold .. '#' .. normal .. ' '
+  end
+  local ft = vim.bo.filetype
+  local is_custom_prompt = vim.tbl_contains(M.ignored_filetypes, ft)
+  local map = {
+    n = { green, '$' },
+    i = { is_custom_prompt and green or yellow, is_custom_prompt and '$' or '&' },
+    v = { blue, 'æ' },
+    V = { blue, 'Æ' },
+    ['\22'] = { blue, 'ß' },
+    c = { green, '$' },
+  }
+  local mode = map[m] or { yellow, '?' }
+  return mode[1] .. mode[2] .. normal .. ' '
 end
 
 function M.cmd_prompt()
@@ -90,31 +109,9 @@ function M.prompt_parts(prefix)
   return M.cmd_prompt()
 end
 
-local function cwd()
-  return M.cwd() .. ' '
-end
-
-local function mode_prompt_symbol()
-  local m = vim.fn.mode(true)
-  if m:match '^no' then
-    return magenta_bold .. '#' .. normal .. ' '
-  end
-  local ft = vim.bo.filetype
-  local is_custom_prompt = vim.tbl_contains(M.ignored_filetypes, ft)
-  local map = {
-    n = { green, '$' },
-    i = { is_custom_prompt and green or yellow, is_custom_prompt and '$' or '&' },
-    v = { blue, 'æ' },
-    V = { blue, 'Æ' },
-    ['\22'] = { blue, 'ß' },
-    c = { green, '$' },
-  }
-  local mode = map[m] or { yellow, '?' }
-  return mode[1] .. mode[2] .. normal .. ' '
-end
-
 local function filename()
-  return bold .. vim.fn.expand '%:.' .. normal .. ' '
+  local file = vim.fn.expand('%.')
+  return bold .. file .. #file and '' or ' ' .. normal
 end
 
 local function main_lsp_cmd()
@@ -186,9 +183,11 @@ end
 
 local function modified_redir()
   local fname = vim.fn.expand '%'
-  if vim.bo.modified then
+  if fname == '' then
+    return gray .. '<< EOF '
+  elseif vim.bo.modified then
     return yellow .. '>> '
-  elseif fname ~= '' and vim.fn.filereadable(fname) == 0 then
+  elseif vim.fn.filereadable(fname) == 0 then
     return green .. '> '
   else
     return gray .. '< '
@@ -258,7 +257,7 @@ local function alternate_file()
   return gray .. alt
 end
 
-function total_lines_env()
+local function total_lines_env()
   local ft = vim.bo.filetype
   if vim.tbl_contains(M.ignored_filetypes, ft) then
     local cached = M.total_lines_cache[0]  -- 0 = current buffer
@@ -272,7 +271,7 @@ function total_lines_env()
   return gray .. '(' .. count .. ') '
 end
 
-function buf_count_flag()
+local function buf_count_flag()
   return blue .. '-' .. #vim.fn.getbufinfo { buflisted = 1 } .. gray
 end
 
@@ -290,7 +289,7 @@ end
 function M.statusline()
   return table.concat({
     total_lines_env(),
-    cwd(),
+    M.cwd(),
     mode_prompt_symbol(),
     main_lsp_cmd(),
     other_lsp_flags(),
