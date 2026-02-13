@@ -36,7 +36,7 @@ NR==1 {
     out = same_name ? local : local ":" remote
 
     if (ahead > 0 && behind > 0) {
-      printf "%s%s%s %s%d %s!= %s%d%s", BLUE, out, Z, RED, ahead, RED, behind, RED, Z
+      printf "%s%s%s %s%d != %s%d%s", BLUE, out, Z, RED, ahead, RED, behind, Z
     } else if (ahead > 0) {
       if (same_name) {
         if (ahead == 1) printf "%s%s%s %s>%s", BLUE, local, Z, GREEN, Z
