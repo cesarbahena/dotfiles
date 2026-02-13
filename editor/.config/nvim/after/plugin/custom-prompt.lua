@@ -272,20 +272,19 @@ end
 
 function M.open_prompt(prefix)
   local function execute(query)
+    -- Strip trailing trigger characters that may have been typed
+    query = query:gsub('[;\n\r]+$', '')
+
     local ok, err = pcall(function()
       if prefix == ';' then
-        vim.cmd('keepjumps noautocmd ' .. query)
+        vim.cmd(query)
         vim.cmd 'redraw'
-        vim.cmd 'stopinsert'
       elseif prefix == '/' or prefix == '?' then
-        -- Just search for what user typed (rg in left buffer is just visual)
-        local search_char = prefix == '/' and '/' or '?'
-        vim.cmd('keepjumps noautocmd ' .. search_char .. query)
-        vim.cmd 'stopinsert'
+        vim.cmd(prefix .. query)
+        vim.cmd 'redraw'
       end
     end)
     if not ok and err then
-      vim.cmd 'stopinsert'
       vim.notify(err, vim.log.levels.ERROR)
     end
   end
