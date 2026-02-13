@@ -14,10 +14,12 @@ local function calc_cursor_col(prefix)
   local prompt = '(' .. line_count .. ') ' .. path .. ' $'
   local col = vim.fn.strdisplaywidth(prompt)
 
-  if prefix == '/' then
-    col = col + 1 + vim.fn.strdisplaywidth(vim.fn.executable('rg') == 1 and 'rg' or 'grep')
+  if prefix == ';' then
+    col = col + 1  -- Just the space after $
+  elseif prefix == '/' then
+    col = col + 1 + 3  -- space + "rg " (3 chars)
   elseif prefix == '?' then
-    col = col + 1 + vim.fn.strdisplaywidth(vim.fn.executable('rg') == 1 and 'rg -r' or 'grep -r')
+    col = col + 1 + 6  -- space + "rg -r " (6 chars)
   end
 
   return col
