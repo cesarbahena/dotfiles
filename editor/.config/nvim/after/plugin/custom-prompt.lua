@@ -5,8 +5,22 @@ local Object = require 'nui.object'
 local components = require 'components'
 
 local active_prompt = nil
+local AUGROUP = 'CustomPrompt'
+
+---@param prefix string
+---@return string
+local function get_grep_cmd_text(prefix)
+  local has_rg = vim.fn.executable 'rg' == 1
+  if prefix == '/' then
+    return has_rg and 'rg ' or 'grep '
+  elseif prefix == '?' then
+    return has_rg and 'rg -r ' or 'grep -r '
+  end
+  return ''
+end
 
 local function calc_base_col()
+  -- 0 represents the current buffer in the cache
   local line_count = components.total_lines_cache[0] or vim.api.nvim_buf_line_count(0)
   local path = vim.fn.getcwd()
   local home = vim.env.HOME
@@ -18,7 +32,10 @@ local function calc_base_col()
 end
 
 vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter', 'BufNew', 'BufDelete', 'BufModifiedSet' }, {
-  callback = function(ev) components.update_total_lines(ev.buf) end
+  group = vim.api.nvim_create_augroup(AUGROUP, { clear = false }),
+  callback = function(ev)
+    components.update_total_lines(ev.buf)
+  end,
 })
 
 local Prompt = Object 'Prompt'
@@ -37,8 +54,7 @@ function Prompt:create()
 
   -- Left popup: visual decoration only (rg / rg -r)
   if prefix == '/' or prefix == '?' then
-    local cmd_text = prefix == '/' and (vim.fn.executable('rg') == 1 and 'rg ' or 'grep ')
-        or (vim.fn.executable('rg') == 1 and 'rg -r ' or 'grep -r ')
+    local cmd_text = get_grep_cmd_text(prefix)
     self._left = Popup {
       relative = 'editor',
       position = {
@@ -74,8 +90,7 @@ function Prompt:create()
   -- Right popup: editable input area
   local right_col = base_col
   if self._left then
-    right_col = base_col + vim.fn.strdisplaywidth(prefix == '/' and (vim.fn.executable('rg') == 1 and 'rg ' or 'grep ')
-      or (vim.fn.executable('rg') == 1 and 'rg -r ' or 'grep -r '))
+    right_col = base_col + vim.fn.strdisplaywidth(get_grep_cmd_text(prefix))
   end
 
   self._right = Popup {
@@ -103,16 +118,17 @@ function Prompt:create()
 end
 
 function Prompt:_setup_cleanup()
-  local group = vim.api.nvim_create_augroup('CustomPromptCleanup', { clear = true })
+  local group = vim.api.nvim_create_augroup(AUGROUP .. 'Cleanup', { clear = true })
 
   vim.api.nvim_create_autocmd('ModeChanged', {
     group = group,
     pattern = 'i:*',
     callback = function()
-      if not self._visible then return end
+      if not self._visible then
+        return
+      end
       local win = vim.api.nvim_get_current_win()
-      local in_prompt = (self._right and self._right.winid == win) or
-          (self._left and self._left.winid == win)
+      local in_prompt = (self._right and self._right.winid == win) or (self._left and self._left.winid == win)
       if not in_prompt then
         self:hide()
       end
@@ -123,7 +139,9 @@ function Prompt:_setup_cleanup()
     group = group,
     callback = function()
       if self._visible then
-        vim.schedule(function() self:hide() end)
+        vim.schedule(function()
+          self:hide()
+        end)
       end
     end,
   })
@@ -222,6 +240,12 @@ function Prompt:show()
 end
 
 function Prompt:execute()
+  -- Validate buffer exists before reading
+  if not self._right or not self._right.bufnr or not vim.api.nvim_buf_is_valid(self._right.bufnr) then
+    self:hide()
+    return
+  end
+
   -- Only use right buffer text - left is just visual
   local right_lines = vim.api.nvim_buf_get_lines(self._right.bufnr, 0, -1, false)
   local right_text = right_lines[1] or ''
@@ -234,7 +258,9 @@ function Prompt:execute()
 end
 
 function Prompt:hide()
-  if not self._visible then return end
+  if not self._visible then
+    return
+  end
 
   vim.cmd 'stopinsert'
 
@@ -244,11 +270,15 @@ function Prompt:hide()
   end
 
   if self._left then
-    pcall(function() self._left:unmount() end)
+    pcall(function()
+      self._left:unmount()
+    end)
     self._left = nil
   end
   if self._right then
-    pcall(function() self._right:unmount() end)
+    pcall(function()
+      self._right:unmount()
+    end)
     self._right = nil
   end
   self._visible = false
@@ -274,6 +304,11 @@ function M.open_prompt(prefix)
   local function execute(query)
     -- Strip trailing trigger characters that may have been typed
     query = query:gsub('[;\n\r]+$', '')
+
+    -- Validate non-empty query
+    if query:match '^%s*$' then
+      return
+    end
 
     local ok, err = pcall(function()
       if prefix == ';' then
