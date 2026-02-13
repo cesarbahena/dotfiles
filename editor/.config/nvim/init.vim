@@ -46,9 +46,6 @@ nnoremap <A-k> :m .-2<CR>==
 nnoremap ; :
 xnoremap ; :
 " ; faster than :
-nnoremap <silent> : @:
-xnoremap <silent> : @:
-" S-;
 cnoremap <expr> ; getcmdline()[getcmdpos()-2] == '\' ? "\b;" : "\<CR>"
 " smart ; also to execute
 cnoremap <expr> <C-s> getcmdpos() > 1 ? '\1' . getcmdline()[getcmdpos()-2] . "\<CR>" : ''
