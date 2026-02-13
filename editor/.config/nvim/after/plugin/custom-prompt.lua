@@ -4,6 +4,8 @@ local Popup = require 'nui.popup'
 local Object = require 'nui.object'
 local components = require 'components'
 
+local active_prompt = nil
+
 local function calc_base_col()
   local line_count = components.total_lines_cache[0] or vim.api.nvim_buf_line_count(0)
   local path = vim.fn.getcwd()
@@ -26,13 +28,14 @@ function Prompt:init(opts)
   self._left = nil
   self._right = nil
   self._visible = false
+  self._cleanup_autocmd = nil
 end
 
 function Prompt:create()
   local base_col = calc_base_col()
   local prefix = self.opts.prefix
 
-  -- Left popup: shows command (rg / rg -r) or nothing
+  -- Left popup: visual decoration only (rg / rg -r)
   if prefix == '/' or prefix == '?' then
     local cmd_text = prefix == '/' and (vim.fn.executable('rg') == 1 and 'rg ' or 'grep ')
                                     or (vim.fn.executable('rg') == 1 and 'rg -r ' or 'grep -r ')
@@ -99,7 +102,41 @@ function Prompt:create()
   }
 end
 
+function Prompt:_setup_cleanup()
+  local group = vim.api.nvim_create_augroup('CustomPromptCleanup', { clear = true })
+  
+  vim.api.nvim_create_autocmd('ModeChanged', {
+    group = group,
+    pattern = 'i:*',
+    callback = function()
+      if not self._visible then return end
+      local win = vim.api.nvim_get_current_win()
+      local in_prompt = (self._right and self._right.winid == win) or 
+                        (self._left and self._left.winid == win)
+      if not in_prompt then
+        self:hide()
+      end
+    end,
+  })
+  
+  vim.api.nvim_create_autocmd({ 'BufDelete', 'BufUnload' }, {
+    group = group,
+    callback = function()
+      if self._visible then
+        vim.schedule(function() self:hide() end)
+      end
+    end,
+  })
+  
+  self._cleanup_autocmd = group
+end
+
 function Prompt:show()
+  if active_prompt and active_prompt ~= self then
+    active_prompt:hide()
+  end
+  active_prompt = self
+  
   local bufnr = vim.api.nvim_get_current_buf()
   components.update_total_lines(bufnr)
 
@@ -118,15 +155,24 @@ function Prompt:show()
   self._right:show()
   self._visible = true
 
-  -- Focus the right window for typing
+  self:_setup_cleanup()
+
   vim.api.nvim_set_current_win(self._right.winid)
   vim.cmd 'startinsert'
 
-  -- Keymaps for right window
+  local function close_prompt()
+    self:hide()
+  end
+
+  -- Insert mode keymaps
   vim.api.nvim_buf_set_keymap(self._right.bufnr, 'i', '<Esc>', '', {
-    callback = function()
-      self:hide()
-    end,
+    callback = close_prompt,
+    noremap = true,
+    silent = true,
+  })
+
+  vim.api.nvim_buf_set_keymap(self._right.bufnr, 'i', '<C-c>', '', {
+    callback = close_prompt,
     noremap = true,
     silent = true,
   })
@@ -154,37 +200,62 @@ function Prompt:show()
     noremap = true,
     silent = true,
   })
+  
+  -- Normal mode keymaps
+  vim.api.nvim_buf_set_keymap(self._right.bufnr, 'n', '<Esc>', '', {
+    callback = close_prompt,
+    noremap = true,
+    silent = true,
+  })
+  
+  vim.api.nvim_buf_set_keymap(self._right.bufnr, 'n', '<C-c>', '', {
+    callback = close_prompt,
+    noremap = true,
+    silent = true,
+  })
+  
+  vim.api.nvim_buf_set_keymap(self._right.bufnr, 'n', 'q', '', {
+    callback = close_prompt,
+    noremap = true,
+    silent = true,
+  })
 end
 
 function Prompt:execute()
-  local left_text = ''
-  if self._left then
-    local lines = vim.api.nvim_buf_get_lines(self._left.bufnr, 0, -1, false)
-    left_text = lines[1] or ''
-  end
-
+  -- Only use right buffer text - left is just visual
   local right_lines = vim.api.nvim_buf_get_lines(self._right.bufnr, 0, -1, false)
   local right_text = right_lines[1] or ''
 
   self:hide()
 
-  local full_text = left_text .. (left_text ~= '' and ' ' or '') .. right_text
-
   if self.opts.on_submit then
-    self.opts.on_submit(full_text)
+    self.opts.on_submit(right_text)
   end
 end
 
 function Prompt:hide()
+  if not self._visible then return end
+  
+  vim.cmd 'stopinsert'
+  
+  if self._cleanup_autocmd then
+    vim.api.nvim_del_augroup_by_id(self._cleanup_autocmd)
+    self._cleanup_autocmd = nil
+  end
+  
   if self._left then
-    self._left:unmount()
+    pcall(function() self._left:unmount() end)
     self._left = nil
   end
   if self._right then
-    self._right:unmount()
+    pcall(function() self._right:unmount() end)
     self._right = nil
   end
   self._visible = false
+  
+  if active_prompt == self then
+    active_prompt = nil
+  end
 end
 
 function Prompt:is_visible()
@@ -200,21 +271,23 @@ function M.prompt(opts)
 end
 
 function M.open_prompt(prefix)
+  local cmd_prefix = nil
+  if prefix == '/' then
+    cmd_prefix = vim.fn.executable('rg') == 1 and 'rg ' or 'grep '
+  elseif prefix == '?' then
+    cmd_prefix = vim.fn.executable('rg') == 1 and 'rg -r ' or 'grep -r '
+  end
+
   local function execute(query)
     local ok, err = pcall(function()
       if prefix == ';' then
         vim.cmd('keepjumps noautocmd ' .. query)
         vim.cmd 'redraw'
         vim.cmd 'stopinsert'
-      elseif prefix == '/' then
-        local cmd = vim.fn.executable('rg') == 1 and 'rg ' or 'grep '
-        local search_query = query:gsub('^' .. cmd, '')
-        vim.cmd('keepjumps noautocmd /' .. search_query)
-        vim.cmd 'stopinsert'
-      elseif prefix == '?' then
-        local cmd = vim.fn.executable('rg') == 1 and 'rg -r ' or 'grep -r '
-        local search_query = query:gsub('^' .. cmd, '')
-        vim.cmd('keepjumps noautocmd ?' .. search_query)
+      elseif prefix == '/' or prefix == '?' then
+        -- Just search for what user typed (rg in left buffer is just visual)
+        local search_char = prefix == '/' and '/' or '?'
+        vim.cmd('keepjumps noautocmd ' .. search_char .. query)
         vim.cmd 'stopinsert'
       end
     end)
@@ -229,6 +302,12 @@ function M.open_prompt(prefix)
     on_submit = execute,
   }
 end
+
+vim.api.nvim_create_user_command('CloseCustomPrompt', function()
+  if active_prompt then
+    active_prompt:hide()
+  end
+end, {})
 
 vim.api.nvim_create_user_command('CmdLine', function()
   M.open_prompt ';'
