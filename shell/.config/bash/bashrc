@@ -64,7 +64,7 @@ __prompt_command() {
     elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
       env="($CONDA_DEFAULT_ENV) "
     fi
-    [ -n "$dir" ] && PS1="${env}${GRAY}${dir}/${RESET}${base} ${color}${prompt}${RESET}" || PS1="${env}${base} ${color}${prompt}${RESET}"
+    [ -n "$dir" ] && PS1="${env}${GRAY}${dir}/${RESET}${BLUE}${base} ${color}${prompt}${RESET}" || PS1="${env}${BLUE}${base} ${color}${prompt}${RESET}"
     return
   fi
 
@@ -143,9 +143,9 @@ __prompt_command() {
       *)   prompt="($exit)" ;;
     esac
 
-    [ -n "$dir" ] && PS1="${GRAY}${env}${RESET}${GRAY}${dir}/${RESET}${base} ${color}${prompt} ${RESET}" || PS1="${GRAY}${env}${RESET}${base} ${color}${prompt} ${RESET}"
+    [ -n "$dir" ] && PS1="${GRAY}${env}${RESET}${GRAY}${dir}/${RESET}${BLUE}${base} ${color}${prompt} ${RESET}" || PS1="${GRAY}${env}${RESET}${BLUE}${base} ${color}${prompt} ${RESET}"
   else
-    [ -n "$dir" ] && PS1="${GRAY}${env}${RESET}${GRAY}${dir}/${RESET}${base} ${GREEN}${prompt} ${RESET}" || PS1="${GRAY}${env}${RESET}${base} ${GREEN}${prompt} ${RESET}"
+    [ -n "$dir" ] && PS1="${GRAY}${env}${RESET}${GRAY}${dir}/${RESET}${BLUE}${base} ${GREEN}${prompt} ${RESET}" || PS1="${GRAY}${env}${RESET}${BLUE}${base} ${GREEN}${prompt} ${RESET}"
   fi
 }
 

@@ -37,9 +37,9 @@ precmd() {
       env="($CONDA_DEFAULT_ENV) "
     fi
     if [[ -n "$dir" ]]; then
-      PROMPT="%F{240}${env}%f%F{240}${dir}/%f${base} ${color}${sym}%f "
+      PROMPT="%F{240}${env}%f%F{240}${dir}/%f%F{39}${base}%f ${color}${sym}%f "
     else
-      PROMPT="%F{240}${env}%f${base} ${color}${sym}%f "
+      PROMPT="%F{240}${env}%f%F{39}${base}%f ${color}${sym}%f "
     fi
     return
   fi
@@ -115,8 +115,8 @@ precmd() {
   fi
 
   if [[ -n "$dir" ]]; then
-    PROMPT="%F{240}${env}%f%F{240}${dir}/%f${base} ${color}${sym}%f "
+    PROMPT="%F{240}${env}%f%F{240}${dir}/%f%F{39}${base}%f ${color}${sym}%f "
   else
-    PROMPT="%F{240}${env}%f${base} ${color}${sym}%f "
+    PROMPT="%F{240}${env}%f%F{39}${base}%f ${color}${sym}%f "
   fi
 }
