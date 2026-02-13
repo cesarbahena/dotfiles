@@ -58,6 +58,7 @@ precmd() {
       2)   sym='€'  ;; # Misuse of shell builtins
       3)   sym='Æ'  ;; # Page not found
       16)  sym='M'  ;; # No manual entry found
+      35)  sym='Š'  ;; # SSL failure
       64)  sym='¿'  ;; # Usage
       65)  sym='$'  ;; # Format
       66)  sym='«'  ;; # No input
