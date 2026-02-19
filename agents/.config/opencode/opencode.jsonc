@@ -47,7 +47,9 @@
       "make*": "allow",
       "curl*": "allow",
       "docker*": "allow",
-      "sleep*": "allow"
+      "sleep*": "allow",
+      "mysql*": "allow",
+      "mysqldump*": "allow"
     }
   },
 }
