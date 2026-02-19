@@ -31,12 +31,6 @@
       "diff*": "allow",
       "wc*": "allow",
       "tar*": "allow",
-      "git add*": "deny",
-      "git commit*": "deny",
-      "git push*": "deny",
-      "git status*": "allow",
-      "git log*": "allow",
-      "git diff*": "allow",
       "git": "ask",
       "npm*": "deny",
       "pnpm*": "allow",
@@ -47,7 +41,8 @@
       "source*": "allow",
       "make*": "allow",
       "curl*": "allow",
-      "docker*": "ask"
+      "docker*": "allow",
+      "sleep*": "allow"
     }
   },
 }
