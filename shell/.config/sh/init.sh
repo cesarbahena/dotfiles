@@ -14,7 +14,7 @@ if command -v zoxide >/dev/null 2>&1; then
     if [ $# -eq 0 ]; then
       __zoxide_z ..
     else
-      __zoxide_z "$@" && ls -nohaX --color --group-directories-first
+      __zoxide_z "$@"
     fi
   }
 fi

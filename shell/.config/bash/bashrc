@@ -100,6 +100,7 @@ __prompt_command() {
       1)   prompt='!'  ;; # General failure
       2)   prompt='€'  ;; # Misuse of shell builtins
       3)   prompt='Æ'  ;; # Page not found
+      7)   prompt='¤'  ;; # Option error
       16)  prompt='M'  ;; # No manual entry found
       35)  prompt='Š'  ;; # SSL failure
       64)  prompt='¿'  ;; # Usage
