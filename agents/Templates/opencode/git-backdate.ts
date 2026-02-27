@@ -116,7 +116,6 @@ export const gitBackdate: Plugin = async ({ $ }) => {
         throw new Error(
           `OpenCode Hook - Bash tool (git commit)\n` +
           `No date provided.\n` +
-          `Current message: "${currentMsg}"\n` +
           BACKDATE_REQUIREMENTS
         )
       }
@@ -150,7 +149,7 @@ export const gitBackdate: Plugin = async ({ $ }) => {
         throw new Error(
           `OpenCode Hook - Bash tool (git commit)\n` +
           `Cannot use quarter hours (:00, :15, :30, :45)\n` +
-          `Current time: ${time}\n` +
+          `Time passed as argument: ${time}\n` +
           `Use organic times like :07, :23, :38, :52\n` +
           BACKDATE_REQUIREMENTS
         )
@@ -169,7 +168,7 @@ export const gitBackdate: Plugin = async ({ $ }) => {
             `OpenCode Hook - Bash tool (git commit)\n` +
             `Cannot commit before or within 1 minute of last commit.\n` +
             `Last commit: ${lastCommitDateStr}\n` +
-            `Requested: ${date} ${time}\n` +
+            `You are trying go commit at: ${date} ${time}\n` +
             `Evaluate the development time needed for these changes.\n` +
             `Add at least 1 minute to the last commit date.\n` +
             BACKDATE_REQUIREMENTS
@@ -182,7 +181,7 @@ export const gitBackdate: Plugin = async ({ $ }) => {
             `OpenCode Hook - Bash tool (git commit)\n` +
             `Cannot commit more than 1 month since last commit.\n` +
             `Last commit: ${lastCommitDateStr.split(" ")[0]}\n` +
-            `Requested: ${date}\n` +
+            `You are trying to commit at: ${date}\n` +
             `Evaluate if this is realistic or rollback to an earlier state.\n` +
             BACKDATE_REQUIREMENTS
           )
@@ -194,7 +193,7 @@ export const gitBackdate: Plugin = async ({ $ }) => {
         throw new Error(
           `OpenCode Hook - Bash tool (git commit)\n` +
           `Cannot commit on weekends.\n` +
-          `Requested: ${date} (${dayOfWeek === 0 ? "Sunday" : "Saturday"})\n` +
+          `You are trying to commit at: ${date} (${dayOfWeek === 0 ? "Sunday" : "Saturday"})\n` +
           `Commits must be Mon-Fri\n` +
           BACKDATE_REQUIREMENTS
         )
@@ -205,7 +204,7 @@ export const gitBackdate: Plugin = async ({ $ }) => {
         throw new Error(
           `OpenCode Hook - Bash tool (git commit)\n` +
           `Cannot commit outside work hours (08:00-19:00).\n` +
-          `Requested: ${time}\n` +
+          `You are trying to commit at: ${time}\n` +
           `Work hours are Mon-Fri 08:00-18:59\n` +
           BACKDATE_REQUIREMENTS
         )
