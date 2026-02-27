@@ -9,6 +9,7 @@ paths=(
   "$XDG_DATA_HOME/pnpm"
   "/usr/local/go/bin"
   "$CARGO_HOME/bin"
+  "$XDG_DATA_HOME/bun/bin"
   "$HOME/.local/bin"
   "$XDG_DATA_HOME/bob/nvim-bin"
 )
