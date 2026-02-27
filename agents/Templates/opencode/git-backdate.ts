@@ -1,5 +1,7 @@
 import type { Plugin } from "@opencode-ai/plugin"
 
+const CONVENTIONAL_PATTERN = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9/_-]+\))?: .+/
+
 function hasEmojis(content: string): boolean {
   for (const char of content) {
     const code = char.codePointAt(0)!

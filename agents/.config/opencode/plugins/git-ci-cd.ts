@@ -2,7 +2,7 @@ import type { Plugin } from "@opencode-ai/plugin"
 
 export const gitCiCd: Plugin = async ({ $, directory }) => {
   return {
-    "tool.execute.before": async (input, output, { client }) => {
+    "tool.execute.before": async (input, output) => {
       if (input.tool !== "bash") return
 
       const cmd = output.args.command as string
