@@ -24,7 +24,7 @@ REQUIREMENTS:
 1. Date: Must provide GIT_COMMITTER_DATE and (GIT_AUTHOR_DATE or --date), both must match
 2. Time format: HH:MM (24-hour)
 3. Quarter hours: Cannot use :00, :15, :30, :45 - use organic times like :07, :23, :38, :52
-4. Minimum gap: At least 1 minute after last commit
+4. Commit spacing: Evaluate reasonable development time for human dev to make the changes (based on LOC)
 5. Maximum gap: Cannot be more than 1 month since last commit
 6. Work hours: Mon-Fri 08:00-18:59
 7. Weekends: Cannot commit on weekends
@@ -163,14 +163,14 @@ export const gitBackdate: Plugin = async ({ $ }) => {
         const diffMs = commitDate.getTime() - lastCommit.getTime()
         const diffSeconds = diffMs / 1000
 
-        if (diffSeconds < 60) {
+        if (diffSeconds < 300) {
           throw new Error(
             `OpenCode Hook - Bash tool (git commit)\n` +
-            `Cannot commit before or within 1 minute of last commit.\n` +
+            `Commit time gap is too small.\n` +
             `Last commit: ${lastCommitDateStr}\n` +
-            `You are trying go commit at: ${date} ${time}\n` +
-            `Evaluate the development time needed for these changes.\n` +
-            `Add at least 1 minute to the last commit date.\n` +
+            `You are trying to commit at: ${date} ${time}\n` +
+            `Calculate reasonable development time for a human dev to make these changes.\n` +
+            `Consider the LOC (lines of code) and complexity of the changes.\n` +
             BACKDATE_REQUIREMENTS
           )
         }
