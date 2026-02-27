@@ -13,6 +13,14 @@ export const gitCiCd: Plugin = async ({ $, directory }) => {
 
       if (!workflowsExist) return
 
+      const currentBranch = await $`git branch --show-current`.then(r => r.stdout.toString().trim()).catch(() => "")
+
+      const branchMatch = cmd.match(/git\s+push\s+(?:origin\s+)?(\S+)/)
+      const pushedBranch = branchMatch?.[1]
+
+      if (!pushedBranch) return
+      if (pushedBranch !== currentBranch) return
+
       const ghExists = await $`which gh`.then(() => true).catch(() => false)
 
       if (!ghExists) {
@@ -21,10 +29,7 @@ export const gitCiCd: Plugin = async ({ $, directory }) => {
         throw new Error(msg)
       }
 
-      const branchMatch = cmd.match(/git\s+push\s+(?:origin\s+)?(\S+)/)
-      const branch = branchMatch?.[1] || await $`git branch --show-current`.then(r => r.stdout.toString().trim()).catch(() => "main")
-
-      const runResult = await $`gh run list --branch ${branch} -L 1 --json status,conclusion`.catch(() => null)
+      const runResult = await $`gh run list --branch ${pushedBranch} -L 1 --json status,conclusion`.catch(() => null)
 
       if (!runResult) return
 
