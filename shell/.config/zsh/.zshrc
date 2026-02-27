@@ -94,9 +94,10 @@ precmd() {
       141) sym='¦'  ;; # SIGPIPE (broken pipe)
       142) sym='ö'  ;; # SIGALRM (timeout)
       143) sym='†'  ;; # SIGTERM (graceful termination)
-      147) sym='¬'  ;; # SIGSTOP (suspended not from terminal)
+      147) sym='ž'  ;; # SIGSTOP (suspended not from terminal)
       148) sym='&'  ;; # SIGSTP (^Z)
       217) sym='™'  ;; # NPM error
+      254) sym='}'  ;; # Missing package.json
       255) sym='Ñ'  ;; # Invalid characters
       *)   sym="($exit)" ;;
     esac
