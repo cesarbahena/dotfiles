@@ -74,7 +74,7 @@ M.langs = {
     fmt = { 'prettier' },
   },
   vue = {
-    lsp = { 'vuels' },
+    lsp = { 'vls' },
     fmt = { 'prettier' },
   },
   bash = {
