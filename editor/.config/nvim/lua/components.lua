@@ -49,8 +49,9 @@ local function mode_prompt_symbol()
 end
 
 local function filename()
-  local file = vim.fn.expand '%.'
-  return bold .. file .. #file and '' or ' ' .. normal
+  local file = vim.fn.expand '%'
+  local display = file ~= '' and (file .. ' ') or ''
+  return bold .. display .. normal
 end
 
 local function main_lsp_cmd()

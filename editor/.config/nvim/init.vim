@@ -35,9 +35,6 @@ nnoremap <silent> Q :<C-u>call <SID>repeat_macro()<CR>
 nnoremap <silent> > j.
 " Repeat over multiple lines (S-.)
 
-" Vim surround at home
-xnoremap s y:s/\(<C-R>=substitute(@", '\n$', '', '')<CR>\)/
-
 " Quick line move (use yank and paste for complex cases)
 nnoremap <A-n> :m .+1<CR>==
 nnoremap <A-k> :m .-2<CR>==

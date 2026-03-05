@@ -1,5 +1,22 @@
 vim.lsp.enable(require('config').get_lsp_names())
 
+-- Diagnostics UI config
+vim.diagnostic.config {
+  virtual_text = {
+    spacing = 4,
+    prefix = '●',
+    source = 'if_many',
+  },
+  update_in_insert = false,
+  severity_sort = true,
+  float = {
+    border = 'rounded',
+    source = 'always',
+    header = '',
+    prefix = '',
+  },
+}
+
 vim.lsp.config('roslyn', {
   cmd = {
     'dotnet',
