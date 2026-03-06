@@ -45,6 +45,10 @@
       "rev": "de740991c12411b663994b2860f1a4fd0937c130",
       "src": "https://github.com/MunifTanjim/nui.nvim"
     },
+    "nvim": {
+      "rev": "c4d475e4b5684747cde9b3f849186af7837d4397",
+      "src": "https://github.com/catppuccin/nvim"
+    },
     "nvim-dap": {
       "rev": "085386b9359ddf8d76ad89b98973b8e332dc5ba3",
       "src": "https://github.com/mfussenegger/nvim-dap"

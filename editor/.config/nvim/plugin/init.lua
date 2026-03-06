@@ -20,6 +20,7 @@ vim.pack.add {
   gh 'luukvbaal/statuscol.nvim',
   gh 'stevearc/conform.nvim',
   gh 'ellisonleao/gruvbox.nvim',
+  gh 'catppuccin/nvim',
   { src = gh 'saghen/blink.cmp', version = vim.version.range '1' },
   gh 'saghen/blink.pairs',
   gh 'lewis6991/gitsigns.nvim',
