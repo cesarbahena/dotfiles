@@ -39,6 +39,8 @@ nnoremap <silent> <C-d> <C-d>zz
 nnoremap <silent> <C-u> <C-u>zz
 nnoremap <silent> n nzz
 nnoremap <silent> N Nzz
+nnoremap <silent> J mzJ`z
+nnoremap <silent> =ap ma=ap'a
 
 " Undo breakpoints
 inoremap , ,<C-g>u
