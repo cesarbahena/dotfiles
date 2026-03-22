@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "plan",
+    "deny": [
+      "Bash(kill*)",
+      "Bash(find*)",
+      "Bash(sudo*)",
+      "Bash(echo*)",
+      "Bash(sed*)",
+      "Bash(awk*)",
+      "Bash(printf*)",
+      "Bash(touch*)",
+      "Bash(tee*)",
+      "Bash(cat*)",
+      "Bash(ls*)",
+            "Bash(grep*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(npm*)",
+      "Bash(pip*)"
+    ],
+    "ask": [
+      "Bash(rm*)",
+      "Bash(git)",
+      "Bash(docker*)",
+      "Bash(curl*)"
+    ],
+    "allow": [
+      "Bash(cd*)",
+      "Bash(pwd*)",
+      "Bash(mkdir*)",
+      "Bash(ps*)",
+      "Bash(sleep*)",
+      "Bash(rg*)",
+      "Bash(head*)",
+      "Bash(tail*)",
+      "Bash(cp*)",
+      "Bash(mv*)",
+      "Bash(which*)",
+      "Bash(du*)",
+      "Bash(diff*)",
+      "Bash(wc*)",
+      "Bash(tar*)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(pnpm*)",
+      "Bash(uv*)",
+      "Bash(python*)",
+      "Bash(pytest*)",
+      "Bash(source*)",
+      "Bash(make*)"
+    ]
+  },
+  "enabledPlugins": {
+    "lua-lsp@claude-plugins-official": true
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "outputStyle": "concise",
+  "autoUpdatesChannel": "stable",
+  "minimumVersion": "2.1.19",
+  "statusLine": {
+    "type": "command",
+    "command": "bash /home/cesar/.local/share/claude/statusline.sh"
+  }
+}

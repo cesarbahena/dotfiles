@@ -1,3 +1,12 @@
 [window]
 decorations = "none"
 startup_mode = "Maximized"
+
+[window.padding]
+x = 10
+y = 10
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001B\r"

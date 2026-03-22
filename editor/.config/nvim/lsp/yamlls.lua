@@ -1,6 +1,5 @@
 return {
   cmd = { 'yaml-language-server', '--stdio' },
-  filetypes = { 'yaml' },
-  root_markers = { '.git' },
-  single_file_support = true,
+  filetypes = { 'yaml', 'yaml.docker-compose' },
+  root_markers = { 'docker-compose.yml', 'docker-compose.yaml', '.git' },
 }

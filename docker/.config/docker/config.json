@@ -1,0 +1,3 @@
+{
+  "psFormat": "table {{.Names}}\t{{.Status}}\t{{.Image}}\t{{.Ports}}"
+}

@@ -1,0 +1,163 @@
+[[ $- != *i* ]] && return
+
+# XDG Base Directory
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+# Source shell agnostic config
+. "$XDG_CONFIG_HOME/sh/env.sh"
+. "$XDG_CONFIG_HOME/sh/path.sh"
+. "$XDG_CONFIG_HOME/sh/aliases.sh"
+. "$XDG_CONFIG_HOME/sh/init.sh"
+
+# Docker aliases with completions
+. /usr/share/bash-completion/completions/docker
+alias d='docker'
+complete -o default -F __start_docker d
+alias c='docker compose'
+_docker_compose_wrapper() {
+  COMP_LINE="docker compose${COMP_LINE:1}"
+  COMP_WORDS=(docker compose "${COMP_WORDS[@]:1}")
+  ((COMP_POINT+=13))
+  ((COMP_CWORD+=1))
+  __start_docker
+}
+complete -o default -F _docker_compose_wrapper c
+
+# Bash prompt
+__prompt_command() {
+  local exit=$?
+  local prompt='$'
+  local colors=$(tput colors 2>/dev/null || echo 0)
+
+  # Progressive color enhancement based on terminal capability
+  if [ "$colors" -ge 256 ]; then
+    # 256-color: dimmest cwd, most vibrant prompts
+    local GRAY='\[\e[38;5;240m\]'
+    local GREEN='\[\e[38;5;46m\]'
+    local YELLOW='\[\e[38;5;226m\]'
+    local RED='\[\e[38;5;196m\]'
+    local BLUE='\[\e[38;5;39m\]'
+  elif [ "$colors" -ge 16 ]; then
+    # 16-color: dim cwd, bright prompts
+    local GRAY='\[\e[90m\]'
+    local GREEN='\[\e[92m\]'
+    local YELLOW='\[\e[93m\]'
+    local RED='\[\e[91m\]'
+    local BLUE='\[\e[94m\]'
+  else
+    # 8-color fallback: white cwd, normal prompts
+    local GRAY='\[\e[37m\]'
+    local GREEN='\[\e[32m\]'
+    local YELLOW='\[\e[33m\]'
+    local RED='\[\e[31m\]'
+    local BLUE='\[\e[34m\]'
+  fi
+  local RESET='\[\e[0m\]'
+
+  local MAPFILE
+  mapfile -tn 2 MAPFILE < ~/.bashrc
+  if [ "${#MAPFILE[@]}" -gt 1 ]; then
+    prompt='þ'  # mnemonic: bash profile corrupted
+    local color="$RED"
+    local cwd="${PWD/#$HOME/\~}"
+    local dir="${cwd%/*}"
+    local base="${cwd##*/}"
+    [ "$cwd" = "$base" ] && dir=""
+    [ -z "$dir" ] && [ "${cwd:0:1}" = "/" ] && base="$cwd"
+    local env=""
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+      env="(${VIRTUAL_ENV##*/}) "
+    elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+      env="($CONDA_DEFAULT_ENV) "
+    fi
+    [ -n "$dir" ] && PS1="${env}${GRAY}${dir}/${RESET}${BLUE}${base} ${color}${prompt}${RESET}" || PS1="${env}${BLUE}${base} ${color}${prompt}${RESET}"
+    return
+  fi
+
+  [ "$EUID" -eq 0 ] && prompt='#'
+
+  # Split path: dim directory, bright basename
+  local cwd="${PWD/#$HOME/\~}"
+  local dir="${cwd%/*}"
+  local base="${cwd##*/}"
+  [ "$cwd" = "$base" ] && dir=""  # Handle root or no slash case
+  [ -z "$dir" ] && [ "${cwd:0:1}" = "/" ] && base="$cwd"
+
+  local env=""
+  if [[ -n "$VIRTUAL_ENV" ]]; then
+    env="(${VIRTUAL_ENV##*/}) "
+  elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+    env="($CONDA_DEFAULT_ENV) "
+  fi
+
+  if [ "$exit" -ne 0 ]; then
+    local color="$RED"
+
+    case "$exit" in
+      2|3|16|64|65|66|67|68|69|75|78|125|127|128)
+        color="$YELLOW"
+        ;;
+      129|130|131|141|142|148)
+        color="$BLUE"
+        ;;
+    esac
+
+    case "$exit" in
+      1)   prompt='!'  ;; # General failure
+      2)   prompt='€'  ;; # Misuse of shell builtins
+      3)   prompt='Æ'  ;; # Page not found
+      7)   prompt='¤'  ;; # Option error
+      16)  prompt='M'  ;; # No manual entry found
+      35)  prompt='Š'  ;; # SSL failure
+      64)  prompt='¿'  ;; # Usage
+      65)  prompt='%'  ;; # Format
+      66)  prompt='«'  ;; # No input
+      67)  prompt='µ'  ;; # No user
+      68)  prompt='@'  ;; # No host
+      69)  prompt='ø'  ;; # Unavailable
+      70)  prompt='£'  ;; # Internal software error
+      71)  prompt='œ'  ;; # OS error
+      72)  prompt='ƒ'  ;; # File error
+      73)  prompt='+'  ;; # Cannot create
+      74)  prompt='|'  ;; # IO error
+      75)  prompt='…'  ;; # Temporary failure (retry)
+      76)  prompt='¶'  ;; # Protocol error
+      77)  prompt='–'  ;; # Permission denied
+      78)  prompt='ç'  ;; # Configuration error
+      100) prompt='©'  ;; # APT failure
+      101) prompt='®'  ;; # Rust build error
+      125) prompt='Ð'  ;; # Permission denied
+      126) prompt='×'  ;; # Command not executable
+      127) prompt='?'  ;; # Command not found
+      128) prompt='§'  ;; # Fatal application error
+      129) prompt='¥'  ;; # SIGHUP (terminal/session closed)
+      130) prompt='¢'  ;; # SIGINT (^C)
+      131) prompt='\\' ;; # SIGQUIT (^\)
+      132) prompt='¡'  ;; # SIGILL (illegal instruction)
+      133) prompt='»'  ;; # SIGTRAP (redirected signal)
+      134) prompt='‡'  ;; # SIGABRT (abort)
+      135) prompt='ß'  ;; # SIGBUS (bus error)
+      136) prompt='÷'  ;; # SIGFPE (arithmetic error)
+      137) prompt='ð'  ;; # SIGKILL (-9)
+      139) prompt='‰'  ;; # SIGSEGV (segmentation fault)
+      141) prompt='¦'  ;; # SIGPIPE (broken pipe)
+      142) prompt='ö'  ;; # SIGALRM (timeout)
+      143) prompt='†'  ;; # SIGTERM (graceful termination)
+      147) prompt='ž'  ;; # SIGSTOP (suspended not from terminal)
+      148) prompt='&'  ;; # SIGSTP (^Z)
+      217) prompt='™'  ;; # NPM error
+      254) prompt='}'  ;; # Missing package.json
+      255) prompt='Ñ'  ;; # Invalid characters
+      *)   prompt="($exit)" ;;
+    esac
+
+    [ -n "$dir" ] && PS1="${GRAY}${env}${RESET}${GRAY}${dir}/${RESET}${BLUE}${base} ${color}${prompt} ${RESET}" || PS1="${GRAY}${env}${RESET}${BLUE}${base} ${color}${prompt} ${RESET}"
+  else
+    [ -n "$dir" ] && PS1="${GRAY}${env}${RESET}${GRAY}${dir}/${RESET}${BLUE}${base} ${GREEN}${prompt} ${RESET}" || PS1="${GRAY}${env}${RESET}${BLUE}${base} ${GREEN}${prompt} ${RESET}"
+  fi
+}
+
+PROMPT_COMMAND="__prompt_command;${PROMPT_COMMAND#;}"

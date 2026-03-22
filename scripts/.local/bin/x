@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+update=false
+bin_path=""
+input_file=""
+search_dir="$HOME/Downloads"
+name=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -u|--update) update=true; shift ;;
+    -b|--bin) shift; bin_path=$1; shift ;;
+    -i|--input) shift; input_file=$1; shift ;;
+    -d|--dir) shift; search_dir=$1; shift ;;
+    *) name=$1; shift ;;
+  esac
+done
+
+if [ -z "$name" ]; then
+  echo "Usage: x [-u] [-b path] [-i file] [-d dir] <name>"
+  echo "  -u, --update    Update existing directory"
+  echo "  -b, --bin       Relative path to binary (default: bin/<name>)"
+  echo "  -i, --input     Use specific file instead of searching"
+  echo "  -d, --dir       Search directory (default: ~/Downloads)"
+  echo "  <name>          Directory name, search pattern, and binary name"
+  echo ""
+  echo "Examples:"
+  echo "  x lua-language-server                    # Auto-symlink if bin/lua-language-server exists"
+  echo "  x -b custom/path/binary my-tool          # Symlink from custom path"
+  echo "  curl -L <url> | x lua-ls                 # Pipe from curl"
+  exit 1
+fi
+
+file=""
+if [ -n "$input_file" ]; then
+  file="$input_file"
+elif [ -t 0 ]; then
+  file=$(find "$search_dir" -name "*${name}*" -type f | head -1)
+  if [ -z "$file" ]; then
+    echo "No file matching '$name' found in $search_dir"
+    exit 1
+  fi
+else
+  tmp=$(mktemp)
+  cat > "$tmp"
+  file="$tmp"
+fi
+
+target="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+entries=""
+case "$file" in
+  *.tar.gz|*.tgz) entries=$(tar -tzf "$file" | head -2) ;;
+  *.tar.bz2|*.tbz2) entries=$(tar -tjf "$file" | head -2) ;;
+  *.tar.xz|*.txz) entries=$(tar -tJf "$file" | head -2) ;;
+  *.zip) entries=$(unzip -l "$file" | awk 'NR>=4 && NR<=5 {print $4}') ;;
+  *) echo "Unsupported format: $file"; exit 1 ;;
+esac
+
+first=$(echo "$entries" | sed -n '1p' | cut -d/ -f1)
+second=$(echo "$entries" | sed -n '2p' | cut -d/ -f1)
+
+needs_wrapper=false
+[ "$first" != "$second" ] && needs_wrapper=true
+
+dest="$target/$name"
+
+if [ -d "$dest" ]; then
+  if [ "$update" = false ]; then
+    echo "Error: $dest already exists. Use -u to update."
+    exit 1
+  fi
+  rm -rf "$dest"
+fi
+
+if [ "$needs_wrapper" = true ]; then
+  mkdir -p "$dest"
+  case "$file" in
+    *.tar.gz|*.tgz) tar -xzf "$file" -C "$dest" ;;
+    *.tar.bz2|*.tbz2) tar -xjf "$file" -C "$dest" ;;
+    *.tar.xz|*.txz) tar -xJf "$file" -C "$dest" ;;
+    *.zip) unzip -q "$file" -d "$dest" ;;
+  esac
+else
+  mkdir -p "$target"
+  case "$file" in
+    *.tar.gz|*.tgz) tar -xzf "$file" -C "$target" ;;
+    *.tar.bz2|*.tbz2) tar -xjf "$file" -C "$target" ;;
+    *.tar.xz|*.txz) tar -xJf "$file" -C "$target" ;;
+    *.zip) unzip -q "$file" -d "$target" ;;
+  esac
+fi
+
+echo "Extracted to $dest"
+
+# Auto-symlink if bin exists
+if [ -n "$bin_path" ]; then
+  source_bin="$dest/$bin_path"
+elif [ -f "$dest/bin/$name" ]; then
+  source_bin="$dest/bin/$name"
+else
+  source_bin=""
+fi
+
+if [ -n "$source_bin" ] && [ -f "$source_bin" ]; then
+  ln -sf "$source_bin" "$HOME/.local/bin/${source_bin##*/}"
+  echo "Symlinked ${source_bin##*/} to ~/.local/bin/"
+fi
+
+# Clean up temp file if from stdin
+[ -t 0 ] || rm -f "$file"

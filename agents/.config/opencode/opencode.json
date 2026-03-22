@@ -1,0 +1,26 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["./.opencode/AGENTS.md"],
+  "default_agent": "plan",
+  "keybinds": {
+    "leader": "ctrl+o",
+    "messages_half_page_up": "alt+u",
+    "messages_half_page_down": "alt+d",
+    "session_compact": "none",
+    "session_new": "<leader>c",
+    "session_child_cycle": "<leader>ctrl+n,<leader>n",
+    "session_child_cycle_reverse": "<leader>ctrl+p,<leader>p",
+    "session_parent": "<leader>ctrl+k,<leader>k"
+  },
+  "permission": {
+    "external_directory": {
+      "*":"allow"
+    },
+    "bash": {
+      "*": "allow",
+      "sudo*": "deny",
+      "find*": "deny",
+      "sed*": "deny"
+    }
+  }
+}
