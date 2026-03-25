@@ -39,7 +39,7 @@ Look at:
 
 ### 3. Design TDD fix plan
 
-Use `coding-style` skill to create a fix plan. Look for oportunities to add
+Use `tdd` skill to create a fix plan. Look for oportunities to add
 more test that prevent this or similar bugs in all codebase.
 
 If the codebase has no automated tests, use an apropriate methodology but you
