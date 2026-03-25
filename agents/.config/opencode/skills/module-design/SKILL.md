@@ -23,12 +23,13 @@ Before designing, understand:
 - What problem does this module solve?
 - Who are the callers?
 - What are the key operations?
-- Any constraints? (performance, compatibility, existing patterns)
+- Any constraints? (performance, compatibility, existing patterns).
 - What should be hidden inside vs exposed?
 
 #### 2. Generate Designs
 
-Spawn 3+ sub-agents simultaneously. Each must produce a radically different approach.
+Spawn 3+ sub-agents simultaneously. Each must produce a radically different
+approach.
 
 ```
 Prompt template for each sub-agent:
@@ -58,17 +59,19 @@ Show each design with:
 2. **Usage examples** - how callers actually use it in practice
 3. **What it hides** - complexity kept internal
 
-Present designs sequentially so user can absorb each approach before comparison.
+Present designs sequentially so user can absorb each approach before
+comparison.
 
 #### 4. Compare Designs
 
 After showing all designs, compare them on:
 
-- **Interface simplicity**: fewer methods, simpler params
-- **General-purpose vs specialized**: flexibility vs focus
+- **Interface simplicity**: fewer methods, simpler params.
+- **General-purpose vs specialized**: flexibility vs focus.
 - **Implementation efficiency**: does shape allow efficient internals?
-- **Depth**: small interface hiding significant complexity (good) vs large interface with thin implementation (bad)
-- **Ease of correct use** vs **ease of misuse**
+- **Depth**: small interface hiding significant complexity (good) vs large
+  interface with thin implementation (bad).
+- **Ease of correct use** vs **ease of misuse**.
 
 Discuss trade-offs in prose, not tables. Highlight where designs diverge most.
 
@@ -81,7 +84,7 @@ Often the best design combines insights from multiple options. Ask:
 
 ### Anti-Patterns
 
-- Don't let sub-agents produce similar designs - enforce radical difference
-- Don't skip comparison - the value is in contrast
-- Don't implement - this is purely about interface shape
-- Don't evaluate based on implementation effort
+- Don't let sub-agents produce similar designs - enforce radical difference.
+- Don't skip comparison - the value is in contrast.
+- Don't implement - this is purely about interface shape.
+- Don't evaluate based on implementation effort.
