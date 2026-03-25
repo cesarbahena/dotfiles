@@ -12,7 +12,7 @@ _A brief overview of the backlog item._
 
 - **What is it?**
 - **Why is it needed?**
-- **Context / References:** (e.g., Figma mockups, documentation links)
+- **Context / References:** (e.g., Figma mockups, docs, related PBIs)
 
 ## User Story
 
@@ -24,16 +24,27 @@ _As a [type of user], I want [goal] so that [reason/value]._
 - [ ] Criterion 2
 - [ ] Criterion 3
 
+## Tasks (if they are unclear, mark as TBD so an agent can fill them later)
+
+_Break the work into smaller actionable steps:_
+
+- [ ] Task 1
+- [ ] Task 2
+- [ ] Task 3
+
 ## Priority / Business Value
 
 - [ ] High
 - [ ] Medium
-- [ ] Low  
-       _Optional: numeric ranking or story points._
+- [ ] Low
+
+## Epic / Tag
+
+- **Epic label:** `Epic: Authentication` _(example, use GitHub labels to filter)_
 
 ## Dependencies
 
-- List any blockers, prerequisite features, or related issues
+- Related PBIs, blockers, or prerequisite tasks (list issue numbers if applicable)
 
 ## Notes / Additional Information
 
