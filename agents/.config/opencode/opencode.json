@@ -14,13 +14,7 @@
   },
   "permission": {
     "external_directory": {
-      "*":"allow"
-    },
-    "bash": {
-      "*": "allow",
-      "sudo*": "deny",
-      "find*": "deny",
-      "sed*": "deny"
+      "*": "allow"
     }
   }
 }
