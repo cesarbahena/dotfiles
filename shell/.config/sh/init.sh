@@ -31,3 +31,6 @@ s() {
 }
 
 unset _shell
+
+export SDKMAN_DIR="/home/cesar/.local/share/sdkman"
+[[ -s "/home/cesar/.local/share/sdkman/bin/sdkman-init.sh" ]] && source "/home/cesar/.local/share/sdkman/bin/sdkman-init.sh"
