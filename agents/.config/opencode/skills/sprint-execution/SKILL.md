@@ -1,15 +1,11 @@
 ---
 name: sprint-execution
-description: Instruct sub-agents to deliver a single vertical code unit.
+description: |
+  Instruct sub-agents to deliver a single vertical code unit. 
+  Use always when planing its done.
 ---
 
-## When to use me
-
-When ready to code after planing its done.
-
-## What do I do
-
-### Before spawn
+## Before spawn
 
 1. **Identify durable decisions** unlikely to change throughout implementation:
    - Route paths and API structure
@@ -23,7 +19,7 @@ When ready to code after planing its done.
    - Demoable or verifiable on its own
    - Prefer thin slices over thick ones
 
-### Prompt structure
+## Prompt structure
 
 Pass this to the sub-agent (aditional to other instructions):
 
@@ -37,4 +33,3 @@ Slice to build:
 
 Complete when: [how to verify/demo this slice]
 ```
-

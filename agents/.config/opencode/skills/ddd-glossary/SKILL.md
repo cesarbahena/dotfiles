@@ -1,19 +1,16 @@
 ---
 name: ddd-glossary
-description: Extract a DDD glossary from the current conversation, flagging ambiguities and proposing canonical terms.
+description: |
+  Extracts a DDD glossary from the current conversation, flagging 
+  ambiguities and proposing canonical terms. Use after a brainstorm session, 
+  when desingning a new feature or at the minimum doubt of what a business 
+  term means. Don't hesitate, DDD is always a priority.
 ---
-
-## When to use me
-
-After a brainstom session, when desingning a new feature or at the minimum
-doubt of what a business term means. Don't hesitate, DDD is always a priority.
-
-## What do I do
 
 Extract and formalize domain terminology from the current conversation into a
 consistent glossary, saved to a local file.
 
-### Process
+## Process
 
 1. **Scan the conversation** for domain-relevant nouns, verbs, and concepts.
 2. **Identify problems**:

@@ -6,7 +6,13 @@ description: |
   plan new features or bugfixes.
 ---
 
-## Workflow (if applicable):
+## When to use me
+
+To plan new features or bugfixes.
+
+## What I do
+
+Workflow (if applicable):
 
 1. Use your question tool disambiguate the problem they want to solve.
 2. Explore the repo to verify their assertions and understand the current state of the codebase.

@@ -1,16 +1,12 @@
 ---
 name: hotfix
-description: Structured approach to solve software problems (bugs, crashes, unintended behavior) autonomously or with a team of agents or humans.
+description: |
+  Structured approach to solve problems autonomously or with a team of agents 
+  or humans. Use immediately when you find a bug or the user reports one.
 ---
 
-## When to use me
-
-Immediately when you find a bug or the user reports one.
-Prefereably work while the sub-agents are working in the background.
+Prefereably use it while the sub-agents are working in the background.
 If you are doing another task, in most cases stop and fix the bug.
-
-## What do I do
-
 Investigate the root cause and create fix plan.
 Mostly a hands-off workflow, minimize questions to the user.
 

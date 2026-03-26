@@ -1,17 +1,13 @@
 ---
 name: sprint-planning
-description: This is standard methodology for agentic software development inspired in SCRUM.
+description: |
+  Default methodology for agentic software development inspired in SCRUM.
+  Use for any non trivial code changes or when users ask for a plan.
 ---
-
-## When to use me
-
-Any non trivial code change.
-
-## What do I do
 
 Sprint duration: 1 day
 
-### Workflow
+## Workflow
 
 1. Order PBI github issues by priority.
 2. Calculate how many PBI can your paralel agents solve in a day.

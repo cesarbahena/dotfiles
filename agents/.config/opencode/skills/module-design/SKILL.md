@@ -1,22 +1,19 @@
 ---
 name: module-design
-description: Generate multiple radically different interface designs for a module using parallel sub-agents.
+description: |
+  Generate multiple radically different interface designs for a module 
+  using parallel sub-agents. Use it when an internal API is needed or 
+  when exploring architecture options.
 ---
 
-## When to use me
-
-When an internal API is needed or when exploring architecture options.
-
-## What do I do
-
-### Philosophy
+## Philosophy
 
 Ousterhout's "Design It Twice": your first idea is unlikely to be the best.
 Generate multiple radically different designs, then compare.
 
-### Workflow
+## Workflow
 
-#### 1. Gather Requirements
+### 1. Gather Requirements
 
 Before designing, understand:
 
@@ -26,7 +23,7 @@ Before designing, understand:
 - Any constraints? (performance, compatibility, existing patterns).
 - What should be hidden inside vs exposed?
 
-#### 2. Generate Designs
+### 2. Generate Designs
 
 Spawn 3+ sub-agents simultaneously. Each must produce a radically different
 approach.
@@ -51,7 +48,7 @@ Output format:
 4. Trade-offs of this approach
 ```
 
-#### 3. Present Designs
+### 3. Present Designs
 
 Show each design with:
 
@@ -62,7 +59,7 @@ Show each design with:
 Present designs sequentially so user can absorb each approach before
 comparison.
 
-#### 4. Compare Designs
+### 4. Compare Designs
 
 After showing all designs, compare them on:
 
@@ -75,14 +72,14 @@ After showing all designs, compare them on:
 
 Discuss trade-offs in prose, not tables. Highlight where designs diverge most.
 
-#### 5. Synthesize
+### 5. Synthesize
 
 Often the best design combines insights from multiple options. Ask:
 
 - "Which design best fits your primary use case?"
 - "Any elements from other designs worth incorporating?"
 
-### Anti-Patterns
+## Anti-Patterns
 
 - Don't let sub-agents produce similar designs - enforce radical difference.
 - Don't skip comparison - the value is in contrast.

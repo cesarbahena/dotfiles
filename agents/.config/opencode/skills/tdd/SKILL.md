@@ -1,15 +1,12 @@
 ---
 name: tdd
-description: Mandatory test-driven development with red-green-refactor loop.
+description: |
+  Red-green-refactor test-driven development.
+  Use every time you use the edit tool. Skip
+  only in legacy codebases without tests.
 ---
 
-## When to use me
-
-Strictly always unless its legacy software without automated tests.
-
-## What do I do
-
-### Philosophy
+## Philosophy
 
 **Core principle:** Tests verify behavior through public interfaces,
 not implementation details. Code can change; tests should not.
@@ -27,7 +24,7 @@ refactor, but behavior hasn't changed.
 
 **Mocking:** Mock only at system boundaries.
 
-### Anti-Pattern: Horizontal Slices
+## Anti-Pattern: Horizontal Slices
 
 **Do not write all tests first, then all implementation.** This causes
 speculative test just to fill a quote and its correlated to bad quality.
@@ -39,9 +36,9 @@ what behavior matters.
 So is not really RED, GREEN, REFACTOR.
 It's RED, GREEN, [RED, GREEN, ...], REFACTOR.
 
-### Workflow
+## Workflow
 
-#### RED:
+### RED:
 
 1. Write one test that confirms one thing about the system.
 2. Run it and confirm it fails.
@@ -49,13 +46,13 @@ It's RED, GREEN, [RED, GREEN, ...], REFACTOR.
    (you should be in a feature branch in most cases), otherwise just report
    it to the user.
 
-#### GREEN:
+### GREEN:
 
 4. Make minimal changes to make the test pass.
 5. Do not refactor yet, go back to RED and add more tests with your new
    knowledge.
 
-#### REFACTOR:
+### REFACTOR:
 
 6. When 90% coverage, look for refactor candidates.
 7. Tests written in the RED phase are specs, so they must not change unless
