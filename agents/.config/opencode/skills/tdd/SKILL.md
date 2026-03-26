@@ -1,10 +1,13 @@
 ---
 name: tdd
 description: |
-  Red-green-refactor test-driven development.
-  Use every time you use the edit tool. Skip
-  only in legacy codebases without tests.
+  Test-driven development: write tests first, then implementation.
+  Use when user asks to add tests, write tests, test coverage, unit test,
+  or when fixing bugs to prevent regression.
 ---
+
+Trigger phrases: "write test", "add tests", "test coverage", "unit test",
+"TDD", "red green refactor", "test first", "prevent regression"
 
 ## Philosophy
 

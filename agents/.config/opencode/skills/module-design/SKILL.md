@@ -1,10 +1,13 @@
 ---
 name: module-design
 description: |
-  Generate multiple radically different interface designs for a module 
-  using parallel sub-agents. Use it when an internal API is needed or 
-  when exploring architecture options.
+  Design module interfaces, APIs, data structures, architecture patterns.
+  Use when user wants to design something new, create an API, define
+  interfaces, or explore architecture options.
 ---
+
+Trigger phrases: "design", "API", "interface", "architecture", "module",
+"how should we structure", "what interface", "data model"
 
 ## Philosophy
 

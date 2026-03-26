@@ -1,10 +1,13 @@
 ---
 name: backlog-refinement
 description: |
-  Investigate the current state of the product and iterate adding or modifying 
-  PBIs through user interview and codebase exploration. Use when you need to
-  plan new features or bugfixes.
+  Create GitHub issues, refine backlog, write user stories, define requirements.
+  Use when user wants to create issues, stories, tasks, or when clarifying
+  what needs to be built.
 ---
+
+Trigger phrases: "create issue", "write story", "add to backlog",
+"define requirement", "what should we build", "PBI", "ticket"
 
 ## Workflow (if applicable):
 

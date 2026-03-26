@@ -1,11 +1,13 @@
 ---
 name: ddd-glossary
 description: |
-  Extracts a DDD glossary from the current conversation, flagging 
-  ambiguities and proposing canonical terms. Use after a brainstorm session, 
-  when desingning a new feature or at the minimum doubt of what a business 
-  term means. Don't hesitate, DDD is always a priority.
+  Domain-driven design: define domain terms, create glossary, clarify vocabulary.
+  Use when discussing business concepts, defining terms, or when there is
+  ambiguity about what something means.
 ---
+
+Trigger phrases: "domain", "glossary", "term", "vocabulary", "DDD",
+"what does X mean", "define", "clarify", "business language"
 
 Extract and formalize domain terminology from the current conversation into a
 consistent glossary, saved to a local file.

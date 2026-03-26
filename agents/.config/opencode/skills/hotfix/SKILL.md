@@ -1,9 +1,13 @@
 ---
 name: hotfix
 description: |
-  Structured approach to solve problems autonomously or with a team of agents 
-  or humans. Use immediately when you find a bug or the user reports one.
+  Debug and fix bugs, investigate crashes, find root cause of errors.
+  Use when user reports bug, error, crash, issue, broken, not working,
+  or when you encounter exceptions during development.
 ---
+
+Trigger phrases: "fix bug", "debug", "crash", "error", "broken", "not working",
+"why did this fail", "root cause", "regression", "something is wrong"
 
 Prefereably use it while the sub-agents are working in the background.
 If you are doing another task, in most cases stop and fix the bug.

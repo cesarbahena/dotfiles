@@ -1,9 +1,13 @@
 ---
 name: sprint-execution
 description: |
-  Instruct sub-agents to deliver a single vertical code unit. 
-  Use always when planing its done.
+  Execute planned tasks, delegate work to sub-agents, run agents in parallel.
+  Use when you need to implement features, make changes, or when a plan
+  exists and needs to be executed.
 ---
+
+Trigger phrases: "execute", "implement", "delegate", "run", "build",
+"make changes", "work on it", "do it"
 
 ## Before spawn
 
