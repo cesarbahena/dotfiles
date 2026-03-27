@@ -9,7 +9,7 @@ set completeopt=menu,menuone,noselect pumheight=10
 set clipboard=unnamedplus undofile autoread noswapfile
 set laststatus=0 cmdheight=0 shortmess+=S
 set termguicolors nohlsearch noshowcmd noruler
-hi ColorColumn guibg=#1f1f1f
+hi ColorColumn guibg=#151515
 let &fillchars = "eob: "
 let mapleader="\<C-k>"
 
@@ -29,21 +29,19 @@ nnoremap <leader>f :find **/*<Left>
 
 augroup core
   autocmd!
-
+  
   " Restore cursor position
-  autocmd BufReadPost *
-        \ if line("'\"") > 0 && line("'\"") <= line("$") |
-        \   execute "normal! g`\"" |
+  autocmd BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$") |
+        \ execute "normal! g`\"" |
         \ endif
 
   " Close with q
   autocmd FileType help,qf nnoremap <buffer> q :close<CR>
 
-  " Update current file in tmux statusline
-  autocmd BufEnter *
-        \ call system(
-        \ 'tmux setenv -g TMUX_NVIM_FILE ' .
-        \ shellescape(expand('%:t') == '' ? '[No Name]' : expand('%:t'))
-        \ )
+  " Update tmux pane title
+  autocmd BufEnter * if &filetype !=# 'minifiles' && exists('$TMUX') |
+        \ call system('tmux select-pane -t ' . $TMUX_PANE . ' -T ' . 
+        \ shellescape(fnamemodify(expand('%:p'), ':.'))) |
+        \ endif
 
 augroup END
