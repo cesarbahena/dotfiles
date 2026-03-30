@@ -232,3 +232,10 @@ instructions:
   of the same branch again
 - If the approach is completely wrong, delete the feature branch and spawn
   a new agent with a refined prompt
+
+4. Consider learning from implementation
+
+- Sometimes theory fails to describe reality
+- Agents writing the tests and implementations may encounter unexpected
+  challanges
+- Review acceptance.feature and consider who is wrong, the agent or the spec

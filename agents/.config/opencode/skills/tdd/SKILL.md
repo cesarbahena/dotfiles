@@ -1,60 +1,38 @@
 ---
 name: tdd
 description: |
-  Test-driven development: write tests first, then implementation.
-  Use when user asks to add tests, write tests, test coverage, unit test,
-  or when fixing bugs to prevent regression.
+  Use to make any code changes
 ---
 
-Trigger phrases: "write test", "add tests", "test coverage", "unit test",
-"TDD", "red green refactor", "test first", "prevent regression"
+## RED
 
-## Philosophy
+- Write a single failing test
+- Assert a single atomic behavior
+- Verify it does not pass
 
-Core principle: Tests verify behavior through public interfaces,
-not implementation details. Code can change; tests should not.
+## GREEN
 
-Good tests execute real code paths through public APIs. They describe
-what the system does, not how it does it. A good test reads like a
-specification, "user can checkout with valid cart" tells you exactly what
-capability exists. These tests survive refactors because they don't care
-about internal structure.
+- Implement minimal code to pass
+- Verify it passes
 
-Bad tests are coupled to implementation. They mock internals, test private
-methods, or verify through external means. Warning sign: your test breaks
-when you refactor, but behavior hasn't changed.
+## LEARN
 
-Mocking: Mock only at system boundaries.
+- Review your theory vs practice
+- Consider if the theory was correct
 
-## Anti-Pattern: Horizontal Slices
+## REPEAT
 
-Do not write all tests first, then all implementation. This causes
-speculative test just to fill a quote and its correlated to bad quality.
+- Use your knowlegde to write a single other test
+- Repeat until 90%+ coverage
 
-Correct approach: Vertical slices. One test -> one implementation -> repeat.
-Each test builds on the learnings of the previous cycle.
+## FREEZE TESTS
 
-So is not really RED, GREEN, REFACTOR.
-It's RED, GREEN, [RED, GREEN, ...], REFACTOR.
+- Freeze the tests - they are immutable now
+- Refactoring tests at this stage requires aproval
+- For trivial obious mistakes parent agent can aprove
+- Everything else requires user aproval
 
-## Workflow
+## REFACTOR
 
-### RED:
-
-1. Write one test that confirms one thing about the system.
-2. Run it and confirm it fails.
-3. Evidence the RED step: RED test are your spec, commit it if not in main repo
-   (you should be in a feature branch in most cases), otherwise just report
-   it to the user.
-
-### GREEN:
-
-4. Make minimal changes to make the test pass.
-5. Do not refactor yet, go back to RED and add more tests with your new
-   knowledge.
-
-### REFACTOR:
-
-6. When 90% coverage, look for refactor candidates.
-7. Tests written in the RED phase are specs, so they must not change unless
-   you document to the user the justification.
+- Improve structure without changing behavior
+- Strive for best practices and codebase conventions
