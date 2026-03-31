@@ -29,6 +29,10 @@
       "rev": "a472496e1a4465a2dd574389dcf6cdb29af9bf1b",
       "src": "https://github.com/ellisonleao/gruvbox.nvim"
     },
+    "mfd.nvim": {
+      "rev": "a33f2140d8c4b89e5126579663d2b73dad6b6c29",
+      "src": "https://github.com/kungfusheep/mfd.nvim"
+    },
     "mini.files": {
       "rev": "fafacfecdd6c5a66bb10d173a749f3c098e84498",
       "src": "https://github.com/nvim-mini/mini.files"

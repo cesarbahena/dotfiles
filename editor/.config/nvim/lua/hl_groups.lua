@@ -67,6 +67,9 @@ function M.apply_all()
   hl(0, 'CursorLineNr', { fg = 'NONE' })
   hl(0, 'StatusLine', { bg = 'NONE', fg = 'NONE' })
   hl(0, 'StatusLineNC', { bg = 'NONE', fg = 'NONE' })
+  hl(0, 'Normal', { bg = 'NONE' })
+  hl(0, 'NormalFloat', { bg = 'NONE' })
+  hl(0, 'EndOfBuffer', { bg = 'NONE' })
 end
 
 function M.get_lnr_color(buf, lnum, is_current)
