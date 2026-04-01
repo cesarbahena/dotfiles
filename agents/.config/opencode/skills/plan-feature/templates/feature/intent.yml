@@ -1,0 +1,18 @@
+personas:
+  primary: "<primary persona>"
+  secondary:
+    - "<secondary persona>"
+    - "<secondary persona>"
+
+goal:
+  - "<why this feature exists>"
+
+success:
+  - "<observable outcome 1>"
+  - "<observable outcome 2>"
+
+non_goals:
+  - "<explicitly out of scope>"
+
+constraints:
+  - "<optional constraint>"

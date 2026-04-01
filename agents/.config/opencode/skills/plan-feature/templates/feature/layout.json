@@ -1,0 +1,11 @@
+{
+  "type": "frame",
+  "name": "login",
+  "layout": "column",
+  "children": [
+    { "type": "text", "name": "title", "value": "Login" },
+    { "type": "input", "name": "email" },
+    { "type": "input", "name": "password" },
+    { "type": "button", "name": "submit", "label": "Login" }
+  ]
+}

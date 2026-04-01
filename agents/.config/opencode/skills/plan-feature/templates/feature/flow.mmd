@@ -1,0 +1,10 @@
+flowchart TD
+
+  A[Start] --> B[User action]
+  B --> C{Decision}
+
+  C -->|yes| D[Next step]
+  C -->|no| E[Alternative]
+
+  D --> F[End]
+  E --> F

@@ -1,241 +1,87 @@
 ---
-name: plan-feature
-description: Use it to plan a new feature or refine an existing one
+description: |
+  USE to create or edit authoritative spec artifacts
+  WHEN designing new feature
+  OR refining an existing one
 ---
 
-Create or edit authoritative spec arctifacts that describe a feature
+## INPUT
 
-## LOCATIONS
+Understand the product
 
-Preferred dedicated folder, flexibility to prepend the feature name if the
-architecture does not allow
+### READ
 
-- <feature-name>/<artifact-name>
-- <feature-name>.<artifact-name>
+#### System specs
 
-## FEATURE ARTIFACTS
+DEFAULT `system/<spec>`
+OR some global folder
 
-### intent.yml
+- `nfr.yml`
+- `principle.yml`
+- `scope.yml`
+- `architecture.dsl`
+- `adr/*`
 
-- Authoritative document for this feature's purpose as part of the product
-- Used as a structured way to define product requirements that normally
-  would get burried in documentation.
-- By colocating them with the feature implementation, we can enforce the
-  product design from vision to reality.
+#### Domain spec
 
-```yaml
-domain:
-  primary: "<primary-domain>"
-  secondary:
-    - "<secondary-domain>"
-    - "<secondary-domain>"
+IF new domain THEN skip
 
-personas:
-  primary: "<primary persona>"
-  secondary:
-    - "<secondary persona>"
-    - "<secondary persona>"
+DEFAULT `<domain>/domain/<domain>.yml`
 
-goal:
-  - "<why this feature exists>"
+#### Feature specs
 
-success:
-  - "<observable outcome 1>"
-  - "<observable outcome 2>"
+IF new feature THEN skip
 
-non_goals:
-  - "<explicitly out of scope>"
+DEFAULT `<domain>/application/<feature>/<spec>`
+OR any folder if prepended by feature-name `<feature>.<spec>`
 
-constraints:
-  - "<optional constraint>"
-```
+- `intent.yml`
+- `acceptance.feature`
+- `flow.mmd`
+- `layout.json`
 
-## acceptance.feature
+### INTERVIEW
 
-- Authoritative document for this feature's expected behavior from the user
-  perspective
-- Used to design tests first that validate the desired behavior
-- Implementors can propose an implementation and safely refactor
-- By separating concerns we reduce unexpected behavior by arbitrary decisions
-- Tests are immutable unless we deliverately change the desired behavior in
-  the spec
+IF can be answered by exploring the code THEN skip
 
-```gherkin
-Feature: <feature-name>
+WHILE ambiguity OR decision tree unsolved
+DO use your question tool to ask high-value questions
+AND explore codebase to verify
+CATCH user's wrong asumptions THEN explain
+USE your `yagni` skill to debate
 
-  Scenario: <main success scenario>
-    Given <initial context>
-    And <additional context>
-    When <action>
-    Then <expected outcome>
-    And <additional outcome>
+## OUTPUT
 
-  Scenario: <edge or failure scenario>
-    Given <initial context>
-    When <action>
-    Then <expected outcome>
-```
+output = `intent.yml`, `acceptance.feature`, `flow.mmd`
+IF feature with ui THEN output += `layout.json`
 
-## flow.mmd
+IF new feature for existing domain THEN create feature folder
+DEFAULT `<domain>/application/<artifact>`
 
-- Autoritative document for this feature's ux design
-- Used to make ux cuantifiable (clics, steps, branches)
-- Implementors must strictly follow the designed flow
-- By explicitely diagraming every user interaction we evidence ux design flaws
-- Changes in the flow implementation need to be diagramed to revalidate ux
+IF new domain THEN create folders AND output += `<domain>.yml`
+DEFAULT `<domain>/{domain,application,infrastructure,interface}`
+IF modified domain THEN output += `<domain>.yml`
 
-```mermaid
-flowchart TD
+RETURN output
 
-  A[Start] --> B[User action]
-  B --> C{Decision}
+## STEPS
 
-  C -->|yes| D[Next step]
-  C -->|no| E[Alternative]
+1. Consider all your inputs (global system specs and current feature
+   and domain specs, user answers, codebase)
+2. Write the specs using the feature and domain templates
+3. Template's fields are used for product documents autogeneration, if you
+   consider a new field adds value, debate it, feedback is appreciated
+4. Do not force fields, just report to the user it is not needed for the
+   use case
 
-  D --> F[End]
-  E --> F
-```
+## RULES
 
-### Rules
+- Your job is to refine artifacts, not to implement the solution
 
-- `[ ]` → action or system step
-- `{ }` → decision
-- `-->` → transition
-- `|label|` → branch condition
-- One node = one action
-- Use `Click ...` to represent clicks
+## VERIFY
 
-### Good ux design
+- All specs must respect the product requirements
 
-```mermaid
-flowchart TD
+## FALLBACK
 
-  A[Start] --> B[Enter email and password]
-  B --> C[Click Login]
-  C --> D{Credentials valid}
-
-  D -->|yes| E[Dashboard]
-  D -->|no| F[Show error]
-
-  E --> G[End]
-  F --> B
-```
-
-- 1 click
-- minimal steps
-- fast retry loop
-
-## Bad ux design evidenced
-
-```mermaid
-flowchart TD
-
-  A[Start] --> B[Click Login]
-  B --> C[Enter email]
-  C --> D[Click Next]
-  D --> E[Enter password]
-  E --> F[Click Login]
-  F --> G{Credentials valid}
-
-  G -->|yes| H[Dashboard]
-  G -->|no| I[Show error]
-
-  H --> J[End]
-  I --> C
-```
-
-- multiple clicks
-- unnecessary steps
-- fragmented flow
-
-## layout.json
-
-- Authoritative document for layout design and responsiveness
-- Derived from Penpot primitives in a simplified DSL
-- Used to translate user Penpot designs so agents can use to propose changes
-  and serve as a document of ui intent
-- Implementors must use the decided css layout primitives and responsiveness
-  transformations
-- By deciding a layout strategy we avoid emergent arbitrary decisions
-
-```json
-{
-  "type": "frame",
-  "name": "login",
-  "layout": "column",
-  "children": [
-    { "type": "text", "name": "title", "value": "Login" },
-    { "type": "input", "name": "email" },
-    { "type": "input", "name": "password" },
-    { "type": "button", "name": "submit", "label": "Login" }
-  ]
-}
-```
-
-## SYSTEM ARTIFACTS
-
-- There are also `system/` artifacts that also affect feature artifacts
-- Its outside the scope of a feature planning to modify system decision
-- But if the required feature requires system changes propose to the user
-- Every architecture decision must be recorded in `adr/`
-- Make sure you understand:
-  - `system/architecture.dsl`,
-  - `system/nfr.yml`
-  - `system/scope.yml`
-  - `system/principles.yml`
-
-## INTERVIEW
-
-1. Use your question tool to ask high-value, disambiguating questions
-   - inputs
-   - outputs
-   - edge cases
-   - failure modes
-   - libraries
-   - design patterns
-   - architectureSK
-2. Explore the repo to understand current state and challange their assertions
-3. Walk down each decision branch resolving dependencies one by one
-
-## UPDATE
-
-1. Artifacts are the single source of truth
-2. Your job is to refine them, not to implement the solution
-
-## DELIVER
-
-- Mandatory: intent.yml, acceptance.feature, flow.mmd
-- If applicable: layout.json for features with ui
-
-## NEXT
-
-Spawn parallel subagents to implement the features with concise unambiguous
-instructions:
-
-1. Sumary of the constraints defined on the artifacts
-2. Use the `tdd` skill unless its a legacy project without tests
-3. Work in a git worktree checked out to a feature branch
-4. Commit often in atomic units of tested code
-5. Remove the worktree when done
-6. Deliver reproducible solutions - you can modify a running container to
-   test fixes, but the solution must be written to the image (source code)
-
-## ITERATE
-
-1. Use the `code-review` skill to evaluate the diff in the feature branch
-2. Validate that the code changes respect all the system and feature specs
-3. You can autonomously trigger fixes:
-
-- For trivial fixes do it yourlself
-- For refactors spawn a new agent with a refined prompt to spawn a worktree
-  of the same branch again
-- If the approach is completely wrong, delete the feature branch and spawn
-  a new agent with a refined prompt
-
-4. Consider learning from implementation
-
-- Sometimes theory fails to describe reality
-- Agents writing the tests and implementations may encounter unexpected
-  challanges
-- Review acceptance.feature and consider who is wrong, the agent or the spec
+This skill is a WIP, feedback is appreciated

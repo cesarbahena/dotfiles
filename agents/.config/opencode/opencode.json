@@ -4,7 +4,7 @@
   "keybinds": {
     "leader": "ctrl+o",
     "messages_half_page_up": "alt+u",
-    "messages_half_page_down": "alt+d",
+    "messages_half_page_down": "ctrl+d",
     "session_compact": "none",
     "session_new": "<leader>c",
     "session_child_cycle": "<leader>ctrl+n,<leader>n",
