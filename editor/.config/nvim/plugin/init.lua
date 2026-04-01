@@ -15,5 +15,4 @@ vim.pack.add {
   gh 'lewis6991/gitsigns.nvim',
   gh 'rafamadriz/friendly-snippets',
   gh 'seblyng/roslyn.nvim',
-  gh 'nickjvandyke/opencode.nvim',
 }
