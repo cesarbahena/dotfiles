@@ -1,6 +1,5 @@
-# Non-Functional Requirements (NFR)
-# This file defines enforceable system-wide constraints.
-# All changes MUST comply or be rejected by enforce-nfr.
+# Non-Functional Requirements
+# This file defines enforceable system-wide constraints
 
 performance:
   response_time_ms: 200

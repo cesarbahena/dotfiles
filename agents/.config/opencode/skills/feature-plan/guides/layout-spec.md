@@ -1,4 +1,4 @@
-# layout.json Guide
+# Frontend layout specification guide
 
 ## Purpose
 
@@ -6,7 +6,7 @@ Defines UI structure to prevent emergent design.
 
 ## DSL
 
-``` json
+```json
 {
   "type": "screen",
   "name": "Login",
@@ -20,9 +20,9 @@ Defines UI structure to prevent emergent design.
 
 ## Rules
 
--   Must reflect flow.mmd
--   No styling
--   Only structure and hierarchy
--   Components must be named
--   Layout must be explicit
--   Every clickable element must appear in flow
+- Must reflect flow.mmd
+- No styling
+- Only structure and hierarchy
+- Components must be named
+- Layout must be explicit
+- Every clickable element must appear in flow
