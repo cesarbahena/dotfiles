@@ -1,0 +1,21 @@
+{
+  "skill_name": "planning",
+  "project": "E-Commerce Platform",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Plan the multi-vendor marketplace feature. Users can create vendor accounts, set up storefronts, and list products. Vendors need a dashboard with sales analytics. Phase 1 of ecommerce platform.",
+      "context": "Full context provided - goal, users, constraints all included"
+    },
+    {
+      "id": 2,
+      "prompt": "Plan the shopping cart and checkout. Buyers add products from multiple vendors. Single payment for entire cart. Split payment to vendors after order completes.",
+      "context": "Complex multi-vendor scenario"
+    },
+    {
+      "id": 3,
+      "prompt": "Plan payment processing. Stripe integration. Support credit cards and bank transfers. PCI compliant required.",
+      "context": "Security constraints specified"
+    }
+  ]
+}
