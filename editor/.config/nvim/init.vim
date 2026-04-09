@@ -39,7 +39,7 @@ augroup core
   " Update tmux pane title
   autocmd BufEnter * if &filetype !=# 'minifiles' && exists('$TMUX') |
         \ call system('tmux select-pane -t ' . $TMUX_PANE . ' -T ' . 
-        \ shellescape(fnamemodify(expand('%:p'), ':.'))) |
+        \ shellescape(fnamemodify(expand('%:p'), ':p'))) |
         \ endif
 
 augroup END
