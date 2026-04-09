@@ -1,16 +1,25 @@
 local map = vim.keymap.set
-local hl = vim.api.nvim_set_hl
-local au = vim.api.nvim_create_autocmd
 
-au('ColorScheme', { callback = require('hl_groups').apply_all })
 vim.cmd 'colorscheme mfd-flir-rh'
+local hl = vim.api.nvim_set_hl
+hl(0, 'white', { ctermfg = 15, fg = '#ffffff' })
+hl(0, 'gray', { ctermfg = 240, fg = '#585858' })
+hl(0, 'green', { ctermfg = 46, fg = '#00ff00' })
+hl(0, 'red', { ctermfg = 196, fg = '#ff0000' })
+hl(0, 'yellow', { ctermfg = 226, fg = '#ffff00' })
+hl(0, 'blue', { ctermfg = 39, fg = '#00afd7' })
+hl(0, 'magenta', { ctermfg = 201, fg = '#ff00ff' })
+hl(0, 'GitSignsAdd', { link = 'green' })
+hl(0, 'GitSignsChange', { link = 'yellow' })
+hl(0, 'GitSignsDelete', { link = 'red' })
+hl(0, 'GitSignsUntracked', { link = 'green' })
 
 -- Languages
 for k, v in pairs({
   'rust_analyzer',
-  ts_ls = { filetypes = { 'javascript', 'typescript', 'typescriptreact', 'javascriptreact' } },
-  lua_ls = { filetypes = { 'lua' } },
-  gopls = {},
+  'ts_ls',
+  'lua_ls',
+  'gopls',
 }) do
   if type(k) ~= 'number' then
     vim.lsp.config(k, v)
@@ -29,7 +38,7 @@ require('conform').setup {
 vim.diagnostic.config {
   virtual_text = {
     spacing = 4,
-    prefix = '●',
+    prefix = '!',
     source = 'if_many',
   },
   update_in_insert = false,
@@ -210,33 +219,68 @@ require('gitsigns').setup {
       end
     end, { buffer = bufnr })
 
-    map('n', '<leader>hp', gs.preview_hunk_inline, { buffer = bufnr })
-    map({ 'n', 'v' }, '<leader>hs', ':Gitsigns stage_hunk<CR>', { buffer = bufnr })
-    map({ 'n', 'v' }, '<leader>hr', ':Gitsigns reset_hunk<CR>', { buffer = bufnr })
+    map('n', '<F2>', gs.preview_hunk_inline, { buffer = bufnr })
+    map({ 'n', 'v' }, '<M-u>', ':Gitsigns stage_hunk<CR>', { buffer = bufnr })
+    map({ 'n', 'v' }, '<M-y>', ':Gitsigns reset_hunk<CR>', { buffer = bufnr })
   end,
 }
-
-hl(0, 'GitSignsAdd', { link = 'BashGreen' })
-hl(0, 'GitSignsChange', { link = 'BashYellow' })
-hl(0, 'GitSignsDelete', { link = 'BashRed' })
-hl(0, 'GitSignsUntracked', { link = 'BashGreen' })
 
 require('statuscol').setup {
   setopt = true,
   segments = {
     {
-      sign = { namespace = { 'gitsign' }, maxwidth = 1, colwidth = 1, auto = false },
+      sign = {
+        namespace = { 'gitsign' },
+        maxwidth = 1,
+        colwidth = 1,
+        auto = false
+      },
     },
     {
       text = {
         function(args)
-          local hl = require('hl_groups').get_lnr_color(args.buf, args.lnum, args.relnum == 0)
-
-          if args.relnum == 0 then
-            return '%#' .. hl .. '#' .. string.format('%2d', args.lnum) .. '%*'
+          local placed = vim.fn.sign_getplaced(
+            args.buf,
+            { group = '*', lnum = args.lnum }
+          )[1]
+          for _, s in ipairs(placed and placed.signs or {}) do
+            if s.name == 'DapStopped' then
+              return '%#magenta#'
+                  .. (args.relnum == 0
+                    and string.format('%2d', args.lnum)
+                    or string.format('%2d', args.relnum))
+                  .. '%*'
+            elseif s.name:match '^Dap' then
+              return '%#blue#'
+                  .. (args.relnum == 0
+                    and string.format('%2d', args.lnum)
+                    or string.format('%2d', args.relnum))
+                  .. '%*'
+            end
           end
-
-          return '%#' .. hl .. '#' .. string.format('%2d', args.relnum) .. '%*'
+          local diags = vim.diagnostic.get(args.buf, { lnum = args.lnum - 1 })
+          for _, d in ipairs(diags) do
+            if d.severity == vim.diagnostic.severity.ERROR then
+              return '%#red#'
+                  .. (args.relnum == 0
+                    and string.format('%2d', args.lnum)
+                    or string.format('%2d', args.relnum))
+                  .. '%*'
+            elseif d.severity == vim.diagnostic.severity.WARN then
+              return '%#yellow#'
+                  .. (args.relnum == 0
+                    and string.format('%2d', args.lnum)
+                    or string.format('%2d', args.relnum))
+                  .. '%*'
+            end
+          end
+          return '%#'
+              .. (args.relnum == 0 and 'white' or 'gray')
+              .. '#'
+              .. (args.relnum == 0
+                and string.format('%2d', args.lnum)
+                or string.format('%2d', args.relnum))
+              .. '%*'
         end,
       },
     },
@@ -245,5 +289,8 @@ require('statuscol').setup {
 
 require('mini.pick').setup()
 map('n', '<C-k>', function()
-  MiniPick.builtin.cli({ command = { 'rg', '--files', '--hidden', '--color=never' } }, { source = { name = 'Files' } })
+  MiniPick.builtin.cli(
+    { command = { 'rg', '--files', '--hidden', '--color=never' } },
+    { source = { name = 'Files' } }
+  )
 end)
