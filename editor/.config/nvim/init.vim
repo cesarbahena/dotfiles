@@ -2,16 +2,14 @@
 " The bash s function loads this into a variable and sets
 " the vi function that executes vim or nvim with this config
 
-set relativenumber signcolumn=no foldcolumn=0 colorcolumn=80
+set relativenumber termguicolors colorcolumn=80 
 set tabstop=2 shiftwidth=2 expandtab smartindent
-set incsearch ignorecase smartcase wildignorecase
+set incsearch nohlsearch ignorecase smartcase wildignorecase
 set completeopt=menu,menuone,noselect pumheight=10
 set clipboard=unnamedplus undofile autoread noswapfile
-set laststatus=0 cmdheight=0 shortmess+=S
-set termguicolors nohlsearch noshowcmd noruler
+set laststatus=0 cmdheight=0 shortmess+=S noshowcmd noruler
 hi ColorColumn guibg=#151515
 let &fillchars = "eob: "
-let mapleader="\<C-k>"
 
 nnoremap <C-d> <C-d>zz
 nnoremap <C-u> <C-u>zz
