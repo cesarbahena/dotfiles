@@ -3,6 +3,7 @@ local function gh(repo)
 end
 
 vim.pack.add {
+  gh 'neovim/nvim-lspconfig',
   gh 'nvim-mini/mini.pick',
   gh 'mfussenegger/nvim-dap',
   gh 'stevearc/conform.nvim',

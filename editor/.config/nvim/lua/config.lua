@@ -6,7 +6,17 @@ au('ColorScheme', { callback = require('hl_groups').apply_all })
 vim.cmd 'colorscheme mfd-flir-rh'
 
 -- Languages
-vim.lsp.enable {}
+for k, v in pairs({
+  'rust_analyzer',
+  ts_ls = { filetypes = { 'javascript', 'typescript', 'typescriptreact', 'javascriptreact' } },
+  lua_ls = { filetypes = { 'lua' } },
+  gopls = {},
+}) do
+  if type(k) ~= 'number' then
+    vim.lsp.config(k, v)
+  end
+  vim.lsp.enable { type(k) == 'number' and v or k }
+end
 
 require('conform').setup {
   formatters_by_ft = {},
