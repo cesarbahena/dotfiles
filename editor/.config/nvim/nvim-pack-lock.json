@@ -69,6 +69,10 @@
       "rev": "568ede7e79172a0fe7c9d631454a97ad968deaf2",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter"
     },
+    "opencode.nvim": {
+      "rev": "df533d6da724109bf08446392db860fdceddbd0c",
+      "src": "https://github.com/nickjvandyke/opencode.nvim"
+    },
     "roslyn.nvim": {
       "rev": "24f7c91ee5e09c63104deaab68f932620f25c24a",
       "src": "https://github.com/seblyng/roslyn.nvim"
@@ -88,6 +92,10 @@
     "vim-dadbod-ui": {
       "rev": "48c4f271da13d380592f4907e2d1d5558044e4e5",
       "src": "https://github.com/kristijanhusak/vim-dadbod-ui"
+    },
+    "zen-mode.nvim": {
+      "rev": "8564ce6d29ec7554eb9df578efa882d33b3c23a7",
+      "src": "https://github.com/folke/zen-mode.nvim"
     }
   }
 }
