@@ -10,3 +10,7 @@ y = 10
 key = "Return"
 mods = "Shift"
 chars = "\u001B\r"
+
+[font]
+normal = { family = "Hack", style = "Regular" }
+size = 10
