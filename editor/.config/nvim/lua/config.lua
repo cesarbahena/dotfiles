@@ -10,7 +10,6 @@ hl(0, 'yellow', { ctermfg = 226, fg = '#ffff00' })
 hl(0, 'blue', { ctermfg = 39, fg = '#00afd7' })
 hl(0, 'magenta', { ctermfg = 201, fg = '#ff00ff' })
 hl(0, 'GitSignsAdd', { link = 'green' })
-hl(0, 'GitSignsChange', { link = 'yellow' })
 hl(0, 'GitSignsDelete', { link = 'red' })
 hl(0, 'GitSignsUntracked', { link = 'green' })
 
@@ -360,7 +359,10 @@ local function signal_fn(args)
   local bufnr = args.buf
   local lnum = args.lnum
 
-  -- DAP (priority)
+  local function wrap(hl, char)
+    return "%#" .. hl .. "#" .. char .. "%*"
+  end
+
   local placed = vim.fn.sign_getplaced(bufnr, {
     group = '*',
     lnum = lnum,
@@ -368,41 +370,14 @@ local function signal_fn(args)
 
   for _, s in ipairs(placed and placed.signs or {}) do
     if s.name == "DapStopped" then
-      return hl_wrap("LineNrStopped", "●")
+      return wrap("LineNrStopped", "●")
     elseif s.name:match("^DapBreakpoint") then
-      return hl_wrap("LineNrBreakpoint", "·")
-    end
-  end
-
-  -- Git deleted (robust, handles EOF + topdelete)
-  local hunks = git_cache[bufnr]
-  if hunks then
-    local line_count = vim.api.nvim_buf_line_count(bufnr)
-
-    for _, h in ipairs(hunks) do
-      if (h.type == "delete" or h.type == "topdelete") and h.removed then
-        local l = h.removed.start
-
-        -- topdelete always goes to line 1
-        if h.type == "topdelete" then
-          l = 1
-        end
-
-        -- clamp to valid buffer range (handles EOF delete)
-        if l > line_count then
-          l = line_count
-        end
-
-        if lnum == l then
-          return hl_wrap("LineNrGitDelete", "-")
-        end
-      end
+      return wrap("LineNrBreakpoint", "·")
     end
   end
 
   return " "
 end
-
 
 -- =========================
 -- Statuscol setup
