@@ -21,10 +21,10 @@ for k, v in pairs({
   'lua_ls',
   'gopls',
 }) do
-  if type(k) ~= 'number' then
-    vim.lsp.config(k, v)
-  end
-  vim.lsp.enable { type(k) == 'number' and v or k }
+if type(k) ~= 'number' then
+  vim.lsp.config(k, v)
+end
+vim.lsp.enable { type(k) == 'number' and v or k }
 end
 
 require('conform').setup {
@@ -53,6 +53,15 @@ vim.diagnostic.config {
 
 --Debuggers
 local dap = require 'dap'
+map('n', '<F5>', dap.continue)
+map('n', '<F9>', dap.repl.toggle)
+map('n', '<F10>', dap.step_over)
+map('n', '<F11>', dap.step_into)
+map('n', '<F12>', dap.step_out)
+map('n', '<F4>', dap.toggle_breakpoint)
+map('n', '<F16>', function()
+  dap.set_breakpoint(vim.fn.input 'Condition: ')
+end)
 
 dap.adapters.python = {
   type = 'executable',
@@ -180,16 +189,6 @@ dap.configurations.php = {
   },
 }
 
-map('n', '<F5>', dap.continue)
-map('n', '<F10>', dap.step_over)
-map('n', '<F11>', dap.step_into)
-map('n', '<F12>', dap.step_out)
-map('n', '<leader>b', dap.toggle_breakpoint)
-map('n', '<leader>dr', dap.repl.toggle)
-map('n', '<leader>B', function()
-  dap.set_breakpoint(vim.fn.input 'Condition: ')
-end)
-
 -- Gutter
 require('gitsigns').setup {
   signs = {
@@ -225,64 +224,197 @@ require('gitsigns').setup {
   end,
 }
 
+-- =========================
+-- Highlight helper assumed:
+-- hl = vim.api.nvim_set_hl
+-- =========================
+
+hl(0, "LineNrNormal", {})
+hl(0, "LineNrCurrent", { bold = true })
+hl(0, "LineNrGit", { italic = true })
+hl(0, "LineNrDiag", { underline = true })
+
+hl(0, "LineNrBreakpoint", { bold = true })
+hl(0, "LineNrStopped", { bold = true, underline = true })
+hl(0, "LineNrGitDelete", { italic = true })
+
+
+-- =========================
+-- Gitsigns setup (no signs rendered)
+-- =========================
+require('gitsigns').setup {
+  signs = {
+    add          = { text = '' },
+    change       = { text = '' },
+    delete       = { text = '' },
+    topdelete    = { text = '' },
+    changedelete = { text = '' },
+  },
+}
+
+
+-- =========================
+-- DAP signs
+-- =========================
+vim.fn.sign_define('DapBreakpoint', {
+  text = '·',
+  texthl = 'LineNrBreakpoint',
+})
+
+vim.fn.sign_define('DapStopped', {
+  text = '●',
+  texthl = 'LineNrStopped',
+})
+
+
+-- =========================
+-- Gitsigns cache
+-- =========================
+local git_cache = {}
+
+vim.api.nvim_create_autocmd("User", {
+  pattern = "GitSignsUpdate",
+  callback = function(args)
+    local ok, gs = pcall(require, "gitsigns")
+    if ok and gs.get_hunks then
+      git_cache[args.buf] = gs.get_hunks(args.buf) or {}
+    end
+  end,
+})
+
+
+-- =========================
+-- Safe helpers (NO format)
+-- =========================
+local function hl_wrap(hl_group, text)
+  if type(hl_group) ~= "string" or hl_group == "" then
+    hl_group = "LineNrNormal"
+  end
+  return "%#" .. hl_group .. "#" .. text .. "%*"
+end
+
+local function pad2(n)
+  if n < 10 then
+    return " " .. n
+  end
+  return tostring(n)
+end
+
+
+-- =========================
+-- Line number function
+-- =========================
+local function linenr_fn(args)
+  local num = args.relnum == 0 and args.lnum or args.relnum
+  local txt = pad2(num)
+
+  -- DAP
+  local placed = vim.fn.sign_getplaced(args.buf, {
+    group = '*',
+    lnum = args.lnum,
+  })[1]
+
+  for _, s in ipairs(placed and placed.signs or {}) do
+    if s.name == "DapStopped" then
+      return hl_wrap("LineNrStopped", txt)
+    elseif s.name:match("^Dap") then
+      return hl_wrap("LineNrBreakpoint", txt)
+    end
+  end
+
+  -- Diagnostics
+  local diags = vim.diagnostic.get(args.buf, {
+    lnum = args.lnum - 1,
+  })
+  if #diags > 0 then
+    return hl_wrap("LineNrDiag", txt)
+  end
+
+  -- Git (added/changed)
+  local hunks = git_cache[args.buf]
+  if hunks then
+    for _, h in ipairs(hunks) do
+      if (h.type == "add" or h.type == "change") and h.added then
+        local start = h.added.start
+        local count = h.added.count or 0
+        if args.lnum >= start and args.lnum < start + count then
+          return hl_wrap("LineNrGit", txt)
+        end
+      end
+    end
+  end
+
+  -- Default
+  if args.relnum == 0 then
+    return hl_wrap("LineNrCurrent", txt)
+  else
+    return hl_wrap("LineNrNormal", txt)
+  end
+end
+
+
+-- =========================
+-- Right-side signal column
+-- =========================
+local function signal_fn(args)
+  local bufnr = args.buf
+  local lnum = args.lnum
+
+  -- DAP (priority)
+  local placed = vim.fn.sign_getplaced(bufnr, {
+    group = '*',
+    lnum = lnum,
+  })[1]
+
+  for _, s in ipairs(placed and placed.signs or {}) do
+    if s.name == "DapStopped" then
+      return hl_wrap("LineNrStopped", "●")
+    elseif s.name:match("^DapBreakpoint") then
+      return hl_wrap("LineNrBreakpoint", "·")
+    end
+  end
+
+  -- Git deleted (robust, handles EOF + topdelete)
+  local hunks = git_cache[bufnr]
+  if hunks then
+    local line_count = vim.api.nvim_buf_line_count(bufnr)
+
+    for _, h in ipairs(hunks) do
+      if (h.type == "delete" or h.type == "topdelete") and h.removed then
+        local l = h.removed.start
+
+        -- topdelete always goes to line 1
+        if h.type == "topdelete" then
+          l = 1
+        end
+
+        -- clamp to valid buffer range (handles EOF delete)
+        if l > line_count then
+          l = line_count
+        end
+
+        if lnum == l then
+          return hl_wrap("LineNrGitDelete", "-")
+        end
+      end
+    end
+  end
+
+  return " "
+end
+
+
+-- =========================
+-- Statuscol setup
+-- =========================
 require('statuscol').setup {
   setopt = true,
   segments = {
     {
-      sign = {
-        namespace = { 'gitsign' },
-        maxwidth = 1,
-        colwidth = 1,
-        auto = false
-      },
+      text = { linenr_fn },
     },
     {
-      text = {
-        function(args)
-          local placed = vim.fn.sign_getplaced(
-            args.buf,
-            { group = '*', lnum = args.lnum }
-          )[1]
-          for _, s in ipairs(placed and placed.signs or {}) do
-            if s.name == 'DapStopped' then
-              return '%#magenta#'
-                  .. (args.relnum == 0
-                    and string.format('%2d', args.lnum)
-                    or string.format('%2d', args.relnum))
-                  .. '%*'
-            elseif s.name:match '^Dap' then
-              return '%#blue#'
-                  .. (args.relnum == 0
-                    and string.format('%2d', args.lnum)
-                    or string.format('%2d', args.relnum))
-                  .. '%*'
-            end
-          end
-          local diags = vim.diagnostic.get(args.buf, { lnum = args.lnum - 1 })
-          for _, d in ipairs(diags) do
-            if d.severity == vim.diagnostic.severity.ERROR then
-              return '%#red#'
-                  .. (args.relnum == 0
-                    and string.format('%2d', args.lnum)
-                    or string.format('%2d', args.relnum))
-                  .. '%*'
-            elseif d.severity == vim.diagnostic.severity.WARN then
-              return '%#yellow#'
-                  .. (args.relnum == 0
-                    and string.format('%2d', args.lnum)
-                    or string.format('%2d', args.relnum))
-                  .. '%*'
-            end
-          end
-          return '%#'
-              .. (args.relnum == 0 and 'white' or 'gray')
-              .. '#'
-              .. (args.relnum == 0
-                and string.format('%2d', args.lnum)
-                or string.format('%2d', args.relnum))
-              .. '%*'
-        end,
-      },
+      text = { signal_fn },
     },
   },
 }
