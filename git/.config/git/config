@@ -4,7 +4,7 @@
 [init]
 	defaultBranch = main
 [format]
-	pretty = %C(magenta)%h%Creset %C(242)%p%Creset %C(blue)%as%Creset%C(auto)%d%Creset %s %Creset%C(242)%an%Creset
+    pretty = %C(magenta)%h%Creset %C(242)%p%Creset %C(blue)%ad%Creset%C(auto)%d%Creset %s %Creset%C(242)%an%Creset
 [alias]
 	feat = "!f() { [ $# -eq 1 ] && git commit -m \"feat: $1\" || git commit -m \"feat($1): $2\"; }; f"
 	fix = "!f() { [ $# -eq 1 ] && git commit -m \"fix: $1\" || git commit -m \"fix($1): $2\"; }; f"
@@ -19,5 +19,3 @@
 	wip = "!f() { [ $# -eq 1 ] && git commit -m \"wip: $1\" || git commit -m \"wip($1): $2\"; }; f"
 	rev = "!f() { [ $# -eq 1 ] && git commit -m \"revert: $1\" || git commit -m \"revert($1): $2\"; }; f"
   initial = "commit --allow-empty -m \"chore: initial commit\""
-[merge]
-	ff = only
