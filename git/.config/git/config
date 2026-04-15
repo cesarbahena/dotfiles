@@ -18,5 +18,6 @@
 	ci = "!f() { [ $# -eq 1 ] && git commit -m \"ci: $1\" || git commit -m \"ci($1): $2\"; }; f"
 	wip = "!f() { [ $# -eq 1 ] && git commit -m \"wip: $1\" || git commit -m \"wip($1): $2\"; }; f"
 	rev = "!f() { [ $# -eq 1 ] && git commit -m \"revert: $1\" || git commit -m \"revert($1): $2\"; }; f"
+  initial = "commit --allow-empty -m \"chore: initial commit\""
 [merge]
 	ff = only
