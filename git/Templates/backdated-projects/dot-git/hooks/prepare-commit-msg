@@ -139,8 +139,6 @@ RAND_SEC="$(od -An -N1 -tu1 /dev/urandom 2>/dev/null | tr -d ' ')"
 SEC=$(( (RAND_SEC % 59) + 1 ))
 SEC_PADDED=$(printf "%02d" "$SEC")
 
-echo "$SEC_PADDED" > "$SENTINEL_DIR/seconds"
-
 WORK_START="$(cfg hook.backdate.workStart)"
 [ -z "$WORK_START" ] && WORK_START=8
 WORK_END="$(cfg hook.backdate.workEnd)"
@@ -270,5 +268,7 @@ Remove emojis for clean portable text files."
         fi
     fi
 fi
+
+echo "$SEC_PADDED" > "$SENTINEL_DIR/seconds"
 
 exit 0
