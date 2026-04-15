@@ -1,0 +1,33 @@
+#!/bin/sh
+# post-commit hook for backdated repositories
+# Injects random seconds into commit timestamps via amend
+# Triggered after prepare-commit-msg writes seconds to $SENTINEL_DIR
+
+GIT_DIR="$(git rev-parse --git-dir 2>/dev/null || echo .git)"
+SENTINEL_DIR="$GIT_DIR/backdate-hook"
+
+if [ -f "$SENTINEL_DIR/amending" ]; then
+    rm -f "$SENTINEL_DIR/amending"
+    rm -f "$SENTINEL_DIR/seconds"
+    rmdir "$SENTINEL_DIR" 2>/dev/null
+    exit 0
+fi
+
+SEC_FILE="$SENTINEL_DIR/seconds"
+if [ ! -f "$SEC_FILE" ]; then
+    exit 0
+fi
+
+SEC="$(cat "$SEC_FILE")"
+rm -f "$SEC_FILE"
+
+CURRENT_AUTHOR_DATE="$(git log -1 --format='%ai')"
+CURRENT_COMMITTER_DATE="$(git log -1 --format='%ci')"
+
+NEW_AUTHOR_DATE="$(echo "$CURRENT_AUTHOR_DATE" | sed "s/:[0-9][0-9] /:$SEC /")"
+NEW_COMMITTER_DATE="$(echo "$CURRENT_COMMITTER_DATE" | sed "s/:[0-9][0-9] /:$SEC /")"
+
+touch "$SENTINEL_DIR/amending"
+GIT_COMMITTER_DATE="$NEW_COMMITTER_DATE" git commit --amend --no-edit --date="$NEW_AUTHOR_DATE"
+
+exit 0

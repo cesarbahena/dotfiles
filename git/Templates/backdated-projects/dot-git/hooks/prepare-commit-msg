@@ -1,23 +1,41 @@
 #!/bin/sh
 # prepare-commit-msg hook for backdated repositories
 # Validates commit timing, format, and content before commit proceeds
+# Enhanced: configurable via git config, --date support, flexible date parsing,
+#           LOC-based gap scaling, random seconds injection via post-commit
+
+GIT_DIR="$(git rev-parse --git-dir 2>/dev/null || echo .git)"
+SENTINEL_DIR="$GIT_DIR/backdate-hook"
+
+cfg() {
+    git config --local "$1" 2>/dev/null
+}
 
 BACKDATE_REQUIREMENTS='This is a backdated repository. All commits must follow these rules:
 
 REQUIREMENTS:
 1. Date: Must provide GIT_COMMITTER_DATE and (GIT_AUTHOR_DATE or --date), both must match
-2. Time format: HH:MM (24-hour)
-3. Quarter hours: Cannot use :00, :15, :30, :45 - use organic times like :07, :23, :38, :52
-4. Commit spacing: Evaluate reasonable development time for human dev to make the changes (based on LOC)
+2. Time format: Any git-compatible format (normalized internally to YYYY-MM-DD HH:MM)
+3. Quarter-hour minutes: Cannot use :00, :15, :30, :45 - use organic minutes like :07, :23, :38, :52
+4. Commit spacing: LOC-based minimum gap (1-10 LOC = 5min, 11-50 = 15min, 51-200 = 30min, 200+ = 1hr)
 5. Maximum gap: Cannot be more than 1 month since last commit
-6. Work hours: Mon-Fri 08:00-18:59
+6. Work hours: Mon-Fri (configurable: hook.backdate.workStart, hook.backdate.workEnd)
 7. Weekends: Cannot commit on weekends
 8. Commit message: Single line, no emojis, conventional format (type: message or type(scope): message)
 9. Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
 10. Staged files: Cannot contain emojis
 
-EXAMPLE:
+CONFIGURATION (git config --local):
+  hook.backdate.workStart       Work start hour (default: 8)
+  hook.backdate.workEnd         Work end hour exclusive (default: 19, meaning 08:00-18:59)
+  hook.backdate.enforceQuarter  Enforce quarter-hour ban (default: true)
+  hook.backdate.enforceConventional  Enforce conventional commits (default: true)
+  hook.backdate.enforceEmojis   Enforce no-emoji rule (default: true)
+  hook.backdate.maxGapDays      Maximum gap between commits in days (default: 30)
+
+EXAMPLES:
   GIT_COMMITTER_DATE="2025-01-15 09:23" GIT_AUTHOR_DATE="2025-01-15 09:23" git commit -m "feat: add feature"
+  GIT_COMMITTER_DATE="2025-01-15 09:23" git commit --date="2025-01-15 09:23" -m "feat: add feature"
 '
 
 die() {
@@ -30,12 +48,14 @@ die() {
 GIT_MSG_FILE="$1"
 SOURCE="$2"
 
-# Only validate for non-merge, non-squash commits with explicit message
 [ "$SOURCE" != "message" ] && [ "$SOURCE" != "commit" ] && exit 0
 
-# Read original GIT_COMMITTER_DATE and GIT_AUTHOR_DATE from parent process.
-# Git reformats these internally, so we must read them before that happens.
-# The parent is the shell that invoked git, whose environ still has original values.
+mkdir -p "$SENTINEL_DIR" 2>/dev/null
+
+if [ -f "$SENTINEL_DIR/amending" ]; then
+    exit 0
+fi
+
 PARENT_ENV=""
 if [ -d "/proc/$PPID" ]; then
     PARENT_ENV="$(cat /proc/$PPID/environ 2>/dev/null | tr '\0' '\n')"
@@ -48,61 +68,90 @@ if [ -n "$PARENT_ENV" ]; then
     ORIG_AUTH="$(echo "$PARENT_ENV" | grep -m1 "^GIT_AUTHOR_DATE=" | cut -d= -f2-)"
 fi
 
-if [ -z "$ORIG_CMDR" ] || [ -z "$ORIG_AUTH" ]; then
-    die "No date provided.
-GIT_COMMITTER_DATE and GIT_AUTHOR_DATE must both be set and match."
+if [ -z "$ORIG_AUTH" ] && [ -d "/proc/$PPID" ]; then
+    CMDLINE_DATE=""
+    CMDLINE_ARGS="$(cat /proc/$PPID/cmdline 2>/dev/null | tr '\0' '\n')"
+    echo "$CMDLINE_ARGS" | while IFS= read -r arg; do
+        case "$arg" in
+            --date=*)
+                echo "${arg#--date=}" > "$SENTINEL_DIR/cmdline_date"
+                ;;
+            --date)
+                read -r next_arg
+                echo "$next_arg" > "$SENTINEL_DIR/cmdline_date"
+                ;;
+        esac
+    done
+    if [ -f "$SENTINEL_DIR/cmdline_date" ]; then
+        ORIG_AUTH="$(cat "$SENTINEL_DIR/cmdline_date")"
+        rm -f "$SENTINEL_DIR/cmdline_date"
+    fi
 fi
 
-if [ "$ORIG_CMDR" != "$ORIG_AUTH" ]; then
-    die "GIT_COMMITTER_DATE and GIT_AUTHOR_DATE must match.
-Current: GIT_COMMITTER_DATE=\"$ORIG_CMDR\" GIT_AUTHOR_DATE=\"$ORIG_AUTH\""
+if [ -z "$ORIG_CMDR" ]; then
+    die "No GIT_COMMITTER_DATE provided."
 fi
 
-# Parse date and time
-DATE_PART="$(echo "$ORIG_CMDR" | awk '{print $1}')"
-TIME_PART="$(echo "$ORIG_CMDR" | awk '{print $2}' | cut -d: -f1,2)"
-
-# Validate date format YYYY-MM-DD
-if ! echo "$DATE_PART" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
-    die "Invalid date format: $DATE_PART
-Date must be YYYY-MM-DD"
+if [ -z "$ORIG_AUTH" ]; then
+    die "No author date provided.
+Set GIT_AUTHOR_DATE or use --date flag."
 fi
 
-YEAR="$(echo "$DATE_PART" | cut -d- -f1)"
-MONTH="$(echo "$DATE_PART" | cut -d- -f2)"
-DAY="$(echo "$DATE_PART" | cut -d- -f3)"
+NORM_CMDR="$(date -d "$ORIG_CMDR" '+%Y-%m-%d %H:%M' 2>/dev/null)"
+NORM_AUTH="$(date -d "$ORIG_AUTH" '+%Y-%m-%d %H:%M' 2>/dev/null)"
 
-# Validate time format HH:MM
-if ! echo "$TIME_PART" | grep -qE '^[0-9]{2}:[0-9]{2}$'; then
-    die "Invalid time format: $TIME_PART
-Time must be HH:MM (24-hour)"
+if [ -z "$NORM_CMDR" ]; then
+    die "Cannot parse GIT_COMMITTER_DATE: $ORIG_CMDR"
 fi
 
-HOUR="$(echo "$TIME_PART" | cut -d: -f1)"
-MINUTE="$(echo "$TIME_PART" | cut -d: -f2)"
+if [ -z "$NORM_AUTH" ]; then
+    die "Cannot parse author date: $ORIG_AUTH"
+fi
 
-# No quarter-hour times
-case "$MINUTE" in
-    00|15|30|45)
-        die "Cannot use quarter hours (:00, :15, :30, :45)
+if [ "$NORM_CMDR" != "$NORM_AUTH" ]; then
+    die "GIT_COMMITTER_DATE and author date must match.
+Committer: $NORM_CMDR (from: $ORIG_CMDR)
+Author:    $NORM_AUTH (from: $ORIG_AUTH)"
+fi
+
+DATE_PART="${NORM_CMDR%% *}"
+TIME_PART="${NORM_CMDR##* }"
+
+HOUR="${TIME_PART%%:*}"
+MINUTE="${TIME_PART#*:}"
+HOUR_NUM=$(echo "$HOUR" | sed 's/^0//')
+[ -z "$HOUR_NUM" ] && HOUR_NUM=0
+
+ENFORCE_QUARTER="$(cfg hook.backdate.enforceQuarter)"
+[ -z "$ENFORCE_QUARTER" ] && ENFORCE_QUARTER="true"
+
+if [ "$ENFORCE_QUARTER" != "false" ]; then
+    case "$MINUTE" in
+        00|15|30|45)
+            die "Cannot use quarter-hour minutes (:00, :15, :30, :45).
 Time passed: $TIME_PART
-Use organic times like :07, :23, :38, :52"
-        ;;
-esac
+Use organic minutes like :07, :23, :38, :52"
+            ;;
+    esac
+fi
 
-# Generate random seconds (01–59)
 RAND_SEC="$(od -An -N1 -tu1 /dev/urandom 2>/dev/null | tr -d ' ')"
 SEC=$(( (RAND_SEC % 59) + 1 ))
 SEC_PADDED=$(printf "%02d" "$SEC")
 
-# Validate last commit gap (skip for first commit)
+echo "$SEC_PADDED" > "$SENTINEL_DIR/seconds"
+
+WORK_START="$(cfg hook.backdate.workStart)"
+[ -z "$WORK_START" ] && WORK_START=8
+WORK_END="$(cfg hook.backdate.workEnd)"
+[ -z "$WORK_END" ] && WORK_END=19
+
 LAST_COMMIT_DATE="$(git log -1 --format=%ci 2>/dev/null || echo "")"
 if [ -n "$LAST_COMMIT_DATE" ]; then
     LAST_COMMIT_NORMALIZED="$(echo "$LAST_COMMIT_DATE" | awk '{print $1, substr($2,1,5)}')"
-    LAST_COMMIT_ISO="$(echo "$LAST_COMMIT_DATE" | awk '{print $1 "T" substr($2,1,5) ":00Z"}')"
+    LAST_COMMIT_ISO="$(echo "$LAST_COMMIT_DATE" | awk '{print $1 "T" substr($2,1,5) ":00"}')"
     CURRENT_ISO="${DATE_PART}T${TIME_PART}:${SEC_PADDED}"
 
-    # Calculate diff in seconds using awk
     DIFF_SECONDS=$(awk "BEGIN {
         l = \"$LAST_COMMIT_ISO\"; gsub(\"[T:]\", \"-\", l)
         c = \"$CURRENT_ISO\"; gsub(\"[T:]\", \"-\", c)
@@ -113,26 +162,46 @@ if [ -n "$LAST_COMMIT_DATE" ]; then
         printf \"%.0f\", t2 - t1
     }")
 
-    if [ "$DIFF_SECONDS" -lt 300 ]; then
-        die "Commit time gap is too small.
-Last commit: $LAST_COMMIT_NORMALIZED
-You are trying to commit at: $DATE_PART $TIME_PART
-Calculate reasonable development time for a human dev to make these changes.
-Consider the LOC (lines of code) and complexity of the changes."
+    STAGED_STATS="$(git diff --cached --numstat 2>/dev/null)"
+    LOC_ADDED=0
+    LOC_DELETED=0
+    if [ -n "$STAGED_STATS" ]; then
+        LOC_ADDED=$(echo "$STAGED_STATS" | awk '{s+=$1} END {print s+0}')
+        LOC_DELETED=$(echo "$STAGED_STATS" | awk '{s+=$2} END {print s+0}')
+    fi
+    LOC_TOTAL=$((LOC_ADDED + LOC_DELETED))
+
+    if [ "$LOC_TOTAL" -le 10 ]; then
+        MIN_GAP=300
+    elif [ "$LOC_TOTAL" -le 50 ]; then
+        MIN_GAP=900
+    elif [ "$LOC_TOTAL" -le 200 ]; then
+        MIN_GAP=1800
+    else
+        MIN_GAP=3600
     fi
 
-    # Max 1 month gap
-    ONE_MONTH_SECS=2592000
-    if [ "$DIFF_SECONDS" -gt "$ONE_MONTH_SECS" ]; then
-        die "Cannot commit more than 1 month since last commit.
+    if [ "$DIFF_SECONDS" -lt "$MIN_GAP" ]; then
+        MIN_GAP_MIN=$((MIN_GAP / 60))
+        die "Commit time gap is too small (need ${MIN_GAP_MIN}min for ${LOC_TOTAL} LOC changed).
+Last commit: $LAST_COMMIT_NORMALIZED
+You are trying to commit at: $DATE_PART $TIME_PART
+Calculate reasonable development time for a human dev to make these changes."
+    fi
+
+    MAX_GAP_DAYS="$(cfg hook.backdate.maxGapDays)"
+    [ -z "$MAX_GAP_DAYS" ] && MAX_GAP_DAYS=30
+    MAX_GAP_SECS=$((MAX_GAP_DAYS * 86400))
+
+    if [ "$DIFF_SECONDS" -gt "$MAX_GAP_SECS" ]; then
+        die "Cannot commit more than ${MAX_GAP_DAYS} days since last commit.
 Last commit: $LAST_COMMIT_NORMALIZED
 You are trying to commit at: $DATE_PART
 Evaluate if this is realistic or rollback to an earlier state."
     fi
 fi
 
-# Day of week check (0=Sun, 6=Sat)
-DOW=$(date -d "$DATE_PART" +%w 2>/dev/null || date -j -f "%Y-%m-%d" "$DATE_PART" +%w 2>/dev/null || awk "BEGIN {
+DOW=$(date -d "$DATE_PART" +%w 2>/dev/null || awk "BEGIN {
     split(\"$DATE_PART\", d, \"-\")
     y = d[1]; m = d[2]; day = d[3]
     if (m < 3) { m += 12; y-- }
@@ -151,50 +220,54 @@ Commits must be Mon-Fri"
         ;;
 esac
 
-# Work hours check
-HOUR_NUM=$(echo "$HOUR" | sed 's/^0//')
-if [ "$HOUR_NUM" -lt 8 ] || [ "$HOUR_NUM" -ge 19 ]; then
-    die "Cannot commit outside work hours (08:00-19:00).
-You are trying to commit at: $TIME_PART
-Work hours are Mon-Fri 08:00-18:59"
+if [ "$HOUR_NUM" -lt "$WORK_START" ] || [ "$HOUR_NUM" -ge "$WORK_END" ]; then
+    die "Cannot commit outside work hours ($((WORK_START)):00-$((WORK_END-1)):59).
+You are trying to commit at: $TIME_PART"
 fi
 
-# Read commit message from file
 COMMIT_MSG="$(cat "$GIT_MSG_FILE")"
 
-# No newlines in message
 if [ "$(printf '%s' "$COMMIT_MSG" | wc -l)" -gt 1 ]; then
     die "Commit message must be single line.
 Current message: \"$COMMIT_MSG\""
 fi
 
-# No emojis in message
-if echo "$COMMIT_MSG" | grep -qP '[\x{1F300}-\x{1F9FF}\x{2600}-\x{27BF}\x{1F900}-\x{1F9FF}]' 2>/dev/null; then
-    die "Commit message cannot contain emojis.
+ENFORCE_EMOJIS="$(cfg hook.backdate.enforceEmojis)"
+[ -z "$ENFORCE_EMOJIS" ] && ENFORCE_EMOJIS="true"
+
+if [ "$ENFORCE_EMOJIS" != "false" ]; then
+    if echo "$COMMIT_MSG" | grep -qP '[\x{1F300}-\x{1F9FF}\x{2600}-\x{27BF}\x{1F900}-\x{1F9FF}]' 2>/dev/null; then
+        die "Commit message cannot contain emojis.
 Current message: \"$COMMIT_MSG\""
+    fi
 fi
 
-# Conventional commit format
-CONV_PATTERN='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9/_-]+\))?: .+'
-if ! echo "$COMMIT_MSG" | grep -qE "$CONV_PATTERN"; then
-    die "Must follow conventional format: type: message or type(scope): message
+ENFORCE_CONVENTIONAL="$(cfg hook.backdate.enforceConventional)"
+[ -z "$ENFORCE_CONVENTIONAL" ] && ENFORCE_CONVENTIONAL="true"
+
+if [ "$ENFORCE_CONVENTIONAL" != "false" ]; then
+    CONV_PATTERN='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9/_-]+\))?: .+'
+    if ! echo "$COMMIT_MSG" | grep -qE "$CONV_PATTERN"; then
+        die "Must follow conventional format: type: message or type(scope): message
 Current message: \"$COMMIT_MSG\""
+    fi
 fi
 
-# No emojis in staged files
-STAGED_FILES=$(git diff --cached --name-only 2>/dev/null)
-if [ -n "$STAGED_FILES" ]; then
-    FILES_WITH_EMOJI=""
-    for file in $STAGED_FILES; do
-        CONTENT=$(git show ":$file" 2>/dev/null || true)
-        if echo "$CONTENT" | grep -qP '[\x{1F300}-\x{1F9FF}\x{2600}-\x{27BF}\x{1F900}-\x{1F9FF}]' 2>/dev/null; then
-            FILES_WITH_EMOJI="${FILES_WITH_EMOJI} $file"
-        fi
-    done
-    if [ -n "$FILES_WITH_EMOJI" ]; then
-        die "Staged files contain emojis.
+if [ "$ENFORCE_EMOJIS" != "false" ]; then
+    STAGED_FILES=$(git diff --cached --name-only 2>/dev/null)
+    if [ -n "$STAGED_FILES" ]; then
+        FILES_WITH_EMOJI=""
+        for file in $STAGED_FILES; do
+            CONTENT=$(git show ":$file" 2>/dev/null || true)
+            if echo "$CONTENT" | grep -qP '[\x{1F300}-\x{1F9FF}\x{2600}-\x{27BF}\x{1F900}-\x{1F9FF}]' 2>/dev/null; then
+                FILES_WITH_EMOJI="${FILES_WITH_EMOJI} $file"
+            fi
+        done
+        if [ -n "$FILES_WITH_EMOJI" ]; then
+            die "Staged files contain emojis.
 Files:${FILES_WITH_EMOJI}
 Remove emojis for clean portable text files."
+        fi
     fi
 fi
 
