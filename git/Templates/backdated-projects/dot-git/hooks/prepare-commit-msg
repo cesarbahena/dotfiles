@@ -1,8 +1,8 @@
 #!/bin/sh
 # prepare-commit-msg hook for backdated repositories
 # Validates commit timing, format, and content before commit proceeds
-# Enhanced: configurable via git config, --date support, flexible date parsing,
-#           LOC-based gap scaling, random seconds injection via post-commit
+# Features: density cap, minute auto-randomization, weekendWork/overtime flags,
+#           LOC-based gap scaling, seconds injection via post-commit
 
 GIT_DIR="$(git rev-parse --git-dir 2>/dev/null || echo .git)"
 SENTINEL_DIR="$GIT_DIR/backdate-hook"
@@ -16,22 +16,23 @@ BACKDATE_REQUIREMENTS='This is a backdated repository. All commits must follow t
 REQUIREMENTS:
 1. Date: Must provide GIT_COMMITTER_DATE and (GIT_AUTHOR_DATE or --date), both must match
 2. Time format: Any git-compatible format (normalized internally to YYYY-MM-DD HH:MM)
-3. Quarter-hour minutes: Cannot use :00, :15, :30, :45 - use organic minutes like :07, :23, :38, :52
-4. Commit spacing: LOC-based minimum gap (1-10 LOC = 5min, 11-50 = 15min, 51-200 = 30min, 200+ = 1hr)
-5. Maximum gap: Cannot be more than 1 month since last commit
-6. Work hours: Mon-Fri (configurable: hook.backdate.workStart, hook.backdate.workEnd)
-7. Weekends: Cannot commit on weekends
-8. Commit message: Single line, no emojis, conventional format (type: message or type(scope): message)
-9. Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
-10. Staged files: Cannot contain emojis
+3. Commit spacing: LOC-based minimum gap (1-10 LOC = 5min, 11-50 = 15min, 51-200 = 30min, 200+ = 1hr)
+4. Maximum gap: Cannot be more than 1 month since last commit
+5. Work hours: Mon-Fri 08:00-18:59 (configurable)
+6. Max commits per day: 5 (configurable) with density-based sparse days
+7. Commit message: Single line, no emojis, conventional format (type: message or type(scope): message)
+8. Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+9. Staged files: Cannot contain emojis
 
 CONFIGURATION (git config --local):
-  hook.backdate.workStart       Work start hour (default: 8)
-  hook.backdate.workEnd         Work end hour exclusive (default: 19, meaning 08:00-18:59)
-  hook.backdate.enforceQuarter  Enforce quarter-hour ban (default: true)
-  hook.backdate.enforceConventional  Enforce conventional commits (default: true)
-  hook.backdate.enforceEmojis   Enforce no-emoji rule (default: true)
-  hook.backdate.maxGapDays      Maximum gap between commits in days (default: 30)
+  hook.backdate.workStart           Work start hour (default: 8)
+  hook.backdate.workEnd             Work end hour exclusive (default: 19)
+  hook.backdate.maxCommitsPerDay    Max commits per calendar day (default: 5)
+  hook.backdate.maxGapDays          Maximum gap between commits in days (default: 30)
+  hook.backdate.weekendWork         Allow weekend commits (default: false)
+  hook.backdate.overTime            Allow outside work hours (default: false)
+  hook.backdate.enforceConventional Enforce conventional commits (default: true)
+  hook.backdate.enforceEmojis       Enforce no-emoji rule (default: true)
 
 EXAMPLES:
   GIT_COMMITTER_DATE="2025-01-15 09:23" GIT_AUTHOR_DATE="2025-01-15 09:23" git commit -m "feat: add feature"
@@ -45,6 +46,35 @@ die() {
     exit 1
 }
 
+rand_int() {
+    od -An -N1 -tu1 /dev/urandom 2>/dev/null | tr -d ' '
+}
+
+is_quarter_minute() {
+    case "$1" in 00|15|30|45) return 0;; *) return 1;; esac
+}
+
+next_workday() {
+    date -d "$1 +1 day" '+%Y-%m-%d' 2>/dev/null
+}
+
+weekday_of() {
+    date -d "$1" '+%w' 2>/dev/null || echo "1"
+}
+
+is_workday() {
+    local dow
+    dow="$(weekday_of "$1")"
+    if [ "$WEEKEND_WORK" = "true" ]; then
+        return 0
+    fi
+    case "$dow" in 0|6) return 1;; *) return 0;; esac
+}
+
+format_date_name() {
+    date -d "$1" '+%A %Y-%m-%d' 2>/dev/null || echo "$1"
+}
+
 GIT_MSG_FILE="$1"
 SOURCE="$2"
 
@@ -55,6 +85,17 @@ mkdir -p "$SENTINEL_DIR" 2>/dev/null
 if [ -f "$SENTINEL_DIR/amending" ]; then
     exit 0
 fi
+
+WEEKEND_WORK="$(cfg hook.backdate.weekendWork)"
+[ -z "$WEEKEND_WORK" ] && WEEKEND_WORK="false"
+OVER_TIME="$(cfg hook.backdate.overTime)"
+[ -z "$OVER_TIME" ] && OVER_TIME="false"
+WORK_START="$(cfg hook.backdate.workStart)"
+[ -z "$WORK_START" ] && WORK_START=8
+WORK_END="$(cfg hook.backdate.workEnd)"
+[ -z "$WORK_END" ] && WORK_END=19
+MAX_PER_DAY="$(cfg hook.backdate.maxCommitsPerDay)"
+[ -z "$MAX_PER_DAY" ] && MAX_PER_DAY=5
 
 PARENT_ENV=""
 if [ -d "/proc/$PPID" ]; then
@@ -69,7 +110,6 @@ if [ -n "$PARENT_ENV" ]; then
 fi
 
 if [ -z "$ORIG_AUTH" ] && [ -d "/proc/$PPID" ]; then
-    CMDLINE_DATE=""
     CMDLINE_ARGS="$(cat /proc/$PPID/cmdline 2>/dev/null | tr '\0' '\n')"
     echo "$CMDLINE_ARGS" | while IFS= read -r arg; do
         case "$arg" in
@@ -121,34 +161,121 @@ HOUR="${TIME_PART%%:*}"
 MINUTE="${TIME_PART#*:}"
 HOUR_NUM=$(echo "$HOUR" | sed 's/^0//')
 [ -z "$HOUR_NUM" ] && HOUR_NUM=0
+MINUTE_NUM=$(echo "$MINUTE" | sed 's/^0//')
+[ -z "$MINUTE_NUM" ] && MINUTE_NUM=0
 
-ENFORCE_QUARTER="$(cfg hook.backdate.enforceQuarter)"
-[ -z "$ENFORCE_QUARTER" ] && ENFORCE_QUARTER="true"
-
-if [ "$ENFORCE_QUARTER" != "false" ]; then
-    case "$MINUTE" in
-        00|15|30|45)
-            die "Cannot use quarter-hour minutes (:00, :15, :30, :45).
-Time passed: $TIME_PART
-Use organic minutes like :07, :23, :38, :52"
+if [ "$WEEKEND_WORK" != "true" ]; then
+    DOW=$(date -d "$DATE_PART" +%w 2>/dev/null || awk "BEGIN {
+        split(\"$DATE_PART\", d, \"-\")
+        y = d[1]; m = d[2]; day = d[3]
+        if (m < 3) { m += 12; y-- }
+        k = y % 100
+        j = int(y / 100)
+        w = (day + int((13*(m+1))/5) + k + int(k/4) + int(j/4) + 5*j) % 7
+        printf \"%d\", (w + 6) % 7
+    }")
+    case "$DOW" in
+        0|6)
+            DOW_NAME="Sunday"
+            [ "$DOW" = "6" ] && DOW_NAME="Saturday"
+            die "Cannot commit on weekends.
+You are trying to commit at: $DATE_PART ($DOW_NAME)
+Commits must be Mon-Fri. Enable hook.backdate.weekendWork if needed."
             ;;
     esac
 fi
 
-RAND_SEC="$(od -An -N1 -tu1 /dev/urandom 2>/dev/null | tr -d ' ')"
-SEC=$(( (RAND_SEC % 59) + 1 ))
-SEC_PADDED=$(printf "%02d" "$SEC")
+if [ "$OVER_TIME" != "true" ]; then
+    if [ "$HOUR_NUM" -lt "$WORK_START" ] || [ "$HOUR_NUM" -ge "$WORK_END" ]; then
+        die "Cannot commit outside work hours ($((WORK_START)):00-$((WORK_END-1)):59).
+You are trying to commit at: $TIME_PART
+Enable hook.backdate.overTime if needed."
+    fi
+fi
 
-WORK_START="$(cfg hook.backdate.workStart)"
-[ -z "$WORK_START" ] && WORK_START=8
-WORK_END="$(cfg hook.backdate.workEnd)"
-[ -z "$WORK_END" ] && WORK_END=19
+TODAY_COUNT=$(git log --format='%ad' --date=short --after="$DATE_PART 00:00:00" --before="$DATE_PART 23:59:59" 2>/dev/null | wc -l)
+
+ACTIVE_WORKDAYS=0
+CHECK_DATE="$(date -d "$DATE_PART -1 day" '+%Y-%m-%d' 2>/dev/null)"
+DAYS_COLLECTED=0
+while [ "$DAYS_COLLECTED" -lt 5 ] && [ -n "$CHECK_DATE" ]; do
+    if is_workday "$CHECK_DATE"; then
+        DAY_COUNT=$(git log --format='%ad' --date=short --after="$CHECK_DATE 00:00:00" --before="$CHECK_DATE 23:59:59" 2>/dev/null | wc -l)
+        if [ "$DAY_COUNT" -gt 0 ]; then
+            ACTIVE_WORKDAYS=$((ACTIVE_WORKDAYS + 1))
+        fi
+        DAYS_COLLECTED=$((DAYS_COLLECTED + 1))
+    fi
+    CHECK_DATE="$(date -d "$CHECK_DATE -1 day" '+%Y-%m-%d' 2>/dev/null)"
+done
+
+if [ "$ACTIVE_WORKDAYS" -ge 4 ]; then
+    TODAY_CAP=0
+elif [ "$ACTIVE_WORKDAYS" -eq 3 ]; then
+    TODAY_CAP=$(( (MAX_PER_DAY * 40) / 100 ))
+    [ "$TODAY_CAP" -lt 1 ] && TODAY_CAP=1
+else
+    TODAY_CAP=$MAX_PER_DAY
+fi
+
+if [ "$TODAY_CAP" -eq 0 ]; then
+    NEXT_DATE="$DATE_PART"
+    while true; do
+        NEXT_DATE="$(next_workday "$NEXT_DATE")"
+        if is_workday "$NEXT_DATE"; then
+            break
+        fi
+    done
+    die "Rest day — $ACTIVE_WORKDAYS/5 recent workdays already active.
+Next available: $(format_date_name "$NEXT_DATE")"
+fi
+
+if [ "$TODAY_COUNT" -ge "$TODAY_CAP" ]; then
+    NEXT_DATE="$DATE_PART"
+    while true; do
+        NEXT_DATE="$(next_workday "$NEXT_DATE")"
+        if is_workday "$NEXT_DATE"; then
+            break
+        fi
+    done
+    die "Max $TODAY_CAP commits/day for $(format_date_name "$DATE_PART") ($ACTIVE_WORKDAYS/5 recent workdays active).
+Next available: $(format_date_name "$NEXT_DATE")"
+fi
 
 LAST_COMMIT_DATE="$(git log -1 --format=%ci 2>/dev/null || echo "")"
+NEEDS_RANDOMIZE=false
+
+if is_quarter_minute "$MINUTE"; then
+    NEEDS_RANDOMIZE=true
+fi
+
+if [ "$NEEDS_RANDOMIZE" = "false" ]; then
+    RECENT_MINUTES=$(git log -10 --format='%ad' --date=format:'%M' 2>/dev/null)
+    if [ -n "$RECENT_MINUTES" ]; then
+        MIN_STDDEV=$(echo "$RECENT_MINUTES" | awk '
+        {
+            vals[NR] = $1 + 0
+            n++
+            sum += $1 + 0
+        }
+        END {
+            if (n < 5) { print 99; exit }
+            mean = sum / n
+            ss = 0
+            for (i = 1; i <= n; i++) ss += (vals[i] - mean) ^ 2
+            printf "%.1f", sqrt(ss / n)
+        }')
+        if [ -n "$MIN_STDDEV" ] && [ "$(echo "$MIN_STDDEV" | awk '{printf "%d", $1}')" -lt 5 ]; then
+            NEEDS_RANDOMIZE=true
+        fi
+    fi
+fi
+
+MIN_GAP=0
 if [ -n "$LAST_COMMIT_DATE" ]; then
     LAST_COMMIT_NORMALIZED="$(echo "$LAST_COMMIT_DATE" | awk '{print $1, substr($2,1,5)}')"
     LAST_COMMIT_ISO="$(echo "$LAST_COMMIT_DATE" | awk '{print $1 "T" substr($2,1,5) ":00"}')"
-    CURRENT_ISO="${DATE_PART}T${TIME_PART}:${SEC_PADDED}"
+    CURRENT_ISO="${DATE_PART}T${TIME_PART}:00"
 
     DIFF_SECONDS=$(awk "BEGIN {
         l = \"$LAST_COMMIT_ISO\"; gsub(\"[T:]\", \"-\", l)
@@ -199,29 +326,86 @@ Evaluate if this is realistic or rollback to an earlier state."
     fi
 fi
 
-DOW=$(date -d "$DATE_PART" +%w 2>/dev/null || awk "BEGIN {
-    split(\"$DATE_PART\", d, \"-\")
-    y = d[1]; m = d[2]; day = d[3]
-    if (m < 3) { m += 12; y-- }
-    k = y % 100
-    j = int(y / 100)
-    w = (day + int((13*(m+1))/5) + k + int(k/4) + int(j/4) + 5*j) % 7
-    printf \"%d\", (w + 6) % 7
-}")
-case "$DOW" in
-    0|6)
-        DOW_NAME="Sunday"
-        [ "$DOW" = "6" ] && DOW_NAME="Saturday"
-        die "Cannot commit on weekends.
-You are trying to commit at: $DATE_PART ($DOW_NAME)
-Commits must be Mon-Fri"
-        ;;
-esac
+FINAL_HOUR=$HOUR_NUM
+FINAL_MINUTE=$MINUTE_NUM
 
-if [ "$HOUR_NUM" -lt "$WORK_START" ] || [ "$HOUR_NUM" -ge "$WORK_END" ]; then
-    die "Cannot commit outside work hours ($((WORK_START)):00-$((WORK_END-1)):59).
-You are trying to commit at: $TIME_PART"
+if [ "$NEEDS_RANDOMIZE" = "true" ]; then
+    EARLIEST_MINUTES=0
+    if [ -n "$LAST_COMMIT_DATE" ] && [ "$MIN_GAP" -gt 0 ]; then
+        LAST_H=$(echo "$LAST_COMMIT_DATE" | awk '{print substr($2,1,2)}' | sed 's/^0//')
+        LAST_M=$(echo "$LAST_COMMIT_DATE" | awk '{print substr($2,4,2)}' | sed 's/^0//')
+        [ -z "$LAST_H" ] && LAST_H=0
+        [ -z "$LAST_M" ] && LAST_M=0
+        LAST_TOTAL_M=$(( LAST_H * 60 + LAST_M ))
+        EARLIEST_TOTAL_M=$(( LAST_TOTAL_M + MIN_GAP / 60 ))
+        EARLIEST_MINUTES=$EARLIEST_TOTAL_M
+    fi
+
+    AGENT_TOTAL_M=$(( HOUR_NUM * 60 + MINUTE_NUM ))
+    AGENT_HOUR_START=$(( HOUR_NUM * 60 ))
+
+    FLOOR_MINUTES=$AGENT_HOUR_START
+    if [ "$EARLIEST_MINUTES" -gt "$FLOOR_MINUTES" ]; then
+        FLOOR_MINUTES=$EARLIEST_MINUTES
+    fi
+
+    if [ "$OVER_TIME" != "true" ]; then
+        CEIL_MINUTES=$(( WORK_END * 60 - 1 ))
+    else
+        CEIL_MINUTES=$(( HOUR_NUM * 60 + 59 ))
+    fi
+
+    if [ "$FLOOR_MINUTES" -gt "$CEIL_MINUTES" ]; then
+        if [ "$OVER_TIME" != "true" ]; then
+            NEXT_DATE="$DATE_PART"
+            while true; do
+                NEXT_DATE="$(next_workday "$NEXT_DATE")"
+                if is_workday "$NEXT_DATE"; then break; fi
+            done
+            NEXT_START_M=$(( WORK_START * 60 + 1 ))
+            EARLIEST_MIN=$(( NEXT_START_M % 60 ))
+            EARLIEST_HOUR=$(( NEXT_START_M / 60 ))
+            die "Not enough time remaining in work day for gap.
+Earliest next slot: $(format_date_name "$NEXT_DATE") $(printf '%02d:%02d' "$EARLIEST_HOUR" "$EARLIEST_MIN")"
+        fi
+    fi
+
+    RANGE_MINUTES=$(( CEIL_MINUTES - FLOOR_MINUTES ))
+    if [ "$RANGE_MINUTES" -lt 1 ]; then
+        RANGE_MINUTES=1
+    fi
+
+    TRIES=0
+    while [ "$TRIES" -lt 100 ]; do
+        RAND_OFFSET=$(rand_int)
+        CANDIDATE=$(( FLOOR_MINUTES + (RAND_OFFSET * RANGE_MINUTES / 256) ))
+        CAND_MINUTE=$(( CANDIDATE % 60 ))
+        if ! is_quarter_minute "$(printf '%02d' "$CAND_MINUTE")"; then
+            FINAL_HOUR=$(( CANDIDATE / 60 ))
+            FINAL_MINUTE=$CAND_MINUTE
+            break
+        fi
+        TRIES=$((TRIES + 1))
+    done
+
+    if [ "$OVER_TIME" != "true" ]; then
+        if [ "$FINAL_HOUR" -ge "$WORK_END" ]; then
+            NEXT_DATE="$DATE_PART"
+            while true; do
+                NEXT_DATE="$(next_workday "$NEXT_DATE")"
+                if is_workday "$NEXT_DATE"; then break; fi
+            done
+            die "Randomized time overflows work hours.
+Use a later date: $(format_date_name "$NEXT_DATE")"
+        fi
+    fi
 fi
+
+RAND_SEC="$(rand_int)"
+SEC=$(( (RAND_SEC % 59) + 1 ))
+SEC_PADDED=$(printf "%02d" "$SEC")
+
+FINAL_TIME="$(printf '%02d:%02d' "$FINAL_HOUR" "$FINAL_MINUTE")"
 
 COMMIT_MSG="$(cat "$GIT_MSG_FILE")"
 
@@ -270,5 +454,10 @@ Remove emojis for clean portable text files."
 fi
 
 echo "$SEC_PADDED" > "$SENTINEL_DIR/seconds"
+
+if [ "$FINAL_HOUR" -ne "$HOUR_NUM" ] || [ "$FINAL_MINUTE" -ne "$MINUTE_NUM" ]; then
+    echo "$FINAL_HOUR" > "$SENTINEL_DIR/rand_hour"
+    echo "$FINAL_MINUTE" > "$SENTINEL_DIR/rand_minute"
+fi
 
 exit 0
