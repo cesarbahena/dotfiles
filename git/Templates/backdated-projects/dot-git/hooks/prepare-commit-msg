@@ -265,7 +265,7 @@ if [ "$NEEDS_RANDOMIZE" = "false" ]; then
             for (i = 1; i <= n; i++) ss += (vals[i] - mean) ^ 2
             printf "%.1f", sqrt(ss / n)
         }')
-        if [ -n "$MIN_STDDEV" ] && [ "$(echo "$MIN_STDDEV" | awk '{printf "%d", $1}')" -lt 5 ]; then
+        if [ -n "$MIN_STDDEV" ] && [ "$(echo "$MIN_STDDEV" | awk '{printf "%d", $1}')" -lt 8 ]; then
             NEEDS_RANDOMIZE=true
         fi
     fi
@@ -331,7 +331,8 @@ FINAL_MINUTE=$MINUTE_NUM
 
 if [ "$NEEDS_RANDOMIZE" = "true" ]; then
     EARLIEST_MINUTES=0
-    if [ -n "$LAST_COMMIT_DATE" ] && [ "$MIN_GAP" -gt 0 ]; then
+    LAST_COMMIT_DAY="$(echo "$LAST_COMMIT_DATE" | awk '{print $1}')"
+    if [ -n "$LAST_COMMIT_DATE" ] && [ "$LAST_COMMIT_DAY" = "$DATE_PART" ] && [ "$MIN_GAP" -gt 0 ]; then
         LAST_H=$(echo "$LAST_COMMIT_DATE" | awk '{print substr($2,1,2)}' | sed 's/^0//')
         LAST_M=$(echo "$LAST_COMMIT_DATE" | awk '{print substr($2,4,2)}' | sed 's/^0//')
         [ -z "$LAST_H" ] && LAST_H=0
@@ -342,17 +343,21 @@ if [ "$NEEDS_RANDOMIZE" = "true" ]; then
     fi
 
     AGENT_TOTAL_M=$(( HOUR_NUM * 60 + MINUTE_NUM ))
-    AGENT_HOUR_START=$(( HOUR_NUM * 60 ))
+    RAND_WINDOW=10
+    AGENT_FLOOR=$(( AGENT_TOTAL_M - RAND_WINDOW ))
+    AGENT_CEIL=$(( AGENT_TOTAL_M + RAND_WINDOW ))
 
-    FLOOR_MINUTES=$AGENT_HOUR_START
+    FLOOR_MINUTES=$AGENT_FLOOR
     if [ "$EARLIEST_MINUTES" -gt "$FLOOR_MINUTES" ]; then
         FLOOR_MINUTES=$EARLIEST_MINUTES
     fi
 
+    CEIL_MINUTES=$AGENT_CEIL
     if [ "$OVER_TIME" != "true" ]; then
-        CEIL_MINUTES=$(( WORK_END * 60 - 1 ))
-    else
-        CEIL_MINUTES=$(( HOUR_NUM * 60 + 59 ))
+        WORK_CEIL=$(( WORK_END * 60 - 1 ))
+        if [ "$CEIL_MINUTES" -gt "$WORK_CEIL" ]; then
+            CEIL_MINUTES=$WORK_CEIL
+        fi
     fi
 
     if [ "$FLOOR_MINUTES" -gt "$CEIL_MINUTES" ]; then
@@ -380,10 +385,13 @@ Earliest next slot: $(format_date_name "$NEXT_DATE") $(printf '%02d:%02d' "$EARL
         RAND_OFFSET=$(rand_int)
         CANDIDATE=$(( FLOOR_MINUTES + (RAND_OFFSET * RANGE_MINUTES / 256) ))
         CAND_MINUTE=$(( CANDIDATE % 60 ))
+        CAND_HOUR=$(( CANDIDATE / 60 ))
         if ! is_quarter_minute "$(printf '%02d' "$CAND_MINUTE")"; then
-            FINAL_HOUR=$(( CANDIDATE / 60 ))
-            FINAL_MINUTE=$CAND_MINUTE
-            break
+            if [ "$CAND_HOUR" -ne "$HOUR_NUM" ] || [ "$CAND_MINUTE" -ne "$MINUTE_NUM" ]; then
+                FINAL_HOUR=$CAND_HOUR
+                FINAL_MINUTE=$CAND_MINUTE
+                break
+            fi
         fi
         TRIES=$((TRIES + 1))
     done
