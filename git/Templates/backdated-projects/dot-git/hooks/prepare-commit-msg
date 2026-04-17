@@ -22,7 +22,6 @@ cfg() {
 }
 
 BACKDATE_REQUIREMENTS='This is a backdated repository. All commits must follow these rules:
-
 1. Date: Set GIT_COMMITTER_DATE (used for both author and committer). Falls back to GIT_AUTHOR_DATE, then --date.
 2. Time format: Any git-compatible format (normalized internally to YYYY-MM-DD HH:MM)
 3. Commit spacing: LOC-based minimum gap (1-10 LOC = 5min, 11-50 = 15min, 51-200 = 30min, 200+ = 1hr)
