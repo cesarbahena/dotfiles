@@ -34,9 +34,19 @@ BACKDATE_REQUIREMENTS='This is a backdated repository. All commits must follow t
 9. Staged files: Cannot contain emojis'
 
 die() {
+    SHOW_BLOCK=true
+    if [ -f "$SENTINEL_DIR/last_full_msg" ]; then
+        LAST_SHOWN="$(stat -c %Y "$SENTINEL_DIR/last_full_msg" 2>/dev/null)"
+        NOW="$(date +%s)"
+        AGE=$(( NOW - LAST_SHOWN ))
+        [ "$AGE" -lt 600 ] && SHOW_BLOCK=false
+    fi
     echo "Git Hook (prepare-commit-msg)" >&2
     echo "$1" >&2
-    echo "$BACKDATE_REQUIREMENTS" >&2
+    if [ "$SHOW_BLOCK" = "true" ]; then
+        echo "$BACKDATE_REQUIREMENTS" >&2
+        touch "$SENTINEL_DIR/last_full_msg"
+    fi
     exit 1
 }
 
@@ -294,7 +304,9 @@ if [ -n "$LAST_COMMIT_DATE" ]; then
 
     if [ "$DIFF_SECONDS" -lt "$MIN_GAP" ]; then
         MIN_GAP_MIN=$((MIN_GAP / 60))
-        EARLIEST_TS="$(date -d "$LAST_COMMIT_ISO + $MIN_GAP seconds" '+%Y-%m-%d %H:%M' 2>/dev/null)"
+        LAST_EPOCH="$(date -d "$LAST_COMMIT_NORMALIZED" +%s 2>/dev/null)"
+        EARLIEST_EPOCH=$((LAST_EPOCH + MIN_GAP))
+        EARLIEST_TS="$(date -d "@$EARLIEST_EPOCH" '+%Y-%m-%d %H:%M' 2>/dev/null)"
         die "Gap too small: need ${MIN_GAP_MIN}min for ${LOC_TOTAL} LOC. Last commit: $LAST_COMMIT_NORMALIZED, earliest: ${EARLIEST_TS:-$((MIN_GAP / 60)) min after}"
     fi
 
@@ -302,7 +314,9 @@ if [ -n "$LAST_COMMIT_DATE" ]; then
     [ -z "$MAX_GAP_DAYS" ] && MAX_GAP_DAYS=30
     MAX_GAP_SECS=$((MAX_GAP_DAYS * 86400))
 
-    EARLIEST_GAP_DATE="$(date -d "$LAST_COMMIT_ISO + $MAX_GAP_DAYS days" '+%Y-%m-%d' 2>/dev/null)"
+    LAST_EPOCH_D="$(date -d "$LAST_COMMIT_NORMALIZED" +%s 2>/dev/null)"
+    EARLIEST_GAP_EPOCH=$((LAST_EPOCH_D + MAX_GAP_SECS))
+    EARLIEST_GAP_DATE="$(date -d "@$EARLIEST_GAP_EPOCH" '+%Y-%m-%d' 2>/dev/null)"
     if [ "$DIFF_SECONDS" -gt "$MAX_GAP_SECS" ]; then
         die "Gap too large: max ${MAX_GAP_DAYS} days. Last commit: $LAST_COMMIT_NORMALIZED, earliest: ${EARLIEST_GAP_DATE:-$MAX_GAP_DAYS days after last commit}"
     fi

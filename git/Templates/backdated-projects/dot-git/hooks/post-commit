@@ -12,6 +12,7 @@ if [ -f "$SENTINEL_DIR/amending" ]; then
     rm -f "$SENTINEL_DIR/rand_hour"
     rm -f "$SENTINEL_DIR/rand_minute"
     rm -f "$SENTINEL_DIR/chosen_date"
+    rm -f "$SENTINEL_DIR/last_full_msg"
     rmdir "$SENTINEL_DIR" 2>/dev/null
     exit 0
 fi
