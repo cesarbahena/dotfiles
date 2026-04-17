@@ -14,7 +14,7 @@ cfg() {
 BACKDATE_REQUIREMENTS='This is a backdated repository. All commits must follow these rules:
 
 REQUIREMENTS:
-1. Date: Must provide GIT_COMMITTER_DATE and (GIT_AUTHOR_DATE or --date), both must match
+1. Date: Set GIT_COMMITTER_DATE (used for both author and committer). Falls back to GIT_AUTHOR_DATE, then --date.
 2. Time format: Any git-compatible format (normalized internally to YYYY-MM-DD HH:MM)
 3. Commit spacing: LOC-based minimum gap (1-10 LOC = 5min, 11-50 = 15min, 51-200 = 30min, 200+ = 1hr)
 4. Maximum gap: Cannot be more than 1 month since last commit
@@ -35,8 +35,8 @@ CONFIGURATION (git config --local):
   hook.backdate.enforceEmojis       Enforce no-emoji rule (default: true)
 
 EXAMPLES:
-  GIT_COMMITTER_DATE="2025-01-15 09:23" GIT_AUTHOR_DATE="2025-01-15 09:23" git commit -m "feat: add feature"
-  GIT_COMMITTER_DATE="2025-01-15 09:23" git commit --date="2025-01-15 09:23" -m "feat: add feature"
+  GIT_COMMITTER_DATE="2025-01-15 09:23" git commit -m "feat: add feature"
+  git commit --date="2025-01-15 09:23" -m "feat: add feature"
 '
 
 die() {
@@ -102,14 +102,25 @@ if [ -d "/proc/$PPID" ]; then
     PARENT_ENV="$(cat /proc/$PPID/environ 2>/dev/null | tr '\0' '\n')"
 fi
 
-ORIG_CMDR=""
-ORIG_AUTH=""
+# Date resolution priority:
+# 1. GIT_COMMITTER_DATE env var (primary, used for both dates)
+# 2. GIT_AUTHOR_DATE env var (fallback if COMMITTER_DATE missing)
+# 3. --date cmdline flag (fallback if both env vars missing)
+# The chosen date is applied to both author and committer.
+# No comparison or warning — just pick the best source and proceed.
+
+CHOSEN_DATE=""
+
 if [ -n "$PARENT_ENV" ]; then
     ORIG_CMDR="$(echo "$PARENT_ENV" | grep -m1 "^GIT_COMMITTER_DATE=" | cut -d= -f2-)"
     ORIG_AUTH="$(echo "$PARENT_ENV" | grep -m1 "^GIT_AUTHOR_DATE=" | cut -d= -f2-)"
 fi
 
-if [ -z "$ORIG_AUTH" ] && [ -d "/proc/$PPID" ]; then
+if [ -n "$ORIG_CMDR" ]; then
+    CHOSEN_DATE="$ORIG_CMDR"
+elif [ -n "$ORIG_AUTH" ]; then
+    CHOSEN_DATE="$ORIG_AUTH"
+elif [ -d "/proc/$PPID" ]; then
     CMDLINE_ARGS="$(cat /proc/$PPID/cmdline 2>/dev/null | tr '\0' '\n')"
     echo "$CMDLINE_ARGS" | while IFS= read -r arg; do
         case "$arg" in
@@ -123,39 +134,24 @@ if [ -z "$ORIG_AUTH" ] && [ -d "/proc/$PPID" ]; then
         esac
     done
     if [ -f "$SENTINEL_DIR/cmdline_date" ]; then
-        ORIG_AUTH="$(cat "$SENTINEL_DIR/cmdline_date")"
+        CHOSEN_DATE="$(cat "$SENTINEL_DIR/cmdline_date")"
         rm -f "$SENTINEL_DIR/cmdline_date"
     fi
 fi
 
-if [ -z "$ORIG_CMDR" ]; then
-    die "No GIT_COMMITTER_DATE provided."
+if [ -z "$CHOSEN_DATE" ]; then
+    die "No date provided.
+Set GIT_COMMITTER_DATE=\"YYYY-MM-DD HH:MM\" before committing."
 fi
 
-if [ -z "$ORIG_AUTH" ]; then
-    die "No author date provided.
-Set GIT_AUTHOR_DATE or use --date flag."
+NORM_DATE="$(date -d "$CHOSEN_DATE" '+%Y-%m-%d %H:%M' 2>/dev/null)"
+
+if [ -z "$NORM_DATE" ]; then
+    die "Cannot parse date: $CHOSEN_DATE"
 fi
 
-NORM_CMDR="$(date -d "$ORIG_CMDR" '+%Y-%m-%d %H:%M' 2>/dev/null)"
-NORM_AUTH="$(date -d "$ORIG_AUTH" '+%Y-%m-%d %H:%M' 2>/dev/null)"
-
-if [ -z "$NORM_CMDR" ]; then
-    die "Cannot parse GIT_COMMITTER_DATE: $ORIG_CMDR"
-fi
-
-if [ -z "$NORM_AUTH" ]; then
-    die "Cannot parse author date: $ORIG_AUTH"
-fi
-
-if [ "$NORM_CMDR" != "$NORM_AUTH" ]; then
-    die "GIT_COMMITTER_DATE and author date must match.
-Committer: $NORM_CMDR (from: $ORIG_CMDR)
-Author:    $NORM_AUTH (from: $ORIG_AUTH)"
-fi
-
-DATE_PART="${NORM_CMDR%% *}"
-TIME_PART="${NORM_CMDR##* }"
+DATE_PART="${NORM_DATE%% *}"
+TIME_PART="${NORM_DATE##* }"
 
 HOUR="${TIME_PART%%:*}"
 MINUTE="${TIME_PART#*:}"
@@ -462,6 +458,7 @@ Remove emojis for clean portable text files."
 fi
 
 echo "$SEC_PADDED" > "$SENTINEL_DIR/seconds"
+echo "$NORM_DATE" > "$SENTINEL_DIR/chosen_date"
 
 if [ "$FINAL_HOUR" -ne "$HOUR_NUM" ] || [ "$FINAL_MINUTE" -ne "$MINUTE_NUM" ]; then
     echo "$FINAL_HOUR" > "$SENTINEL_DIR/rand_hour"
