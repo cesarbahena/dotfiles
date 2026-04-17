@@ -3,6 +3,16 @@
 # Validates commit timing, format, and content before commit proceeds
 # Features: density cap, minute auto-randomization, weekendWork/overtime flags,
 #           LOC-based gap scaling, seconds injection via post-commit
+#
+# Per-project config (git config --local):
+#   hook.backdate.workStart           Work start hour (default: 8)
+#   hook.backdate.workEnd             Work end hour exclusive (default: 19)
+#   hook.backdate.maxCommitsPerDay    Max commits per calendar day (default: 5)
+#   hook.backdate.maxGapDays          Max gap between commits in days (default: 30)
+#   hook.backdate.weekendWork         Allow weekend commits (default: false)
+#   hook.backdate.overTime            Allow outside work hours (default: false)
+#   hook.backdate.enforceConventional Enforce conventional commits (default: true)
+#   hook.backdate.enforceEmojis       Enforce no-emoji rule (default: true)
 
 GIT_DIR="$(git rev-parse --git-dir 2>/dev/null || echo .git)"
 SENTINEL_DIR="$GIT_DIR/backdate-hook"
@@ -13,31 +23,15 @@ cfg() {
 
 BACKDATE_REQUIREMENTS='This is a backdated repository. All commits must follow these rules:
 
-REQUIREMENTS:
 1. Date: Set GIT_COMMITTER_DATE (used for both author and committer). Falls back to GIT_AUTHOR_DATE, then --date.
 2. Time format: Any git-compatible format (normalized internally to YYYY-MM-DD HH:MM)
 3. Commit spacing: LOC-based minimum gap (1-10 LOC = 5min, 11-50 = 15min, 51-200 = 30min, 200+ = 1hr)
 4. Maximum gap: Cannot be more than 1 month since last commit
-5. Work hours: Mon-Fri 08:00-18:59 (configurable)
-6. Max commits per day: 5 (configurable) with density-based sparse days
+5. Work hours: Mon-Fri 08:00-18:59
+6. Max commits per day: 5 with density-based sparse days
 7. Commit message: Single line, no emojis, conventional format (type: message or type(scope): message)
 8. Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
-9. Staged files: Cannot contain emojis
-
-CONFIGURATION (git config --local):
-  hook.backdate.workStart           Work start hour (default: 8)
-  hook.backdate.workEnd             Work end hour exclusive (default: 19)
-  hook.backdate.maxCommitsPerDay    Max commits per calendar day (default: 5)
-  hook.backdate.maxGapDays          Maximum gap between commits in days (default: 30)
-  hook.backdate.weekendWork         Allow weekend commits (default: false)
-  hook.backdate.overTime            Allow outside work hours (default: false)
-  hook.backdate.enforceConventional Enforce conventional commits (default: true)
-  hook.backdate.enforceEmojis       Enforce no-emoji rule (default: true)
-
-EXAMPLES:
-  GIT_COMMITTER_DATE="2025-01-15 09:23" git commit -m "feat: add feature"
-  git commit --date="2025-01-15 09:23" -m "feat: add feature"
-'
+9. Staged files: Cannot contain emojis'
 
 die() {
     echo "Git Hook (prepare-commit-msg)" >&2
@@ -71,8 +65,8 @@ is_workday() {
     case "$dow" in 0|6) return 1;; *) return 0;; esac
 }
 
-format_date_name() {
-    date -d "$1" '+%A %Y-%m-%d' 2>/dev/null || echo "$1"
+abbr_day() {
+    date -d "$1" '+%a %Y-%m-%d' 2>/dev/null || echo "$1"
 }
 
 GIT_MSG_FILE="$1"
@@ -174,18 +168,14 @@ if [ "$WEEKEND_WORK" != "true" ]; then
         0|6)
             DOW_NAME="Sunday"
             [ "$DOW" = "6" ] && DOW_NAME="Saturday"
-            die "Cannot commit on weekends.
-You are trying to commit at: $DATE_PART ($DOW_NAME)
-Commits must be Mon-Fri. Enable hook.backdate.weekendWork if needed."
+            die "Cannot commit on weekends: $DATE_PART ($DOW_NAME)"
             ;;
     esac
 fi
 
 if [ "$OVER_TIME" != "true" ]; then
     if [ "$HOUR_NUM" -lt "$WORK_START" ] || [ "$HOUR_NUM" -ge "$WORK_END" ]; then
-        die "Cannot commit outside work hours ($((WORK_START)):00-$((WORK_END-1)):59).
-You are trying to commit at: $TIME_PART
-Enable hook.backdate.overTime if needed."
+        die "Outside work hours: $TIME_PART (allowed: $(printf '%02d' "$WORK_START"):00-$(printf '%02d' "$((WORK_END-1))"):59)"
     fi
 fi
 
@@ -223,7 +213,7 @@ if [ "$TODAY_CAP" -eq 0 ]; then
         fi
     done
     die "Rest day — $ACTIVE_WORKDAYS/5 recent workdays already active.
-Next available: $(format_date_name "$NEXT_DATE")"
+Next available: $(abbr_day "$NEXT_DATE")"
 fi
 
 if [ "$TODAY_COUNT" -ge "$TODAY_CAP" ]; then
@@ -234,8 +224,8 @@ if [ "$TODAY_COUNT" -ge "$TODAY_CAP" ]; then
             break
         fi
     done
-    die "Max $TODAY_CAP commits/day for $(format_date_name "$DATE_PART") ($ACTIVE_WORKDAYS/5 recent workdays active).
-Next available: $(format_date_name "$NEXT_DATE")"
+    die "Max $TODAY_CAP commits/day for $(abbr_day "$DATE_PART") ($ACTIVE_WORKDAYS/5 recent workdays active).
+Next available: $(abbr_day "$NEXT_DATE")"
 fi
 
 LAST_COMMIT_DATE="$(git log -1 --format=%ci 2>/dev/null || echo "")"
@@ -304,21 +294,17 @@ if [ -n "$LAST_COMMIT_DATE" ]; then
 
     if [ "$DIFF_SECONDS" -lt "$MIN_GAP" ]; then
         MIN_GAP_MIN=$((MIN_GAP / 60))
-        die "Commit time gap is too small (need ${MIN_GAP_MIN}min for ${LOC_TOTAL} LOC changed).
-Last commit: $LAST_COMMIT_NORMALIZED
-You are trying to commit at: $DATE_PART $TIME_PART
-Calculate reasonable development time for a human dev to make these changes."
+        EARLIEST_TS="$(date -d "$LAST_COMMIT_ISO + $MIN_GAP seconds" '+%Y-%m-%d %H:%M' 2>/dev/null)"
+        die "Gap too small: need ${MIN_GAP_MIN}min for ${LOC_TOTAL} LOC. Last commit: $LAST_COMMIT_NORMALIZED, earliest: ${EARLIEST_TS:-$((MIN_GAP / 60)) min after}"
     fi
 
     MAX_GAP_DAYS="$(cfg hook.backdate.maxGapDays)"
     [ -z "$MAX_GAP_DAYS" ] && MAX_GAP_DAYS=30
     MAX_GAP_SECS=$((MAX_GAP_DAYS * 86400))
 
+    EARLIEST_GAP_DATE="$(date -d "$LAST_COMMIT_ISO + $MAX_GAP_DAYS days" '+%Y-%m-%d' 2>/dev/null)"
     if [ "$DIFF_SECONDS" -gt "$MAX_GAP_SECS" ]; then
-        die "Cannot commit more than ${MAX_GAP_DAYS} days since last commit.
-Last commit: $LAST_COMMIT_NORMALIZED
-You are trying to commit at: $DATE_PART
-Evaluate if this is realistic or rollback to an earlier state."
+        die "Gap too large: max ${MAX_GAP_DAYS} days. Last commit: $LAST_COMMIT_NORMALIZED, earliest: ${EARLIEST_GAP_DATE:-$MAX_GAP_DAYS days after last commit}"
     fi
 fi
 
@@ -366,8 +352,7 @@ if [ "$NEEDS_RANDOMIZE" = "true" ]; then
             NEXT_START_M=$(( WORK_START * 60 + 1 ))
             EARLIEST_MIN=$(( NEXT_START_M % 60 ))
             EARLIEST_HOUR=$(( NEXT_START_M / 60 ))
-            die "Not enough time remaining in work day for gap.
-Earliest next slot: $(format_date_name "$NEXT_DATE") $(printf '%02d:%02d' "$EARLIEST_HOUR" "$EARLIEST_MIN")"
+            die "Not enough time in work day. Earliest: $(abbr_day "$NEXT_DATE") $(printf '%02d:%02d' "$EARLIEST_HOUR" "$EARLIEST_MIN")"
         fi
     fi
 
@@ -399,8 +384,7 @@ Earliest next slot: $(format_date_name "$NEXT_DATE") $(printf '%02d:%02d' "$EARL
                 NEXT_DATE="$(next_workday "$NEXT_DATE")"
                 if is_workday "$NEXT_DATE"; then break; fi
             done
-            die "Randomized time overflows work hours.
-Use a later date: $(format_date_name "$NEXT_DATE")"
+            die "No valid time this work day. Use: $(abbr_day "$NEXT_DATE")"
         fi
     fi
 fi
@@ -450,9 +434,7 @@ if [ "$ENFORCE_EMOJIS" != "false" ]; then
             fi
         done
         if [ -n "$FILES_WITH_EMOJI" ]; then
-            die "Staged files contain emojis.
-Files:${FILES_WITH_EMOJI}
-Remove emojis for clean portable text files."
+            die "Staged files contain emojis:${FILES_WITH_EMOJI}"
         fi
     fi
 fi
