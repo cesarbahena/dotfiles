@@ -25,11 +25,12 @@ BACKDATE_REQUIREMENTS='This is a backdated repository. All commits must follow t
 1. Date: Set GIT_COMMITTER_DATE (used for both author and committer). Falls back to GIT_AUTHOR_DATE, then --date.
 2. Time format: Any git-compatible format (normalized internally to YYYY-MM-DD HH:MM)
 3. Commit spacing: must reflect organic development time relative to lines changed and time since last commit
-4. Work hours: Mon-Fri 08:00-18:59
-5. Max commits per day: 5 with density-based sparse days
+4. Work hours: Mon-Fri 08:00-18:59 (backdate calendar)
+5. Max commits per day: 5 with density-based sparse days (backdate calendar)
 6. Commit message: Single line, no emojis, conventional format (type: message or type(scope): message)
 7. Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
-8. Staged files: Cannot contain emojis'
+8. Staged files: Cannot contain emojis
+9. All date constraints refer to the backdate calendar, not real-world time. Retry now with a more organic date.'
 
 die() {
     SHOW_BLOCK=true
@@ -143,13 +144,14 @@ fi
 
 if [ -z "$CHOSEN_DATE" ]; then
     die "No date provided.
-Set GIT_COMMITTER_DATE=\"YYYY-MM-DD HH:MM\" before committing."
+Retry now with a more organic date."
 fi
 
 NORM_DATE="$(date -d "$CHOSEN_DATE" '+%Y-%m-%d %H:%M' 2>/dev/null)"
 
 if [ -z "$NORM_DATE" ]; then
-    die "Cannot parse date: $CHOSEN_DATE"
+    die "Cannot parse date: $CHOSEN_DATE
+Retry now with a more organic date."
 fi
 
 DATE_PART="${NORM_DATE%% *}"
@@ -176,14 +178,16 @@ if [ "$WEEKEND_WORK" != "true" ]; then
         0|6)
             DOW_NAME="Sunday"
             [ "$DOW" = "6" ] && DOW_NAME="Saturday"
-            die "Cannot commit on weekends: $DATE_PART ($DOW_NAME)"
+            die "$DATE_PART is a $DOW_NAME in the backdate calendar.
+Retry now with a more organic date."
             ;;
     esac
 fi
 
 if [ "$OVER_TIME" != "true" ]; then
     if [ "$HOUR_NUM" -lt "$WORK_START" ] || [ "$HOUR_NUM" -ge "$WORK_END" ]; then
-        die "Outside work hours: $TIME_PART (allowed: $(printf '%02d' "$WORK_START"):00-$(printf '%02d' "$((WORK_END-1))"):59)"
+        die "$TIME_PART is outside work hours (allowed: $(printf '%02d' "$WORK_START"):00-$(printf '%02d' "$((WORK_END-1))"):59).
+Retry now with a more organic date."
     fi
 fi
 
@@ -220,8 +224,8 @@ if [ "$TODAY_CAP" -eq 0 ]; then
             break
         fi
     done
-    die "Rest day — $ACTIVE_WORKDAYS/5 recent workdays already active.
-Next available: $(abbr_day "$NEXT_DATE")"
+    die "Rest day in backdate calendar ($ACTIVE_WORKDAYS/5 recent workdays active).
+Retry now with a more organic date."
 fi
 
 if [ "$TODAY_COUNT" -ge "$TODAY_CAP" ]; then
@@ -232,8 +236,8 @@ if [ "$TODAY_COUNT" -ge "$TODAY_CAP" ]; then
             break
         fi
     done
-    die "Max $TODAY_CAP commits/day for $(abbr_day "$DATE_PART") ($ACTIVE_WORKDAYS/5 recent workdays active).
-Next available: $(abbr_day "$NEXT_DATE")"
+    die "Density cap reached for $(abbr_day "$DATE_PART") ($ACTIVE_WORKDAYS/5 recent workdays active).
+Retry now with a more organic date."
 fi
 
 LAST_COMMIT_DATE="$(git log -1 --format=%ci 2>/dev/null || echo "")"
@@ -301,7 +305,8 @@ if [ -n "$LAST_COMMIT_DATE" ]; then
     fi
 
     if [ "$DIFF_SECONDS" -lt "$MIN_GAP" ]; then
-        die "Gap too small: allow organic development time between changes. Last commit: $LAST_COMMIT_NORMALIZED"
+        die "Gap too small from last commit ($LAST_COMMIT_NORMALIZED).
+Retry now with a more organic date."
     fi
 
     MAX_GAP_DAYS="$(cfg hook.backdate.maxGapDays)"
@@ -309,7 +314,8 @@ if [ -n "$LAST_COMMIT_DATE" ]; then
     MAX_GAP_SECS=$((MAX_GAP_DAYS * 86400))
 
     if [ "$DIFF_SECONDS" -gt "$MAX_GAP_SECS" ]; then
-        die "Gap too large: allow realistic development cadence between changes. Last commit: $LAST_COMMIT_NORMALIZED"
+        die "Gap too large from last commit ($LAST_COMMIT_NORMALIZED).
+Retry now with a more organic date."
     fi
 fi
 
@@ -357,7 +363,8 @@ if [ "$NEEDS_RANDOMIZE" = "true" ]; then
             NEXT_START_M=$(( WORK_START * 60 + 1 ))
             EARLIEST_MIN=$(( NEXT_START_M % 60 ))
             EARLIEST_HOUR=$(( NEXT_START_M / 60 ))
-            die "Not enough time in work day. Earliest: $(abbr_day "$NEXT_DATE") $(printf '%02d:%02d' "$EARLIEST_HOUR" "$EARLIEST_MIN")"
+            die "Not enough time remaining in this backdate day.
+Retry now with a more organic date."
         fi
     fi
 
@@ -389,7 +396,8 @@ if [ "$NEEDS_RANDOMIZE" = "true" ]; then
                 NEXT_DATE="$(next_workday "$NEXT_DATE")"
                 if is_workday "$NEXT_DATE"; then break; fi
             done
-            die "No valid time this work day. Use: $(abbr_day "$NEXT_DATE")"
+            die "No valid time remaining in this backdate day.
+Retry now with a more organic date."
         fi
     fi
 fi
