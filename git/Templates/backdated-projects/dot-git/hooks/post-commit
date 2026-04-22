@@ -69,6 +69,6 @@ else
 fi
 
 touch "$SENTINEL_DIR/amending"
-GIT_COMMITTER_DATE="$NEW_COMMITTER_DATE" git commit --amend --no-edit --date="$NEW_AUTHOR_DATE"
+GIT_COMMITTER_DATE="$NEW_COMMITTER_DATE" git commit --amend --no-edit --date="$NEW_AUTHOR_DATE" >/dev/null 2>&1
 
 exit 0
