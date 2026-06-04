@@ -19,15 +19,18 @@ for k, v in pairs({
   'ts_ls',
   'lua_ls',
   'gopls',
+  'marksman',
 }) do
-if type(k) ~= 'number' then
-  vim.lsp.config(k, v)
-end
-vim.lsp.enable { type(k) == 'number' and v or k }
+  if type(k) ~= 'number' then
+    vim.lsp.config(k, v)
+  end
+  vim.lsp.enable { type(k) == 'number' and v or k }
 end
 
 require('conform').setup {
-  formatters_by_ft = {},
+  formatters_by_ft = {
+    markdown = { 'prettier' }
+  },
   format_on_save = {
     timeout_ms = 500,
     lsp_fallback = true,
