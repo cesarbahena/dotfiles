@@ -1,0 +1,4 @@
+interface:
+  display_name: "Present Technical Findings"
+  short_description: "Turn findings into a clear meeting artifact"
+  default_prompt: "Use $present-technical-findings to turn my technical findings into a concise meeting-ready brief."
